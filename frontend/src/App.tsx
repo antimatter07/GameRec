@@ -1,45 +1,34 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
-
 import '@mantine/core/styles.css';
-import { MantineProvider, Button } from '@mantine/core';
+import '@mantine/notifications/styles.css';
 
-function App() {
-  const [count, setCount] = useState(0);
+import { MantineProvider } from '@mantine/core';
+import { Notifications } from '@mantine/notifications';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { RouterProvider } from 'react-router';
+
+import { router } from './router';
+import { useUIStore } from './store/uiStore';
+
+// TODO: Customize the Mantine theme (colors, fonts, defaultRadius, etc.)
+//       https://mantine.dev/theming/theme-object/
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      // TODO: Configure global staleTime, gcTime defaults here
+    },
+  },
+});
+
+export default function App() {
+  const colorScheme = useUIStore((s) => s.colorScheme);
 
   return (
-    <MantineProvider>
-      <>
-        <div>
-          <a href="https://vite.dev" target="_blank">
-            <img src={viteLogo} className="logo" alt="Vite logo" />
-          </a>
-          <a href="https://react.dev" target="_blank">
-            <img src={reactLogo} className="logo react" alt="React logo" />
-          </a>
-        </div>
-
-        <h1>Vite + React + Mantine</h1>
-
-        <div className="card">
-          {}
-          <Button fullWidth onClick={() => setCount((c) => c + 1)}>
-            Mantine Count: {count}
-          </Button>
-
-          <p>
-            Edit <code>src/App.tsx</code> and save to test HMR
-          </p>
-        </div>
-
-        <p className="read-the-docs">
-          Click on the Vite and React logos to learn more
-        </p>
-      </>
-    </MantineProvider>
+    <QueryClientProvider client={queryClient}>
+      <MantineProvider defaultColorScheme={colorScheme}>
+        <Notifications position="top-right" />
+        <RouterProvider router={router} />
+      </MantineProvider>
+    </QueryClientProvider>
   );
 }
-
-export default App;
