@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 from sqlalchemy import Date, DateTime, Float, Integer, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -34,7 +34,7 @@ class Game(Base):
     #         b) Use a separate `game_vectors` table with pgvector extension
     #         c) Keep vectors in memory / Redis cache and recompute on demand
 
-    synced_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    synced_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Relationships
     library_entries  = relationship("LibraryEntry",       back_populates="game")

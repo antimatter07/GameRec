@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, JSON, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -12,7 +12,7 @@ class Recommendation(Base):
 
     id:               Mapped[int]      = mapped_column(primary_key=True)
     user_id:          Mapped[int]      = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
-    generated_at:     Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    generated_at:     Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     # TODO: Snapshot the taste profile used for this batch so history stays
     #       meaningful even if the user's library changes later
@@ -49,7 +49,7 @@ class RecommendationFeedback(Base):
     id:         Mapped[int]      = mapped_column(primary_key=True)
     item_id:    Mapped[int]      = mapped_column(Integer, ForeignKey("recommendation_items.id"), nullable=False)
     is_helpful: Mapped[bool]     = mapped_column(Boolean, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     item = relationship("RecommendationItem", back_populates="feedback")
 
