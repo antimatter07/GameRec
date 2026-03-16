@@ -3,19 +3,17 @@ from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException, status
 import jwt
 from jwt.exceptions import InvalidTokenError
-from passlib.context import CryptContext
+import bcrypt
 
 from app.config import settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 
 def hash_password(plain: str) -> str:
-    return pwd_context.hash(plain)
+    return bcrypt.hashpw(plain.encode(), bcrypt.gensalt()).decode()
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    return bcrypt.checkpw(plain.encode(), hashed.encode())
 
 
 def create_access_token(user_id: int, role: str) -> str:
