@@ -20,8 +20,8 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     # RAWG API — get your key at rawg.io/apidocs
-    RAWG_API_KEY: str = ""
-    RAWG_BASE_URL: str = "https://api.rawg.io/api"
+    RAWG_API_KEY: str
+    RAWG_BASE_URL: str
 
     # LLM for premium AI features
     # TODO: Choose your LLM provider and add the appropriate key below
