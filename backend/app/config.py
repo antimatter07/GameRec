@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "change-me-in-production"
 
     # Database (Supabase PostgreSQL connection string)
-    DATABASE_URL: str = "postgresql+psycopg2://user:password@localhost:5432/gamedb"
+    DATABASE_URL: str 
 
     # Redis (used by Celery broker + result backend, and for token blacklisting)
     REDIS_URL: str = "redis://localhost:6379/0"

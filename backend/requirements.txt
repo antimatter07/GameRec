@@ -59,3 +59,5 @@ watchfiles==1.1.1
 wcwidth==0.6.0
 websockets==16.0
 wrapt==2.1.2
+numpy>=1.26,<3
+scikit-learn>=1.4,<2

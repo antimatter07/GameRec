@@ -1,4 +1,5 @@
 from datetime import date, datetime, timezone
+from typing import Optional
 
 from sqlalchemy import Date, DateTime, Float, Integer, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -28,11 +29,11 @@ class Game(Base):
     tags:        Mapped[list] = mapped_column(JSON, default=list)
     screenshots: Mapped[list] = mapped_column(JSON, default=list)
 
-    # TODO: Store pre-computed TF-IDF / multi-hot feature vectors for the
-    #       recommendation engine. Options:
-    #         a) Add a `feature_vector` JSON column here
-    #         b) Use a separate `game_vectors` table with pgvector extension
-    #         c) Keep vectors in memory / Redis cache and recompute on demand
+    # Pre-computed L2-normalized feature vector for content-based filtering.
+    # Concatenation of: multi-hot genres | multi-hot top-150 tags | metacritic/100 | rating/5
+    feature_vector: Mapped[Optional[list[float]]] = mapped_column(JSON, nullable=True)
+
+    playtime: Mapped[int] = mapped_column(Integer, nullable=True)
 
     synced_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 

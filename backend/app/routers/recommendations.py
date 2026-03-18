@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.dependencies import require_basic, require_premium
+from app.models.recommendation import Recommendation
 from app.models.user import User
 from app.schemas.recommendation import GameDNAOut, RecommendationOut
+from app.services import recommendation_service
 
 router = APIRouter()
 
@@ -18,11 +20,25 @@ def get_recommendations(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_basic),
 ):
-    # TODO: Call recommendation_service.get_or_generate(db, current_user)
-    # TODO: For basic users: return items with explanation=None, confidence=None
-    # TODO: For premium users: apply genre/platform/release_year filters AND include
-    #       LLM explanations (call ai_service.generate_explanations if not cached)
-    raise NotImplementedError
+    try:
+        recommendation = recommendation_service.get_or_generate(current_user.id, db)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        )
+
+    # Eagerly load items and their games so the response serialiser can access them.
+    recommendation = (
+        db.query(Recommendation)
+        .options(
+            joinedload(Recommendation.items).joinedload("game")
+        )
+        .filter(Recommendation.id == recommendation.id)
+        .one()
+    )
+
+    return recommendation
 
 
 @router.get("/history", response_model=list[RecommendationOut])
