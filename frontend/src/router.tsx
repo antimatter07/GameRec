@@ -17,6 +17,8 @@ import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 
 /** Redirects unauthenticated users to /login */
 function ProtectedRoute() {
+  // TODO: remove temporary auth bypass — re-enable once auth is implemented
+  return <Outlet />;
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated());
   return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
 }
