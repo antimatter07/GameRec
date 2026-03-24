@@ -1,7 +1,7 @@
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
 
-import { MantineProvider } from '@mantine/core';
+import { MantineProvider, createTheme } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from 'react-router';
@@ -9,8 +9,14 @@ import { RouterProvider } from 'react-router';
 import { router } from './router';
 import { useUIStore } from './store/uiStore';
 
-// TODO: Customize the Mantine theme (colors, fonts, defaultRadius, etc.)
-//       https://mantine.dev/theming/theme-object/
+const theme = createTheme({
+  fontFamily: 'Inter, sans-serif',
+  fontFamilyMonospace: 'monospace',
+  headings: {
+    fontFamily: 'Space Grotesk, sans-serif',
+  },
+});
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -25,7 +31,7 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <MantineProvider defaultColorScheme={colorScheme}>
+      <MantineProvider theme={theme} defaultColorScheme={colorScheme}>
         <Notifications position="top-right" />
         <RouterProvider router={router} />
       </MantineProvider>
