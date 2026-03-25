@@ -1,12 +1,9 @@
 import { Anchor, Button, Container, Paper, PasswordInput, Text, TextInput, Title } from '@mantine/core';
 import { useForm } from '@mantine/form';
+import { notifications } from '@mantine/notifications';
 import { Link } from 'react-router';
 import { useAuth } from '../../hooks/useAuth';
 
-/**
- * TODO: Show success notification and redirect to /login (or auto-login)
- * TODO: Add confirm-password field
- */
 export default function RegisterPage() {
   const { register } = useAuth();
 
@@ -20,7 +17,12 @@ export default function RegisterPage() {
   });
 
   const handleSubmit = form.onSubmit(async (values) => {
-    // TODO: Call register(values) and handle errors
+    try {
+      await register(values);
+    } catch (err: any) {
+      const message = err?.response?.data?.detail ?? 'Registration failed';
+      notifications.show({ color: 'red', title: 'Error', message });
+    }
   });
 
   return (

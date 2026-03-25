@@ -20,9 +20,9 @@ export function GameCard({ game, showAdd = false }: GameCardProps) {
       <Card.Section>
         <Image
           src={game.background_image ?? undefined}
-          height={140}
+          height={500}
           alt={game.name}
-          fallbackSrc="https://placehold.co/400x140?text=No+Image"
+          fallbackSrc="https://placehold.co/400x200?text=No+Image"
         />
       </Card.Section>
 

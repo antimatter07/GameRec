@@ -1,13 +1,9 @@
 import { Anchor, Button, Container, Paper, PasswordInput, Text, TextInput, Title } from '@mantine/core';
 import { useForm } from '@mantine/form';
+import { notifications } from '@mantine/notifications';
 import { Link } from 'react-router';
 import { useAuth } from '../../hooks/useAuth';
 
-/**
- * TODO: Show error notification (Mantine Notifications) on login failure
- * TODO: Add "Remember me" checkbox if you want longer-lived sessions
- * TODO: Add Google OAuth button (stretch goal)
- */
 export default function LoginPage() {
   const { login } = useAuth();
 
@@ -20,8 +16,11 @@ export default function LoginPage() {
   });
 
   const handleSubmit = form.onSubmit(async (values) => {
-    // TODO: Call login({ username: values.email, password: values.password })
-    // TODO: Handle errors from useAuth.login() and display them
+    try {
+      await login({ username: values.email, password: values.password });
+    } catch {
+      notifications.show({ color: 'red', title: 'Login failed', message: 'Invalid email or password' });
+    }
   });
 
   return (

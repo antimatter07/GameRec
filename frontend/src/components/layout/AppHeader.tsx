@@ -1,16 +1,15 @@
-import { ActionIcon, Group, Text, useMantineColorScheme } from '@mantine/core';
-import { IconMoon, IconSun } from '@tabler/icons-react';
+import { ActionIcon, Avatar, Group, Menu, Text, useMantineColorScheme } from '@mantine/core';
+import { IconLogout, IconMoon, IconSun, IconUser } from '@tabler/icons-react';
+import { Link } from 'react-router';
+import { useAuth } from '../../hooks/useAuth';
 import { useAuthStore } from '../../store/authStore';
 
-/**
- * Top header bar.
- * TODO: Install @tabler/icons-react: npm install @tabler/icons-react
- * TODO: Add Spotlight search trigger (Mantine Spotlight) for quick game search
- * TODO: Add user avatar / dropdown menu linking to profile and logout
- */
 export function AppHeader() {
   const { colorScheme, toggleColorScheme } = useMantineColorScheme();
   const user = useAuthStore((s) => s.user);
+  const { logout } = useAuth();
+
+  const displayName = user?.display_name ?? user?.email ?? '';
 
   return (
     <Group h="100%" px="md" justify="space-between">
@@ -19,16 +18,34 @@ export function AppHeader() {
       </Text>
 
       <Group>
-        {/* TODO: Replace with Mantine Spotlight trigger for game search */}
-
         <ActionIcon variant="default" onClick={toggleColorScheme} size="lg">
           {colorScheme === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}
         </ActionIcon>
 
-        {/* TODO: Add Avatar + Menu with Profile, Settings, Logout links */}
-        <Text size="sm" c="dimmed">
-          {user?.display_name ?? user?.email}
-        </Text>
+        <Menu position="bottom-end" withArrow>
+          <Menu.Target>
+            <Group gap="xs" style={{ cursor: 'pointer' }}>
+              <Avatar radius="xl" size="sm" color="blue">
+                {displayName.charAt(0).toUpperCase()}
+              </Avatar>
+              <Text size="sm">{displayName}</Text>
+            </Group>
+          </Menu.Target>
+
+          <Menu.Dropdown>
+            <Menu.Item leftSection={<IconUser size={16} />} component={Link} to="/profile">
+              Profile
+            </Menu.Item>
+            <Menu.Divider />
+            <Menu.Item
+              leftSection={<IconLogout size={16} />}
+              color="red"
+              onClick={logout}
+            >
+              Log out
+            </Menu.Item>
+          </Menu.Dropdown>
+        </Menu>
       </Group>
     </Group>
   );

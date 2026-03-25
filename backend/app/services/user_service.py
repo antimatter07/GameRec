@@ -7,10 +7,18 @@ from app.schemas.user import UserCreate, UserUpdate
 
 
 def create_user(db: Session, user_in: UserCreate) -> User:
-    # TODO: Check db for existing email — raise HTTP 409 if found
-    # TODO: user = User(email=..., hashed_password=hash_password(user_in.password), role=UserRole.BASIC, ...)
-    # TODO: db.add(user); db.commit(); db.refresh(user); return user
-    raise NotImplementedError
+    if db.query(User).filter(User.email == user_in.email).first():
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
+    user = User(
+        email=user_in.email,
+        hashed_password=hash_password(user_in.password),
+        display_name=user_in.display_name,
+        role=UserRole.BASIC,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
 
 
 def update_user(db: Session, user: User, updates: UserUpdate) -> User:

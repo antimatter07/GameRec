@@ -14,10 +14,15 @@ def get_current_user(
     db: Session = Depends(get_db),
 ) -> User:
     """Decode the JWT and return the authenticated User, or raise 401."""
-    # TODO: Call decode_access_token(token) to get payload
-    # TODO: Query db for User by payload["sub"] (user ID)
-    # TODO: Raise HTTP 401 if token invalid, expired, or user not found / inactive
-    raise NotImplementedError
+    payload = decode_access_token(token)
+    user = db.query(User).filter(User.id == int(payload["sub"])).first()
+    if not user or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return user
 
 
 def require_role(*roles: UserRole):

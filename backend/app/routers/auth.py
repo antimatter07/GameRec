@@ -1,41 +1,60 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.core.security import create_access_token, decode_access_token
 from app.schemas.token import Token
 from app.schemas.user import UserCreate, UserOut
+from app.services import auth_service, user_service
 
 router = APIRouter()
 
 
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
-    # TODO: Call user_service.create_user(db, user_in)
-    # TODO: Raise HTTP 409 if email already registered
-    raise NotImplementedError
+    return user_service.create_user(db, user_in)
 
 
 @router.post("/login", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    # TODO: Call auth_service.authenticate_user(db, form_data.username, form_data.password)
-    # TODO: Raise HTTP 401 if credentials invalid or account inactive
-    # TODO: Return auth_service.issue_tokens(user)
-    raise NotImplementedError
+    user = auth_service.authenticate_user(db, form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return auth_service.issue_tokens(user)
 
 
 @router.post("/refresh", response_model=Token)
 def refresh_token(refresh_token: str, db: Session = Depends(get_db)):
-    # TODO: Decode refresh token, check it's not blacklisted in Redis
-    # TODO: Issue a new access token (and optionally rotate the refresh token)
-    raise NotImplementedError
+    if auth_service.is_refresh_token_blacklisted(refresh_token):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has been revoked")
+    try:
+        from app.config import settings
+        import jwt
+        payload = jwt.decode(refresh_token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+        if payload.get("type") != "refresh":
+            raise ValueError("Wrong token type")
+        user_id = int(payload["sub"])
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+
+    from app.models.user import User
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user or not user.is_active:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+
+    # Blacklist old refresh token and issue a fresh pair
+    auth_service.revoke_refresh_token(refresh_token)
+    return auth_service.issue_tokens(user)
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 def logout(refresh_token: str):
-    # TODO: Call auth_service.revoke_refresh_token(refresh_token)
-    #       — adds token to Redis blacklist with TTL matching its expiry
-    raise NotImplementedError
+    auth_service.revoke_refresh_token(refresh_token)
 
 
 # ---- Stretch goals ----

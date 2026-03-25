@@ -8,30 +8,36 @@ export function useAuth() {
   const { user, setAuth, setUser, logout: clearStore, isAuthenticated } = useAuthStore();
 
   const login = async (credentials: LoginCredentials) => {
-    // TODO: Call authApi.login(credentials)
-    // TODO: Call usersApi.getMe() to get the full user object
-    // TODO: Call setAuth(user, tokens.access_token, tokens.refresh_token)
-    // TODO: Navigate to /recommendations (or previous location)
-    throw new Error('Not implemented');
+    const tokens = await authApi.login(credentials);
+    // Temporarily set the access token so the /users/me call is authenticated
+    useAuthStore.getState().setAccessToken(tokens.access_token);
+    const me = await usersApi.getMe();
+    setAuth(me, tokens.access_token, tokens.refresh_token);
+    navigate('/games');
   };
 
   const register = async (payload: RegisterPayload) => {
-    // TODO: Call authApi.register(payload)
-    // TODO: Auto-login after registration or redirect to /login
-    throw new Error('Not implemented');
+    await authApi.register(payload);
+    // Auto-login after registration
+    await login({ username: payload.email, password: payload.password });
   };
 
   const logout = async () => {
-    // TODO: Call authApi.logout(refreshToken) to blacklist the token server-side
-    // TODO: Call clearStore()
-    // TODO: Navigate to /login
-    throw new Error('Not implemented');
+    const { refreshToken } = useAuthStore.getState();
+    if (refreshToken) {
+      try {
+        await authApi.logout(refreshToken);
+      } catch {
+        // Ignore — clear locally regardless
+      }
+    }
+    clearStore();
+    navigate('/login');
   };
 
   const updateProfile = async (updates: Parameters<typeof usersApi.updateMe>[0]) => {
-    // TODO: Call usersApi.updateMe(updates)
-    // TODO: Call setUser(updatedUser) to reflect changes in the store
-    throw new Error('Not implemented');
+    const updatedUser = await usersApi.updateMe(updates);
+    setUser(updatedUser);
   };
 
   return { user, isAuthenticated, login, register, logout, updateProfile };
