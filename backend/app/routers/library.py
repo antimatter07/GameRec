@@ -7,6 +7,7 @@ from app.database import get_db
 from app.dependencies import require_basic
 from app.models.user import User
 from app.schemas.library import LibraryEntryCreate, LibraryEntryOut, LibraryEntryUpdate, LibraryStats
+from app.services import library_service
 
 router = APIRouter()
 
@@ -16,8 +17,7 @@ CurrentUserDep = Annotated[User, Depends(require_basic)]
 
 @router.get("/", response_model=list[LibraryEntryOut])
 def get_library(db: DBDep, current_user: CurrentUserDep):
-    # TODO: Call library_service.get_user_library(db, current_user.id)
-    raise NotImplementedError
+    return library_service.get_user_library(db, current_user.id)
 
 
 @router.get("/stats", response_model=LibraryStats)
@@ -29,10 +29,7 @@ def get_library_stats(db: DBDep, current_user: CurrentUserDep):
 
 @router.post("/", response_model=LibraryEntryOut, status_code=status.HTTP_201_CREATED)
 def add_to_library(entry: LibraryEntryCreate, db: DBDep, current_user: CurrentUserDep):
-    # TODO: Call library_service.add_game(db, current_user.id, entry)
-    # TODO: Raise HTTP 409 if game already in library (uq_user_game constraint)
-    # TODO: Optionally dispatch Celery task to recompute recommendations
-    raise NotImplementedError
+    return library_service.add_game(db, current_user.id, entry)
 
 
 @router.patch("/{entry_id}", response_model=LibraryEntryOut)
