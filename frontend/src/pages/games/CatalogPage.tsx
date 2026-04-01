@@ -14,8 +14,9 @@ const DEFAULT_FILTERS: GameFilters = {};
  * TODO: Add skeleton cards while loading (Mantine Skeleton)
  */
 export default function CatalogPage() {
-  const [page, setPage]       = useState(1);
-  const [filters, setFilters] = useState<GameFilters>(DEFAULT_FILTERS);
+  const [page, setPage]           = useState(1);
+  const [filters, setFilters]     = useState<GameFilters>(DEFAULT_FILTERS);
+  const [searchInput, setSearchInput] = useState('');
 
   const { data, isLoading, isError } = useGamesList(page, 20, filters);
 
@@ -33,7 +34,9 @@ export default function CatalogPage() {
       <GameFiltersBar
         filters={filters}
         onChange={handleFiltersChange}
-        onReset={() => handleFiltersChange(DEFAULT_FILTERS)}
+        onReset={() => { handleFiltersChange(DEFAULT_FILTERS); setSearchInput(''); }}
+        searchInput={searchInput}
+        onSearchInputChange={setSearchInput}
       />
 
       {isLoading && (

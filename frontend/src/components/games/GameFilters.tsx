@@ -1,10 +1,13 @@
-import { Button, Group, NumberInput, Select, TextInput } from '@mantine/core';
+import { ActionIcon, Button, Group, NumberInput, Select, TextInput } from '@mantine/core';
+import { IconSearch } from '@tabler/icons-react';
 import type { GameFilters } from '../../types/game';
 
 interface GameFiltersProps {
   filters: GameFilters;
   onChange: (filters: GameFilters) => void;
   onReset: () => void;
+  searchInput: string;
+  onSearchInputChange: (value: string) => void;
 }
 
 // TODO: Fetch these dynamically from RAWG /genres and /platforms endpoints
@@ -28,18 +31,24 @@ const PLATFORM_OPTIONS = [
 
 /**
  * Filter bar for the game catalog.
- * TODO: Debounce the search input (useDebouncedValue from @mantine/hooks)
  * TODO: Sync filter state with URL search params (useSearchParams)
  */
-export function GameFiltersBar({ filters, onChange, onReset }: GameFiltersProps) {
+export function GameFiltersBar({ filters, onChange, onReset, searchInput, onSearchInputChange }: GameFiltersProps) {
   const update = (partial: Partial<GameFilters>) => onChange({ ...filters, ...partial });
+  const commitSearch = () => update({ search: searchInput || undefined });
 
   return (
     <Group wrap="wrap" gap="sm">
       <TextInput
         placeholder="Search games..."
-        value={filters.search ?? ''}
-        onChange={(e) => update({ search: e.currentTarget.value })}
+        value={searchInput}
+        onChange={(e) => onSearchInputChange(e.currentTarget.value)}
+        onKeyDown={(e) => e.key === 'Enter' && commitSearch()}
+        rightSection={
+          <ActionIcon variant="subtle" onClick={commitSearch} aria-label="Search">
+            <IconSearch size={16} />
+          </ActionIcon>
+        }
         style={{ flex: 1, minWidth: 200 }}
       />
 
