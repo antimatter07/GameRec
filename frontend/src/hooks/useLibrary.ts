@@ -20,3 +20,14 @@ export function useAddToLibrary() {
     },
   });
 }
+
+export function useRemoveFromLibrary() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (entryId: number) => libraryApi.remove(entryId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['library'] });
+    },
+  });
+}

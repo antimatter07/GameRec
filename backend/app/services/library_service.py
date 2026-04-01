@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.models.game import Game
 from app.models.library import LibraryEntry
-from app.schemas.library import LibraryEntryCreate
+from app.schemas.library import LibraryEntryCreate, LibraryEntryUpdate
 
 
 def get_user_library(db: Session, user_id: int) -> list[LibraryEntry]:
@@ -34,3 +34,13 @@ def add_game(db: Session, user_id: int, entry_in: LibraryEntryCreate) -> Library
     db.refresh(entry)
     # Re-fetch with game relationship loaded for the response
     return db.query(LibraryEntry).filter(LibraryEntry.id == entry.id).options(joinedload(LibraryEntry.game)).first()
+
+
+def remove_game(db: Session, user_id: int, entry_id: int) -> None:
+    entry = db.query(LibraryEntry).filter(LibraryEntry.id == entry_id).first()
+    if not entry:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Library entry not found")
+    if entry.user_id != user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your library entry")
+    db.delete(entry)
+    db.commit()

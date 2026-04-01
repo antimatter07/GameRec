@@ -2,7 +2,7 @@ import { Badge, Button, Card, Group, Image, Rating, Stack, Text } from '@mantine
 import { notifications } from '@mantine/notifications';
 import { IconBookmark, IconBookmarkFilled } from '@tabler/icons-react';
 import { Link } from 'react-router';
-import { useAddToLibrary, useLibrary } from '../../hooks/useLibrary';
+import { useAddToLibrary, useLibrary, useRemoveFromLibrary } from '../../hooks/useLibrary';
 import type { GameListItem } from '../../types/game';
 
 interface GameCardProps {
@@ -14,11 +14,13 @@ interface GameCardProps {
 export function GameCard({ game, showAdd = false }: GameCardProps) {
   const { data: library } = useLibrary();
   const addToLibrary = useAddToLibrary();
+  const removeFromLibrary = useRemoveFromLibrary();
 
-  const inLibrary = library?.some((entry) => entry.game.id === game.id) ?? false;
+  const libraryEntry = library?.find((entry) => entry.game.id === game.id) ?? null;
+  const inLibrary = libraryEntry !== null;
 
   const handleAdd = async (e: React.MouseEvent) => {
-    e.preventDefault(); // prevent navigating to game detail
+    e.preventDefault();
     try {
       await addToLibrary.mutateAsync({ game_id: game.id });
       notifications.show({ color: 'green', message: `${game.name} added to library` });
@@ -29,6 +31,17 @@ export function GameCard({ game, showAdd = false }: GameCardProps) {
       } else {
         notifications.show({ color: 'red', message: detail ?? 'Failed to add to library' });
       }
+    }
+  };
+
+  const handleRemove = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!libraryEntry) return;
+    try {
+      await removeFromLibrary.mutateAsync(libraryEntry.id);
+      notifications.show({ color: 'blue', message: `${game.name} removed from library` });
+    } catch {
+      notifications.show({ color: 'red', message: 'Failed to remove from library' });
     }
   };
 
@@ -71,18 +84,32 @@ export function GameCard({ game, showAdd = false }: GameCardProps) {
         )}
 
         {showAdd && (
-          <Button
-            size="xs"
-            variant={inLibrary ? 'light' : 'filled'}
-            color={inLibrary ? 'green' : 'blue'}
-            leftSection={inLibrary ? <IconBookmarkFilled size={14} /> : <IconBookmark size={14} />}
-            onClick={handleAdd}
-            disabled={inLibrary || addToLibrary.isPending}
-            loading={addToLibrary.isPending}
-            mt="xs"
-          >
-            {inLibrary ? 'In Library' : 'Add to Library'}
-          </Button>
+          <Group gap="xs" mt="xs">
+            {!inLibrary ? (
+              <Button
+                size="xs"
+                variant="filled"
+                leftSection={<IconBookmark size={14} />}
+                onClick={handleAdd}
+                loading={addToLibrary.isPending}
+                style={{ flex: 1 }}
+              >
+                Add to Library
+              </Button>
+            ) : (
+              <Button
+                size="xs"
+                variant="light"
+                color="red"
+                leftSection={<IconBookmarkFilled size={14} />}
+                onClick={handleRemove}
+                loading={removeFromLibrary.isPending}
+                style={{ flex: 1 }}
+              >
+                Remove
+              </Button>
+            )}
+          </Group>
         )}
       </Stack>
     </Card>

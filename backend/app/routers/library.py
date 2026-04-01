@@ -41,6 +41,4 @@ def update_library_entry(entry_id: int, updates: LibraryEntryUpdate, db: DBDep, 
 
 @router.delete("/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
 def remove_from_library(entry_id: int, db: DBDep, current_user: CurrentUserDep):
-    # TODO: Verify entry_id belongs to current_user
-    # TODO: Call library_service.remove_game(db, entry_id)
-    raise NotImplementedError
+    library_service.remove_game(db, current_user.id, entry_id)
