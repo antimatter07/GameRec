@@ -22,19 +22,13 @@ def create_user(db: Session, user_in: UserCreate) -> User:
 
 
 def update_user(db: Session, user: User, updates: UserUpdate) -> User:
-    # TODO: Iterate updates.model_dump(exclude_unset=True).items() and setattr
-    # TODO: db.commit(); db.refresh(user); return user
-    raise NotImplementedError
+    for field, value in updates.model_dump(exclude_unset=True).items():
+        setattr(user, field, value)
+    db.commit()
+    db.refresh(user)
+    return user
 
 
 def delete_user(db: Session, user: User) -> None:
-    """GDPR-compliant deletion — choose hard-delete or anonymization."""
-    # Option A – Hard delete (cascades to library and recommendations via FK):
-    # TODO: db.delete(user); db.commit()
-
-    # Option B – Anonymize (keeps statistical data, removes PII):
-    # TODO: user.email = f"deleted_{user.id}@deleted"
-    # TODO: user.hashed_password = ""
-    # TODO: user.display_name = None; user.avatar_url = None; user.bio = None
-    # TODO: user.is_active = False; db.commit()
-    raise NotImplementedError
+    db.delete(user)
+    db.commit()
