@@ -1,6 +1,7 @@
 import type { GameListItem } from './game';
 
 export interface RecommendationItem {
+  id: number;
   rank: number;
   score: number;          // cosine similarity 0–1 (display as match %)
   game: GameListItem;

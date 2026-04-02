@@ -89,7 +89,7 @@ export default function RecommendationsPage() {
                       size="xs"
                       variant="light"
                       color="teal"
-                      onClick={() => submitFeedback({ item_id: item.rank, is_helpful: true })}
+                      onClick={() => submitFeedback({ item_id: item.id, is_helpful: true })}
                     >
                       👍 Helpful
                     </Button>
@@ -97,7 +97,7 @@ export default function RecommendationsPage() {
                       size="xs"
                       variant="light"
                       color="red"
-                      onClick={() => submitFeedback({ item_id: item.rank, is_helpful: false })}
+                      onClick={() => submitFeedback({ item_id: item.id, is_helpful: false })}
                     >
                       👎 Not helpful
                     </Button>

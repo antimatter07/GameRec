@@ -3,17 +3,17 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.dependencies import require_basic, require_premium
-from app.models.recommendation import Recommendation
-from app.models.user import User
+from app.models.recommendation import Recommendation, RecommendationItem
+from app.models.user import User, UserRole
 from app.schemas.recommendation import GameDNAOut, RecommendationOut
-from app.services import recommendation_service
+from app.services import ai_service, recommendation_service
 
 router = APIRouter()
 
 
 @router.get("/", response_model=RecommendationOut)
 def get_recommendations(
-    # Premium advanced filters — ignored for basic users
+    # Premium advanced filters — reserved for future use
     genre:        str | None = Query(None),
     platform:     str | None = Query(None),
     release_year: int | None = Query(None),
@@ -28,15 +28,23 @@ def get_recommendations(
             detail=str(exc),
         )
 
-    # Eagerly load items and their games so the response serialiser can access them.
+    # Eagerly load items and their games for response serialisation.
     recommendation = (
         db.query(Recommendation)
-        .options(
-            joinedload(Recommendation.items).joinedload("game")
-        )
+        .options(joinedload(Recommendation.items).joinedload(RecommendationItem.game))
         .filter(Recommendation.id == recommendation.id)
         .one()
     )
+
+    # For premium users: dispatch AI explanation task if items lack explanations.
+    if current_user.role in (UserRole.PREMIUM, UserRole.ADMIN):
+        needs_explanations = any(item.explanation is None for item in recommendation.items)
+        if needs_explanations:
+            try:
+                from app.workers.tasks.recommendation import generate_ai_explanations
+                generate_ai_explanations.delay(recommendation.id)
+            except Exception:
+                pass  # Celery unavailable — explanations will be null for now
 
     return recommendation
 
@@ -48,9 +56,17 @@ def get_recommendation_history(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_basic),
 ):
-    # TODO: Return paginated past Recommendation batches for current_user
-    # TODO: Order by generated_at descending
-    raise NotImplementedError
+    offset = (page - 1) * page_size
+    recommendations = (
+        db.query(Recommendation)
+        .options(joinedload(Recommendation.items).joinedload(RecommendationItem.game))
+        .filter(Recommendation.user_id == current_user.id)
+        .order_by(Recommendation.generated_at.desc())
+        .offset(offset)
+        .limit(page_size)
+        .all()
+    )
+    return recommendations
 
 
 @router.get("/game-dna", response_model=GameDNAOut)
@@ -58,6 +74,27 @@ def get_game_dna(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_premium),
 ):
-    # TODO: Call ai_service.generate_game_dna(current_user)
-    # TODO: Cache result in Redis (keyed by user_id) — invalidate on library update
-    raise NotImplementedError
+    # Check Redis cache first
+    cache_key = f"game_dna:{current_user.id}"
+    try:
+        import json as _json
+        import redis as redis_lib
+        from app.config import settings
+
+        r = redis_lib.from_url(settings.REDIS_URL)
+        cached = r.get(cache_key)
+        if cached:
+            return _json.loads(cached)
+    except Exception:
+        pass
+
+    dna = ai_service.generate_game_dna(current_user, db)
+
+    # Cache for 1 hour (invalidated on library changes via precompute_for_user)
+    try:
+        import json as _json
+        r.setex(cache_key, 3600, _json.dumps(dna))
+    except Exception:
+        pass
+
+    return dna

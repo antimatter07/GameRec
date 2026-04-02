@@ -29,7 +29,13 @@ def get_library_stats(db: DBDep, current_user: CurrentUserDep):
 
 @router.post("/", response_model=LibraryEntryOut, status_code=status.HTTP_201_CREATED)
 def add_to_library(entry: LibraryEntryCreate, db: DBDep, current_user: CurrentUserDep):
-    return library_service.add_game(db, current_user.id, entry)
+    result = library_service.add_game(db, current_user.id, entry)
+    try:
+        from app.workers.tasks.recommendation import precompute_for_user
+        precompute_for_user.delay(current_user.id)
+    except Exception:
+        pass  # Celery unavailable — recommendations will recompute on next request
+    return result
 
 
 @router.patch("/{entry_id}", response_model=LibraryEntryOut)
@@ -42,3 +48,8 @@ def update_library_entry(entry_id: int, updates: LibraryEntryUpdate, db: DBDep, 
 @router.delete("/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
 def remove_from_library(entry_id: int, db: DBDep, current_user: CurrentUserDep):
     library_service.remove_game(db, current_user.id, entry_id)
+    try:
+        from app.workers.tasks.recommendation import precompute_for_user
+        precompute_for_user.delay(current_user.id)
+    except Exception:
+        pass  # Celery unavailable — recommendations will recompute on next request

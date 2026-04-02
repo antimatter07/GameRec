@@ -61,3 +61,4 @@ websockets==16.0
 wrapt==2.1.2
 numpy>=1.26,<3
 scikit-learn>=1.4,<2
+anthropic>=0.40,<1
