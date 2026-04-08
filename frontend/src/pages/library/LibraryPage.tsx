@@ -103,7 +103,7 @@ export default function LibraryPage() {
             </Text>
             {stats.avg_rating !== null && (
               <Group gap={4}>
-                <Rating value={stats.avg_rating / 2} fractions={2} readOnly size="xs" />
+                <Rating value={stats.avg_rating} fractions={2} readOnly size="xs" />
                 <Text size="xs" c="dimmed">avg {stats.avg_rating.toFixed(1)}</Text>
               </Group>
             )}
@@ -154,7 +154,7 @@ export default function LibraryPage() {
                               {entry.status}
                             </Badge>
                             {entry.rating !== null && (
-                              <Rating value={entry.rating / 2} fractions={2} readOnly size="xs" />
+                              <Rating value={entry.rating} fractions={2} readOnly size="xs" />
                             )}
                           </Group>
                           <Group gap={4}>
@@ -205,9 +205,9 @@ export default function LibraryPage() {
           <Stack gap={4}>
             <Text size="sm" fw={500}>Rating</Text>
             <Rating
-              value={editRating / 2}
+              value={editRating}
               fractions={2}
-              onChange={(v) => setEditRating(v * 2)}
+              onChange={(v) => setEditRating(v)}
             />
             {editRating > 0 && (
               <Text size="xs" c="dimmed">{editRating.toFixed(1)} / 5</Text>
