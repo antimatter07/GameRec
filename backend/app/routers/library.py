@@ -22,9 +22,7 @@ def get_library(db: DBDep, current_user: CurrentUserDep):
 
 @router.get("/stats", response_model=LibraryStats)
 def get_library_stats(db: DBDep, current_user: CurrentUserDep):
-    # TODO: Aggregate: total games, status breakdown, avg rating, top genres
-    # TODO: Call library_service.get_stats(db, current_user.id)
-    raise NotImplementedError
+    return library_service.get_stats(db, current_user.id)
 
 
 @router.post("/", response_model=LibraryEntryOut, status_code=status.HTTP_201_CREATED)
@@ -40,9 +38,7 @@ def add_to_library(entry: LibraryEntryCreate, db: DBDep, current_user: CurrentUs
 
 @router.patch("/{entry_id}", response_model=LibraryEntryOut)
 def update_library_entry(entry_id: int, updates: LibraryEntryUpdate, db: DBDep, current_user: CurrentUserDep):
-    # TODO: Verify entry_id belongs to current_user (raise 403 otherwise)
-    # TODO: Call library_service.update_entry(db, entry_id, updates)
-    raise NotImplementedError
+    return library_service.update_entry(db, current_user.id, entry_id, updates)
 
 
 @router.delete("/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
