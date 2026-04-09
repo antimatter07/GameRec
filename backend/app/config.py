@@ -23,10 +23,8 @@ class Settings(BaseSettings):
     RAWG_API_KEY: str
     RAWG_BASE_URL: str
 
-    # LLM for premium AI features
-    # TODO: Choose your LLM provider and add the appropriate key below
-    OPENAI_API_KEY: str = ""   # OpenAI
-    # ANTHROPIC_API_KEY: str = ""  # Anthropic Claude (alternative)
+    # LLM for premium AI features (Anthropic Claude)
+    ANTHROPIC_API_KEY: str = ""
 
     # SlowAPI rate limits (requests per minute)
     RATE_LIMIT_BASIC: str = "30/minute"

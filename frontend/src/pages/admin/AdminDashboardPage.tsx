@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Badge,
   Button,
@@ -9,24 +10,42 @@ import {
   Stack,
   Table,
   Text,
+  TextInput,
   Title,
 } from '@mantine/core';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { notifications } from '@mantine/notifications';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '../../api/admin';
+import { useAuthStore } from '../../store/authStore';
+import type { UserRole } from '../../types/user';
 
-/**
- * Admin-only dashboard.
- * TODO: Wrap each section in its own component for readability
- * TODO: Add Mantine Charts (BarChart / LineChart) for user growth and recommendations served
- * TODO: Add real-time pipeline status polling (refetchInterval)
- * TODO: Add search input for user list
- * TODO: Add pagination for user list
- */
+const PIPELINE_STATUS_COLORS: Record<string, string> = {
+  never_run: 'gray',
+  triggered: 'yellow',
+  success:   'green',
+  failure:   'red',
+};
+
+function formatRelativeTime(iso: string | null): string {
+  if (!iso) return 'Never';
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 1)  return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24)  return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
 export default function AdminDashboardPage() {
+  const currentUser = useAuthStore((s) => s.user);
+  const queryClient = useQueryClient();
+  const [search, setSearch] = useState('');
+
   const { data: metrics, isLoading: metricsLoading } = useQuery({
     queryKey: ['admin-metrics'],
     queryFn: adminApi.getMetrics,
-    refetchInterval: 30_000, // refresh every 30s
+    refetchInterval: 30_000,
   });
 
   const { data: pipelineStatus } = useQuery({
@@ -35,35 +54,50 @@ export default function AdminDashboardPage() {
     refetchInterval: 10_000,
   });
 
-  const { data: premiumRequests } = useQuery({
-    queryKey: ['premium-requests'],
-    queryFn: adminApi.listPremiumRequests,
-  });
-
   const { data: users, isLoading: usersLoading } = useQuery({
-    queryKey: ['admin-users'],
-    queryFn: () => adminApi.listUsers(),
+    queryKey: ['admin-users', search],
+    queryFn: () => adminApi.listUsers(1, 50, search || undefined),
   });
 
-  const triggerPipeline = useMutation({ mutationFn: adminApi.triggerPipeline });
+  const triggerPipeline = useMutation({
+    mutationFn: adminApi.triggerPipeline,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pipeline-status'] });
+      notifications.show({ color: 'teal', message: 'Pipeline sync triggered' });
+    },
+  });
+
+  const updateRole = useMutation({
+    mutationFn: ({ userId, role }: { userId: number; role: UserRole }) =>
+      adminApi.updateUserRole(userId, role),
+    onSuccess: (_, { role }) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      notifications.show({
+        color: 'green',
+        message: `User role updated to ${role}`,
+      });
+    },
+    onError: () => {
+      notifications.show({ color: 'red', message: 'Failed to update role' });
+    },
+  });
 
   return (
     <Stack gap="xl">
       <Title order={2}>Admin Dashboard</Title>
 
-      {/* --- Metrics --- */}
+      {/* Metrics */}
       <Stack gap="xs">
         <Title order={4}>System Metrics</Title>
         {metricsLoading ? (
           <Loader size="sm" />
         ) : (
           <SimpleGrid cols={{ base: 2, sm: 4 }}>
-            {/* TODO: Render actual metric values from `metrics` object */}
             {[
-              { label: 'Total Users',           value: metrics?.total_users          ?? '–' },
-              { label: 'Active Users (30d)',     value: metrics?.active_users         ?? '–' },
-              { label: 'Premium Users',          value: metrics?.premium_count        ?? '–' },
-              { label: 'Recommendations Served', value: metrics?.recommendations_served ?? '–' },
+              { label: 'Total Users',            value: metrics?.total_users            ?? '–' },
+              { label: 'Active Users (30d)',      value: metrics?.active_users           ?? '–' },
+              { label: 'Premium Users',           value: metrics?.premium_count          ?? '–' },
+              { label: 'Recommendations Served',  value: metrics?.recommendations_served ?? '–' },
             ].map((m) => (
               <Paper key={m.label} p="md" withBorder radius="md">
                 <Text size="xs" c="dimmed">{m.label}</Text>
@@ -72,9 +106,14 @@ export default function AdminDashboardPage() {
             ))}
           </SimpleGrid>
         )}
+        {metrics?.feedback_helpful_pct !== undefined && metrics.feedback_helpful_pct !== null && (
+          <Text size="sm" c="dimmed">
+            Feedback helpful: <strong>{metrics.feedback_helpful_pct}%</strong>
+          </Text>
+        )}
       </Stack>
 
-      {/* --- Data Pipeline --- */}
+      {/* Data Pipeline */}
       <Stack gap="xs">
         <Group justify="space-between">
           <Title order={4}>Data Pipeline (RAWG Sync)</Title>
@@ -87,23 +126,29 @@ export default function AdminDashboardPage() {
           </Button>
         </Group>
         <Paper p="md" withBorder radius="md">
-          {/* TODO: Render pipelineStatus.last_run, status, next_scheduled_run */}
-          <Text size="sm" c="dimmed">Pipeline status will appear here once implemented.</Text>
+          <Group gap="md">
+            <Badge color={PIPELINE_STATUS_COLORS[pipelineStatus?.status ?? 'never_run'] ?? 'gray'}>
+              {pipelineStatus?.status ?? 'never_run'}
+            </Badge>
+            <Text size="sm">
+              Last run: <strong>{formatRelativeTime(pipelineStatus?.last_run ?? null)}</strong>
+            </Text>
+            {pipelineStatus?.task_id && (
+              <Text size="xs" c="dimmed">Task: {pipelineStatus.task_id}</Text>
+            )}
+          </Group>
         </Paper>
       </Stack>
 
-      {/* --- Premium Requests --- */}
-      {premiumRequests && premiumRequests.length > 0 && (
-        <Stack gap="xs">
-          <Title order={4}>Pending Premium Requests</Title>
-          {/* TODO: Render request queue with Approve button per row */}
-          <Text size="sm" c="dimmed">{premiumRequests.length} pending request(s)</Text>
-        </Stack>
-      )}
-
-      {/* --- User Table --- */}
+      {/* User Table */}
       <Stack gap="xs">
         <Title order={4}>Users</Title>
+        <TextInput
+          placeholder="Search by email or name…"
+          value={search}
+          onChange={(e) => setSearch(e.currentTarget.value)}
+          maw={320}
+        />
         {usersLoading ? (
           <Center><Loader /></Center>
         ) : (
@@ -131,8 +176,27 @@ export default function AdminDashboardPage() {
                   </Table.Td>
                   <Table.Td>{u.is_active ? '✅' : '❌'}</Table.Td>
                   <Table.Td>
-                    {/* TODO: Promote/demote buttons — call adminApi.updateUserRole() */}
-                    <Text size="xs" c="dimmed">–</Text>
+                    {u.role === 'basic' && u.id !== currentUser?.id && (
+                      <Button
+                        size="xs"
+                        color="violet"
+                        loading={updateRole.isPending}
+                        onClick={() => updateRole.mutate({ userId: u.id, role: 'premium' })}
+                      >
+                        Promote
+                      </Button>
+                    )}
+                    {u.role === 'premium' && u.id !== currentUser?.id && (
+                      <Button
+                        size="xs"
+                        variant="outline"
+                        color="gray"
+                        loading={updateRole.isPending}
+                        onClick={() => updateRole.mutate({ userId: u.id, role: 'basic' })}
+                      >
+                        Demote
+                      </Button>
+                    )}
                   </Table.Td>
                 </Table.Tr>
               ))}

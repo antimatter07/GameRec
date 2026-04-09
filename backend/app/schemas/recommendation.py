@@ -7,6 +7,7 @@ from app.schemas.game import GameListOut
 
 
 class RecommendationItemOut(BaseModel):
+    id:          int
     rank:        int
     score:       float        # cosine similarity 0–1, shown as match %
     game:        GameListOut

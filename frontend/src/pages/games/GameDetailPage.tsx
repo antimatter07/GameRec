@@ -11,6 +11,7 @@ import {
   Text,
   Title,
 } from '@mantine/core';
+import { IconClock } from '@tabler/icons-react';
 import { useParams } from 'react-router';
 import { useGame } from '../../hooks/useGames';
 
@@ -75,6 +76,37 @@ export default function GameDetailPage() {
         {/* TODO: Replace with AddToLibraryButton component */}
         <Button>Add to Library</Button>
       </Group>
+
+      {(game.hltb_main_hours != null ||
+        game.hltb_main_extra_hours != null ||
+        game.hltb_completionist_hours != null) && (
+        <Stack gap="xs">
+          <Group gap="xs">
+            <IconClock size={16} />
+            <Title order={4}>How Long to Beat</Title>
+          </Group>
+          <SimpleGrid cols={3} spacing="md">
+            {game.hltb_main_hours != null && (
+              <Stack gap={2} align="center">
+                <Text size="xs" c="dimmed">Main Story</Text>
+                <Text fw={600}>{game.hltb_main_hours.toFixed(1)}h</Text>
+              </Stack>
+            )}
+            {game.hltb_main_extra_hours != null && (
+              <Stack gap={2} align="center">
+                <Text size="xs" c="dimmed">Main + Extras</Text>
+                <Text fw={600}>{game.hltb_main_extra_hours.toFixed(1)}h</Text>
+              </Stack>
+            )}
+            {game.hltb_completionist_hours != null && (
+              <Stack gap={2} align="center">
+                <Text size="xs" c="dimmed">Completionist</Text>
+                <Text fw={600}>{game.hltb_completionist_hours.toFixed(1)}h</Text>
+              </Stack>
+            )}
+          </SimpleGrid>
+        </Stack>
+      )}
 
       {game.description && (
         <Stack gap="xs">

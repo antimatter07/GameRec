@@ -5,6 +5,7 @@ from app.database import get_db
 from app.dependencies import get_current_user, require_basic
 from app.models.user import User
 from app.schemas.user import UserOut, UserUpdate
+from app.services import user_service
 
 router = APIRouter()
 
@@ -20,8 +21,7 @@ def update_me(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    # TODO: Call user_service.update_user(db, current_user, updates)
-    raise NotImplementedError
+    return user_service.update_user(db, current_user, updates)
 
 
 @router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
@@ -29,9 +29,7 @@ def delete_me(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    # TODO: Call user_service.delete_user(db, current_user)
-    # TODO: Ensure GDPR-compliant handling — anonymize or hard-delete per your policy
-    raise NotImplementedError
+    user_service.delete_user(db, current_user)
 
 
 @router.post("/me/request-premium", status_code=status.HTTP_202_ACCEPTED)

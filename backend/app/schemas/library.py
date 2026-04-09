@@ -37,3 +37,19 @@ class LibraryStats(BaseModel):
     avg_rating:  float | None
     top_genres:  list[dict]       # [{"genre": "Action", "count": 5}, ...]
     # TODO: Consider adding total_playtime if you add a hours_played field to LibraryEntry
+
+
+class PrioritizedBacklogItem(BaseModel):
+    entry_id:       int
+    game:           GameListOut
+    playtime_hours: float | None  # hltb_main_hours if set, else RAWG playtime, else None
+    taste_score:    float | None  # cosine score from latest rec batch; None if no batch exists
+    priority_score: float         # composite: 0.5*taste + 0.3*staleness + 0.2*playtime
+    stale_months:   int | None    # months since LibraryEntry.updated_at
+
+    model_config = {"from_attributes": True}
+
+
+class PrioritizedBacklogOut(BaseModel):
+    total:   int
+    results: list[PrioritizedBacklogItem]

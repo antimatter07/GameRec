@@ -1,12 +1,18 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import require_basic
 from app.models.user import User
-from app.schemas.library import LibraryEntryCreate, LibraryEntryOut, LibraryEntryUpdate, LibraryStats
+from app.schemas.library import (
+    LibraryEntryCreate,
+    LibraryEntryOut,
+    LibraryEntryUpdate,
+    LibraryStats,
+    PrioritizedBacklogOut,
+)
 from app.services import library_service
 
 router = APIRouter()
@@ -22,25 +28,45 @@ def get_library(db: DBDep, current_user: CurrentUserDep):
 
 @router.get("/stats", response_model=LibraryStats)
 def get_library_stats(db: DBDep, current_user: CurrentUserDep):
-    # TODO: Aggregate: total games, status breakdown, avg rating, top genres
-    # TODO: Call library_service.get_stats(db, current_user.id)
-    raise NotImplementedError
+    return library_service.get_stats(db, current_user.id)
 
 
 @router.post("/", response_model=LibraryEntryOut, status_code=status.HTTP_201_CREATED)
 def add_to_library(entry: LibraryEntryCreate, db: DBDep, current_user: CurrentUserDep):
-    return library_service.add_game(db, current_user.id, entry)
+    result = library_service.add_game(db, current_user.id, entry)
+    try:
+        from app.workers.tasks.recommendation import precompute_for_user
+        precompute_for_user.delay(current_user.id)
+    except Exception:
+        pass  # Celery unavailable — recommendations will recompute on next request
+    return result
+
+
+@router.get("/backlog/prioritized", response_model=PrioritizedBacklogOut)
+def get_prioritized_backlog(
+    db: DBDep,
+    current_user: CurrentUserDep,
+    mood_genre: str | None = Query(None, description="Filter to backlog games matching this genre name"),
+    max_hours: int | None = Query(None, ge=1, description="Only include games with playtime <= this many hours"),
+    sort: Literal["score", "playtime_asc", "playtime_desc", "added_at"] = Query("score"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+):
+    return library_service.get_prioritized_backlog(
+        db, current_user.id, mood_genre, max_hours, sort, page, page_size
+    )
 
 
 @router.patch("/{entry_id}", response_model=LibraryEntryOut)
 def update_library_entry(entry_id: int, updates: LibraryEntryUpdate, db: DBDep, current_user: CurrentUserDep):
-    # TODO: Verify entry_id belongs to current_user (raise 403 otherwise)
-    # TODO: Call library_service.update_entry(db, entry_id, updates)
-    raise NotImplementedError
+    return library_service.update_entry(db, current_user.id, entry_id, updates)
 
 
 @router.delete("/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
 def remove_from_library(entry_id: int, db: DBDep, current_user: CurrentUserDep):
-    # TODO: Verify entry_id belongs to current_user
-    # TODO: Call library_service.remove_game(db, entry_id)
-    raise NotImplementedError
+    library_service.remove_game(db, current_user.id, entry_id)
+    try:
+        from app.workers.tasks.recommendation import precompute_for_user
+        precompute_for_user.delay(current_user.id)
+    except Exception:
+        pass  # Celery unavailable — recommendations will recompute on next request
