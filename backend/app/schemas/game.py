@@ -21,6 +21,10 @@ class GameOut(BaseModel):
     tags:             list[Any]
     screenshots:      list[Any]
 
+    hltb_main_hours:          float | None = None
+    hltb_main_extra_hours:    float | None = None
+    hltb_completionist_hours: float | None = None
+
     model_config = {"from_attributes": True}
 
 

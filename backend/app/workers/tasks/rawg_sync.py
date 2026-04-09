@@ -16,6 +16,8 @@ def sync_games(self, page_start: int = 1, page_end: int = 10):
     TODO: On HTTP error, use self.retry(exc=exc, countdown=60) for backoff
     TODO: Write final status (success/failure, games_synced count) to Redis
           so the admin pipeline/status endpoint can read it
+    TODO (hltb): After upserting new games, call enrich_all_hltb.delay() to
+          auto-enrich any games that don't yet have HLTB data.
     """
     raise NotImplementedError
 

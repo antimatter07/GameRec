@@ -35,6 +35,13 @@ class Game(Base):
 
     playtime: Mapped[int] = mapped_column(Integer, nullable=True)
 
+    # HowLongToBeat playtime data (hours). Populated by scripts/enrich_hltb.py
+    # or the hltb_sync.enrich_game_hltb Celery task. None = not yet fetched.
+    hltb_main_hours:          Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    hltb_main_extra_hours:    Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    hltb_completionist_hours: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    hltb_synced_at:           Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
     synced_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Relationships

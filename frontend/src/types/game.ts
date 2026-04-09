@@ -41,6 +41,9 @@ export interface Game extends GameListItem {
   metacritic: number | null;
   tags: Tag[];
   screenshots: Screenshot[];
+  hltb_main_hours: number | null;
+  hltb_main_extra_hours: number | null;
+  hltb_completionist_hours: number | null;
 }
 
 export interface PaginatedGames {

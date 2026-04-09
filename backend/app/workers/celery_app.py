@@ -9,6 +9,7 @@ celery_app = Celery(
     include=[
         "app.workers.tasks.rawg_sync",
         "app.workers.tasks.recommendation",
+        "app.workers.tasks.hltb_sync",
     ],
 )
 
