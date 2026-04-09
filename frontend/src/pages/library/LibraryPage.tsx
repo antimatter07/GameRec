@@ -19,7 +19,8 @@ import {
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
-import { IconPencil, IconTrash } from '@tabler/icons-react';
+import { IconArrowRight, IconPencil, IconTrash } from '@tabler/icons-react';
+import { useNavigate } from 'react-router';
 import { GameCard } from '../../components/games/GameCard';
 import {
   useLibrary,
@@ -49,6 +50,7 @@ export default function LibraryPage() {
   const { data: stats } = useLibraryStats();
   const removeEntry = useRemoveFromLibrary();
   const updateEntry = useUpdateLibraryEntry();
+  const navigate = useNavigate();
 
   const [editingEntry, setEditingEntry] = useState<LibraryEntry | null>(null);
   const [editStatus, setEditStatus] = useState<LibraryStatus>('backlog');
@@ -136,6 +138,18 @@ export default function LibraryPage() {
           );
           return (
             <Tabs.Panel key={tab.value} value={tab.value} pt="md">
+              {tab.value === 'backlog' && filtered.length > 0 && (
+                <Group justify="flex-end" mb="sm">
+                  <Button
+                    size="xs"
+                    variant="light"
+                    rightSection={<IconArrowRight size={14} />}
+                    onClick={() => navigate('/library/backlog')}
+                  >
+                    Play Next
+                  </Button>
+                </Group>
+              )}
               {filtered.length === 0 ? (
                 <Text c="dimmed" ta="center" mt="xl">
                   {entries?.length === 0

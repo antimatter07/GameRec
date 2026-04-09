@@ -1,12 +1,18 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import require_basic
 from app.models.user import User
-from app.schemas.library import LibraryEntryCreate, LibraryEntryOut, LibraryEntryUpdate, LibraryStats
+from app.schemas.library import (
+    LibraryEntryCreate,
+    LibraryEntryOut,
+    LibraryEntryUpdate,
+    LibraryStats,
+    PrioritizedBacklogOut,
+)
 from app.services import library_service
 
 router = APIRouter()
@@ -34,6 +40,21 @@ def add_to_library(entry: LibraryEntryCreate, db: DBDep, current_user: CurrentUs
     except Exception:
         pass  # Celery unavailable — recommendations will recompute on next request
     return result
+
+
+@router.get("/backlog/prioritized", response_model=PrioritizedBacklogOut)
+def get_prioritized_backlog(
+    db: DBDep,
+    current_user: CurrentUserDep,
+    mood_genre: str | None = Query(None, description="Filter to backlog games matching this genre name"),
+    max_hours: int | None = Query(None, ge=1, description="Only include games with playtime <= this many hours"),
+    sort: Literal["score", "playtime_asc", "playtime_desc", "added_at"] = Query("score"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+):
+    return library_service.get_prioritized_backlog(
+        db, current_user.id, mood_genre, max_hours, sort, page, page_size
+    )
 
 
 @router.patch("/{entry_id}", response_model=LibraryEntryOut)

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { libraryApi } from '../api/library';
+import type { BacklogFiltersParams } from '../api/library';
 import type { LibraryEntryCreate, LibraryEntryUpdate } from '../types/library';
 
 export function useLibrary() {
@@ -49,5 +50,12 @@ export function useLibraryStats() {
   return useQuery({
     queryKey: ['library-stats'],
     queryFn: libraryApi.getStats,
+  });
+}
+
+export function usePrioritizedBacklog(filters: BacklogFiltersParams = {}) {
+  return useQuery({
+    queryKey: ['library', 'backlog', 'prioritized', filters],
+    queryFn: () => libraryApi.getPrioritizedBacklog(filters),
   });
 }
