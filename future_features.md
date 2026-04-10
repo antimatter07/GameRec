@@ -438,6 +438,248 @@ When `multi_axis_ratings.overall` is synced to `LibraryEntry.rating`, the existi
 
 ---
 
+### Mood / Emotion Tracker
+
+This sub-feature extends the Session Logger with per-session emotion tagging. It serves two goals simultaneously: a **mood board** aesthetic in the journal UI (expressive, colorful, personal) and a **queryable data signal** for a future User Statistics page answering questions like "what games make me feel frustrated?" or "what genres put me in a flow state?"
+
+#### Emotion List
+
+A fixed vocabulary of 11 emotions, chosen to cover the full range of post-session gaming states without overlap or ambiguity:
+
+| Emotion | Rationale |
+|---|---|
+| **Frustrated** | Died repeatedly, puzzle stumped you, controls fighting back — the most useful negative signal for difficulty-preference matching |
+| **Happy** | Broad positive valence; the default "good session" emotion |
+| **Sad** | Emotionally heavy narrative moments — games like *Disco Elysium* or *This War of Mine* produce this intentionally |
+| **Angry** | Distinct from frustrated: sharper, less cognitive — rage-quit energy, unfair losses in competitive games |
+| **Relaxed** | Cozy games, farming sims, low-stakes exploration — a positive meaningfully different from Happy |
+| **Bored** | Grinding, repetitive filler, pacing problems — critical negative signal for engagement |
+| **Proud** | Cleared a hard boss, finished a difficult platinum step, cracked a puzzle solo. Maps well to completionist behavior |
+| **Creeped out** | Horror games, psychological thrillers, liminal dread — a genre-specific signal for future "games that unsettle you" stats |
+| **Disappointed** | Hyped for a session that under-delivered — a nuanced negative distinct from Bored (boredom is flat affect; disappointment implies prior expectation) |
+
+Deliberately excluded: "Tired" (physical state, not a game response), "Confused" (too ambiguous between good complexity and bad design).
+
+#### DB Schema Addition
+
+**Design decision: allow multiple emotions per session, stored as a PostgreSQL array.**
+
+A session is rarely monotone — 40 minutes of *Dark Souls* might genuinely produce Frustrated + Proud. Forcing a single choice loses signal. The array also enables richer aggregation ("35% of your Elden Ring sessions included Frustrated *and* Proud").
+
+**Addition to `session_logs` table:**
+
+```
+session_logs (additions only)
+  emotions   ARRAY(VARCHAR(32)) nullable   -- e.g. ["frustrated", "proud"]
+                                           -- values from the fixed EmotionType enum
+                                           -- null = user skipped the picker
+                                           -- empty array is distinct from null
+```
+
+**New backend enum (in `app/models/journal.py` or a shared `enums.py`):**
+
+```python
+class EmotionType(str, Enum):
+    FRUSTRATED   = "frustrated"
+    HAPPY        = "happy"
+    SAD          = "sad"
+    ANGRY        = "angry"
+    RELAXED      = "relaxed"
+    BORED        = "bored"
+    PROUD        = "proud"
+    CREEPED_OUT  = "creeped_out"
+    DISAPPOINTED = "disappointed"
+```
+
+**No new tables required.** The emotions array on `session_logs` is sufficient for all planned queries.
+
+Add a GIN index so `WHERE 'frustrated' = ANY(emotions)` queries stay fast as session volume grows:
+
+```sql
+CREATE INDEX ix_session_logs_emotions ON session_logs USING GIN (emotions);
+```
+
+#### Updated `session_logs` Table (Full, with Emotion Addition)
+
+```
+session_logs
+  id                Integer PK
+  user_id           Integer FK → users.id  NOT NULL
+  game_id           Integer FK → games.id  NOT NULL
+  library_entry_id  Integer FK → library_entries.id nullable
+  started_at        DateTime NOT NULL
+  ended_at          DateTime nullable
+  duration_minutes  Integer nullable
+  notes             Text nullable
+  is_milestone      Boolean default False
+  milestone_label   String(255) nullable
+  emotions          ARRAY(VARCHAR(32)) nullable     -- list of EmotionType values
+  created_at        DateTime
+
+INDEX ix_session_logs_emotions ON session_logs USING GIN (emotions)
+```
+
+#### API Additions
+
+**Modified existing endpoints** — `POST /api/journal/sessions` and `PATCH /api/journal/sessions/{session_id}` gain an `emotions` field:
+
+```python
+# In SessionLogCreate and SessionLogUpdate schemas
+emotions: list[EmotionType] | None = None
+# Validation: max 5 emotions per session; reject unknown values with 422
+```
+
+`GET /api/journal/sessions`, `GET /api/journal/feed` — include `emotions` in each `SessionLogOut` response. No schema restructuring needed.
+
+**New endpoint:**
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `GET` | `/api/journal/emotions/stats` | BASIC+ | Emotion frequency and game/genre correlations for the user |
+
+**Query parameters:**
+- `period: "7d" | "30d" | "90d" | "all"` — default `"30d"`
+- `game_id: int | None` — scope to a single game
+- `genre: str | None` — scope to sessions on games with a given genre
+
+**Response schema:**
+
+```python
+class EmotionFrequencyItem(BaseModel):
+    emotion: EmotionType
+    session_count: int
+    percentage: float           # session_count / total_sessions_in_period * 100
+
+class EmotionGameCorrelation(BaseModel):
+    game_id: int
+    game_title: str
+    cover_url: str | None
+    dominant_emotion: EmotionType
+    session_count: int
+
+class EmotionGenreCorrelation(BaseModel):
+    genre: str
+    dominant_emotion: EmotionType
+    session_count: int
+    emotion_breakdown: list[EmotionFrequencyItem]
+
+class EmotionMonthlyBucket(BaseModel):
+    month: str                              # "2025-11", "2025-12", etc.
+    frequency: list[EmotionFrequencyItem]
+
+class EmotionStats(BaseModel):
+    period: str
+    total_sessions_with_emotions: int
+    total_sessions: int
+    frequency: list[EmotionFrequencyItem]   # sorted descending by session_count
+    most_common_emotion: EmotionType | None
+    top_positive_game: EmotionGameCorrelation | None  # happy/proud/relaxed
+    top_negative_game: EmotionGameCorrelation | None  # frustrated/angry/bored/disappointed/sad/creeped_out
+    per_game: list[EmotionGameCorrelation]
+    per_genre: list[EmotionGenreCorrelation]
+    monthly_breakdown: list[EmotionMonthlyBucket]   # only populated when period="all"
+```
+
+Stats computation notes:
+- `per_genre` requires `session_logs JOIN games` then extracting genre names from `games.genres` (JSON array of `{"id": int, "name": str}`) — same pattern as `top_genres_this_month` in `JournalStats`, extended to also unnest emotions.
+- Positive emotions: `happy`, `proud`, `relaxed`. Negative: `frustrated`, `angry`, `bored`, `disappointed`, `sad`, `creeped_out`.
+- Cache result in Redis under `journal_emotion_stats:{user_id}:{period}` with a 1-hour TTL, invalidated on any `session_logs` write, if performance degrades.
+
+**Updated `JournalStats` schema:**
+
+```python
+class JournalStats(BaseModel):
+    total_hours_all_time: float
+    total_hours_this_month: float
+    sessions_this_month: int
+    top_genres_this_month: list[dict]
+    games_played_this_month: int
+    current_streak_days: int
+    longest_streak_days: int
+    dominant_emotion_this_month: EmotionType | None   # NEW
+    emotion_coverage_pct: float | None                # NEW: % of sessions with emotions logged
+```
+
+#### UX: LogSessionModal Emotion Picker
+
+The emotion picker is the last field before Save — after notes and milestone toggle. This respects the natural temporal sequence (log what happened first, then reflect on how you felt) and keeps it optional without visual guilt.
+
+**Visual treatment — Emotion Chip Grid:**
+
+Use Mantine `Chip.Group` with `multiple` and max 5 selections. Render in a 3-column grid (2-column on mobile). Each chip has a small icon to the left and a distinct background color when selected.
+
+Section header copy: **"How did this session feel? (optional — pick up to 5)"**
+
+**Emotion palette:**
+
+| Emotion | Icon (Tabler) | Selected color |
+|---|---|---|
+| Frustrated | `IconMoodConfuzed` | `orange.6` |
+| Happy | `IconMoodSmile` | `yellow.5` |
+| Sad | `IconMoodSad` | `blue.4` |
+| Angry | `IconFlame` | `red.6` |
+| Relaxed | `IconLeaf` | `teal.5` |
+| Bored | `IconZzz` | `gray.5` |
+| Proud | `IconTrophy` | `yellow.7` |
+| Creeped out | `IconGhost` | `grape.6` |
+| Disappointed | `IconMoodEmpty` | `gray.6` |
+
+If the user saves without selecting any emotion, `emotions` is stored as `null`. No sticky state between sessions. `Chip.Group` renders as grouped checkboxes, which is natively accessible — color reinforces meaning but is never the sole differentiator.
+
+#### UX: Feed Tab — JournalFeedItem Emotion Display
+
+A feed item already carries: game thumbnail, title, date, duration, notes excerpt, and milestone badge. Full text chips would clutter it.
+
+**Treatment — Colored Dot Cluster:**
+
+A horizontal cluster of small filled circles (14px diameter), each colored with the emotion's palette color, appearing in the bottom-left corner of the card. On hover/focus, each dot expands into a Mantine `Tooltip` showing the emotion label. Maximum 5 dots shown (matching input cap).
+
+This gives the feed a mood board texture at a glance — a card with red/orange dots reads differently from one with yellow/teal — without adding text density. Sessions with no emotions show nothing (no placeholder).
+
+If `is_milestone = true`, emotion dots move to bottom-right to avoid overlap with the milestone badge.
+
+#### UX: Stats Tab — Emotion Stat Cards
+
+Add a collapsible section to the Stats tab: **"How gaming makes you feel"**, below existing streak and hours cards.
+
+**Card 1 — Dominant Emotion This Month:** Large emotion icon (48px), label in `h3`, subtext: "Your most common feeling this month — across X sessions." Secondary line: "Followed by [emotion 2] and [emotion 3]."
+
+**Card 2 — Emotion Frequency Bar (horizontal):** Mantine `BarChart` or `Progress.Root` stack. Each bar is colored with the emotion palette color and labeled with name and percentage. Only emotions with at least one session are shown.
+
+**Card 3 — Per-Game Emotion Snapshot:** 2-column mini-card grid, one card per game logged this month. Each shows: game cover (48×48), title (1 line), up to 3 emotion dots. Clicking navigates to the By Game tab for that game.
+
+**Insight callouts (template strings, no LLM):**
+- "Your happiest game this month: [Game Title]" — from `top_positive_game`
+- "Most frustrating: [Game Title] — but you kept going" — from `top_negative_game` (only shown if a negative-dominant game exists)
+
+#### UX: Future User Statistics Page (`/profile/stats`)
+
+The `EmotionStats` endpoint supports all planned queries for the future stats page because it already accepts `period="all"` and returns `per_genre` and `monthly_breakdown`.
+
+**Recommended emotion section layout — "Your Gaming Mood Profile":**
+
+**Subsection 1 — All-Time Emotion Breakdown:** A Mantine `DonutChart` where each segment is one emotion, sized by all-time frequency, colored with the palette. Center shows the dominant emotion label and icon. Legend beneath lists each emotion with count and percentage. This is the mood board centerpiece of the stats page.
+
+**Subsection 2 — Emotion by Genre (Heatmap Table):** A Mantine `Table` where rows are genres the user has logged sessions for, columns are the 11 emotions, and cells have `background-color` at opacity proportional to frequency (0 sessions = transparent; max for that genre = full opacity). Shows cross-genre emotional patterns at a glance without any filtering interaction.
+
+**Subsection 3 — Emotional Journey Over Time:** A Mantine `AreaChart` with monthly buckets on the X-axis and areas for the top 4 emotions by frequency. Powered by `monthly_breakdown` in `EmotionStats`. Shows seasonal patterns ("always bored in summer", "immersed for 3 months during that RPG phase").
+
+**Subsection 4 — Games That Made You Feel [Emotion]:** A horizontal pill row of emotion chips (using the palette). Selecting an emotion filters a game grid showing all library games where that emotion appeared in at least one session, sorted by frequency. Each game card shows a count ("Frustrated 4x"). Backed by: `GROUP BY game_id WHERE '{emotion}' = ANY(emotions)` on `session_logs`.
+
+#### Role Access (Additions to Section 3 Role Table)
+
+| Feature | BASIC | PREMIUM | ADMIN |
+|---|---|---|---|
+| Emotion picker in LogSessionModal | Yes | Yes | Yes |
+| Emotion dots on Feed items | Yes | Yes | Yes |
+| Emotion stat cards in Stats tab | Yes | Yes | Yes |
+| Emotion section on `/profile/stats` | Yes | Yes | Yes |
+| AI Mood Narrative (monthly) | No | Yes | Yes |
+
+**Premium extension — AI Mood Narrative:** Once per month, PREMIUM users can request a paragraph-length reflection on their emotional gaming patterns, generated by `ai_service` with `EmotionStats` as context (e.g., "You spent most of October feeling immersed — mostly in Baldur's Gate 3. Your frustration spikes on weekends, suggesting you take on harder content when you have more time."). Dispatched as a Celery task; result stored on `journal_summaries` alongside the existing AI journal summary.
+
+---
+
 ## 4. Wishlist Price Tracker + Release Calendar
 
 ### Overview
