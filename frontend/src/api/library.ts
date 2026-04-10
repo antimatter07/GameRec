@@ -1,5 +1,6 @@
 import apiClient from './client';
 import type { LibraryEntry, LibraryEntryCreate, LibraryEntryUpdate, LibraryStats } from '../types/library';
+import type { LibraryEntryUpdateOut } from '../types/playQueue';
 import type { GameListItem } from '../types/game';
 
 export interface BacklogFiltersParams {
@@ -35,7 +36,7 @@ export const libraryApi = {
     apiClient.post<LibraryEntry>('/library', payload).then((r) => r.data),
 
   update: (entryId: number, payload: LibraryEntryUpdate) =>
-    apiClient.patch<LibraryEntry>(`/library/${entryId}`, payload).then((r) => r.data),
+    apiClient.patch<LibraryEntryUpdateOut>(`/library/${entryId}`, payload).then((r) => r.data),
 
   remove: (entryId: number) =>
     apiClient.delete(`/library/${entryId}`),

@@ -10,6 +10,7 @@ from app.schemas.library import (
     LibraryEntryCreate,
     LibraryEntryOut,
     LibraryEntryUpdate,
+    LibraryEntryUpdateOut,
     LibraryStats,
     PrioritizedBacklogOut,
 )
@@ -57,7 +58,7 @@ def get_prioritized_backlog(
     )
 
 
-@router.patch("/{entry_id}", response_model=LibraryEntryOut)
+@router.patch("/{entry_id}", response_model=LibraryEntryUpdateOut)
 def update_library_entry(entry_id: int, updates: LibraryEntryUpdate, db: DBDep, current_user: CurrentUserDep):
     return library_service.update_entry(db, current_user.id, entry_id, updates)
 

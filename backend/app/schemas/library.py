@@ -53,3 +53,9 @@ class PrioritizedBacklogItem(BaseModel):
 class PrioritizedBacklogOut(BaseModel):
     total:   int
     results: list[PrioritizedBacklogItem]
+
+
+class LibraryEntryUpdateOut(BaseModel):
+    entry:         LibraryEntryOut
+    queue_advanced: bool               = False
+    next_game:      LibraryEntryOut | None = None

@@ -9,6 +9,7 @@ import CatalogPage        from './pages/games/CatalogPage';
 import GameDetailPage     from './pages/games/GameDetailPage';
 import LibraryPage        from './pages/library/LibraryPage';
 import BacklogPage        from './pages/library/BacklogPage';
+import PlayQueuePage      from './pages/library/PlayQueuePage';
 import RecommendationsPage from './pages/recommendations/RecommendationsPage';
 import ProfilePage        from './pages/profile/ProfilePage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
@@ -45,6 +46,7 @@ export const router = createBrowserRouter([
           { path: '/games/:gameId',         element: <GameDetailPage /> },
           { path: '/library',               element: <LibraryPage /> },
           { path: '/library/backlog',       element: <BacklogPage /> },
+          { path: '/library/queue',         element: <PlayQueuePage /> },
           { path: '/recommendations',       element: <RecommendationsPage /> },
           { path: '/profile',              element: <ProfilePage /> },
 

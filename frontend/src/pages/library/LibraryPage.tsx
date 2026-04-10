@@ -139,7 +139,7 @@ export default function LibraryPage() {
           return (
             <Tabs.Panel key={tab.value} value={tab.value} pt="md">
               {tab.value === 'backlog' && filtered.length > 0 && (
-                <Group justify="flex-end" mb="sm">
+                <Group justify="flex-end" mb="sm" gap="xs">
                   <Button
                     size="xs"
                     variant="light"
@@ -147,6 +147,15 @@ export default function LibraryPage() {
                     onClick={() => navigate('/library/backlog')}
                   >
                     Play Next
+                  </Button>
+                  <Button
+                    size="xs"
+                    variant="light"
+                    color="grape"
+                    rightSection={<IconArrowRight size={14} />}
+                    onClick={() => navigate('/library/queue')}
+                  >
+                    My Queue
                   </Button>
                 </Group>
               )}

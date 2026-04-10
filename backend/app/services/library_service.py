@@ -42,7 +42,7 @@ def add_game(db: Session, user_id: int, entry_in: LibraryEntryCreate) -> Library
     return db.query(LibraryEntry).filter(LibraryEntry.id == entry.id).options(joinedload(LibraryEntry.game)).first()
 
 
-def update_entry(db: Session, user_id: int, entry_id: int, updates: LibraryEntryUpdate) -> LibraryEntry:
+def update_entry(db: Session, user_id: int, entry_id: int, updates: LibraryEntryUpdate) -> dict:
     entry = (
         db.query(LibraryEntry)
         .filter(LibraryEntry.id == entry_id, LibraryEntry.user_id == user_id)
@@ -50,11 +50,30 @@ def update_entry(db: Session, user_id: int, entry_id: int, updates: LibraryEntry
     )
     if not entry:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Library entry not found")
+
+    becoming_completed = (
+        updates.status == LibraryStatus.COMPLETED and entry.status != LibraryStatus.COMPLETED
+    )
+
     for field, value in updates.model_dump(exclude_unset=True).items():
         setattr(entry, field, value)
     db.commit()
     db.refresh(entry)
-    return db.query(LibraryEntry).filter(LibraryEntry.id == entry.id).options(joinedload(LibraryEntry.game)).first()
+
+    updated_entry = (
+        db.query(LibraryEntry).filter(LibraryEntry.id == entry.id).options(joinedload(LibraryEntry.game)).first()
+    )
+
+    if becoming_completed:
+        from app.services.play_queue_service import advance_queue_after_completion
+        advance_result = advance_queue_after_completion(db, user_id, entry_id)
+        return {
+            "entry": updated_entry,
+            "queue_advanced": advance_result["queue_advanced"],
+            "next_game": advance_result["next_game"],
+        }
+
+    return {"entry": updated_entry, "queue_advanced": False, "next_game": None}
 
 
 def get_stats(db: Session, user_id: int) -> dict:

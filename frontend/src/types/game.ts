@@ -31,6 +31,8 @@ export interface GameListItem {
   rating: number | null;
   genres: Genre[];
   platforms: Platform[];
+  playtime: number | null;
+  hltb_main_hours: number | null;
 }
 
 /** Full detail — used on the game detail page */

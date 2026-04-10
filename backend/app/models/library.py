@@ -34,6 +34,7 @@ class LibraryEntry(Base):
     # Relationships
     user = relationship("User", back_populates="library_entries")
     game = relationship("Game", back_populates="library_entries")
+    play_queue_entry = relationship("PlayQueueEntry", back_populates="entry", uselist=False, cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<LibraryEntry user={self.user_id} game={self.game_id} status={self.status}>"

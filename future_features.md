@@ -16,134 +16,203 @@ It is intended as a reference when scoping and implementing each feature, not as
 
 ---
 
-## 1. Backlog Manager / "Play Next" Prioritizer
+## 1. Backlog Manager / "Play Next" Prioritizer + Play Queue
 
 ### Overview
 
-Users who have games in `backlog` status have no guidance on what to tackle next.
-The app already has `Game.playtime` (RAWG average playtime, stored as an integer on the `Game` model) and the recommendation engine already computes a cosine similarity score between the user's taste profile and every game in the catalog.
-This feature surfaces a ranked, filterable "Play Next" view that re-uses both of those existing signals to help users pick their next game from their own backlog — not from the broader catalog.
+This feature has two complementary parts:
+
+1. **Play Next Prioritizer** (`/library/backlog`) — an AI-ranked view of the user's backlog games, scored by a composite of taste match, staleness, and playtime. Already implemented. Helps users *discover* which backlog game to tackle next.
+
+2. **Play Queue** (`/library/queue`) — a user-ordered queue of games the user has decided to play in a specific sequence. Users drag and drop to reorder. When a queued game is marked as completed, it is automatically removed from the queue and the next game in the queue is marked as `playing`.
+
+The two views are complementary: the AI prioritizer surfaces candidates; the queue is where the user locks in their decision.
 
 ### New DB Models
 
-No new models are required.
-The feature reads from existing `LibraryEntry`, `Game`, and potentially `Recommendation`/`RecommendationItem` rows.
-
-One optional addition is a `BacklogPriority` table that lets users manually pin or dismiss games from the prioritized list:
+#### `play_queue_entries` (new table)
 
 ```
-backlog_priorities
+play_queue_entries
   id           Integer PK
-  user_id      Integer FK → users.id  NOT NULL
-  game_id      Integer FK → games.id  NOT NULL
-  pinned       Boolean  default False   -- user manually promoted to top
-  dismissed    Boolean  default False   -- user hid from suggestions
-  updated_at   DateTime auto-updated
-  UNIQUE (user_id, game_id)
+  user_id      Integer FK → users.id           NOT NULL  ON DELETE CASCADE
+  entry_id     Integer FK → library_entries.id  NOT NULL  ON DELETE CASCADE
+  position     Integer NOT NULL                           -- 1-indexed, dense, no gaps
+  added_at     DateTime
+  UNIQUE (user_id, entry_id)   -- a game can only appear once per user's queue
+  UNIQUE (user_id, position)   -- no two entries at the same position
 ```
 
-This table is entirely optional for an MVP — the prioritizer works without it and the table only becomes valuable once the "pin/dismiss" interaction is implemented.
+Key design decisions:
+- `ON DELETE CASCADE` on `entry_id` means removing a game from the library automatically removes it from the queue — no application code needed.
+- Separate table (not a nullable column on `LibraryEntry`) keeps the `LibraryEntry` model clean and makes position compaction queries simple.
+- The queue is a subset of the user's `backlog` entries. Only games with `status = 'backlog'` can be enqueued.
+
+SQLAlchemy model at `backend/app/models/play_queue.py`.
+
+Back-references to add:
+- `LibraryEntry.play_queue_entry` — `uselist=False`, `cascade="all, delete-orphan"`
+- `User.play_queue_entries` — `cascade="all, delete-orphan"`
+
+#### Existing DB models (no schema changes needed)
+
+The Play Next Prioritizer reads from `LibraryEntry`, `Game`, `Recommendation`, and `RecommendationItem` — all already in place.
 
 ### New API Endpoints
 
-All endpoints require at minimum `require_basic`.
+All endpoints require `require_basic`. Both the prioritizer and queue are BASIC-tier features.
+
+#### Play Next Prioritizer (already implemented)
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | `GET` | `/api/library/backlog/prioritized` | BASIC+ | Returns the user's backlog entries ranked by priority score |
-| `PATCH` | `/api/library/backlog/{entry_id}/pin` | BASIC+ | Pin a game to the top of the prioritized list |
-| `PATCH` | `/api/library/backlog/{entry_id}/dismiss` | BASIC+ | Hide a game from the prioritized list |
 
-**`GET /api/library/backlog/prioritized` query parameters:**
+Query parameters: `mood_genre`, `max_hours`, `sort` (`score` \| `playtime_asc` \| `playtime_desc` \| `added_at`), `page`, `page_size`.
 
-- `mood_genre: str | None` — filter to backlog games matching a genre name (e.g. "RPG", "Action")
-- `max_hours: int | None` — only include games with `Game.playtime <= max_hours` (RAWG playtime)
-- `sort: "score" | "playtime_asc" | "playtime_desc" | "added_at"` — default `"score"`
-- `page: int`, `page_size: int` — pagination
+#### Play Queue (new)
 
-**Response shape (new Pydantic schema `PrioritizedBacklogItem`):**
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| `GET` | `/api/library/queue` | BASIC+ | Get the user's full ordered queue |
+| `POST` | `/api/library/queue` | BASIC+ | Enqueue a game (appends to end) |
+| `DELETE` | `/api/library/queue/{entry_id}` | BASIC+ | Remove a game from the queue; compacts positions |
+| `PUT` | `/api/library/queue/order` | BASIC+ | Reorder the full queue — accepts an ordered list of `entry_id`s |
+
+**`POST /api/library/queue` validations:**
+- `LibraryEntry` must belong to the requesting user.
+- `LibraryEntry.status` must be `'backlog'` — returns `422` otherwise.
+- Entry must not already be in the queue — returns `409` otherwise.
+
+**`PUT /api/library/queue/order` validations:**
+- `ordered_entry_ids` must contain exactly the same set of `entry_id`s currently in the user's queue — returns `400` if the sets don't match. This guards against stale UI state.
+
+**`PATCH /api/library/{entry_id}` (existing, modified response):**
+- When status transitions to `'completed'`, the server calls `advance_queue_after_completion()` internally.
+- Response shape changes to `LibraryEntryUpdateOut`:
 
 ```python
-class PrioritizedBacklogItem(BaseModel):
-    entry_id: int
-    game: GameListOut
-    playtime_hours: int | None       # Game.playtime from RAWG
-    taste_score: float | None        # cosine similarity from latest Recommendation batch, null if no recs yet
-    priority_score: float            # composite score described below
-    pinned: bool
-    dismissed: bool
-    stale_months: int | None         # months since entry was last touched (updated_at)
+class LibraryEntryUpdateOut(BaseModel):
+    entry: LibraryEntryOut
+    queue_advanced: bool = False
+    next_game: LibraryEntryOut | None = None
 ```
 
-### Priority Score Computation
+### Auto-Advance on Completion
 
-Computed server-side in a new `backlog_service.py` (or added to `library_service.py`):
+When a queued game's status is set to `'completed'` via `PATCH /api/library/{entry_id}`:
+
+1. If the completed entry is **not in the queue**: no action. Return `queue_advanced: False`.
+2. If it **is in the queue**:
+   a. Delete the queue row; compact positions (single `UPDATE ... position -= 1 WHERE position > removed_pos`).
+   b. Find the new position-1 entry. If queue is now empty: return `queue_advanced: False`.
+   c. Set that entry's `LibraryEntry.status = 'playing'`.
+   d. Return `queue_advanced: True, next_game: <LibraryEntryOut>`.
+
+The completed game remains in the library with `status = 'completed'` — it is only removed from the queue.
+
+### Priority Score Computation (Play Next Prioritizer)
+
+Computed server-side in `library_service.get_prioritized_backlog()`:
 
 ```
-priority_score = (taste_weight * taste_score_normalized)
-               + (staleness_weight * staleness_score)
-               + (playtime_weight * playtime_score)
+priority_score = 0.5 * taste_score
+               + 0.3 * staleness_score
+               + 0.2 * playtime_score
 ```
 
 Where:
-- `taste_score_normalized` — the game's cosine similarity score from the user's most recent `Recommendation` batch. Look up by joining `RecommendationItem` on `game_id` for the latest `Recommendation` for this user. If no recommendation batch exists, default to `0.5`.
-- `staleness_score` — `min(1.0, months_since_updated_at / 6)`. A game untouched for 6+ months scores 1.0.
-- `playtime_score` — `1 - min(1.0, Game.playtime / 100)`. Short games (under 10h) score near 1.0; 100h+ games score near 0.0. This surfaces completable games higher by default. Set to `0.5` when `playtime` is null.
-- Default weights: `taste_weight=0.5`, `staleness_weight=0.3`, `playtime_weight=0.2`. These can be made user-configurable in a future iteration.
-
-No new Celery tasks are needed — this is a synchronous computation on request. The most expensive step is the taste score lookup, which just queries the existing `recommendation_items` table.
+- `taste_score` — cosine similarity from the user's latest `Recommendation` batch. Defaults to `0.5` if no batch exists.
+- `staleness_score` — `min(1.0, months_since_updated_at / 6)`. Untouched for 6+ months → scores 1.0.
+- `playtime_score` — `1 - min(1.0, hours / 100)`. Short games surface higher. Defaults to `0.5` when `null`. Uses `hltb_main_hours` when available, falls back to `Game.playtime`.
 
 ### New Celery Tasks
 
-None required for MVP. If the priority score computation becomes slow (large backlogs), a `recompute_backlog_priorities` task can be dispatched after `precompute_for_user` completes.
+None. Both the prioritizer and queue are synchronous operations on request.
 
 ### Frontend Pages and Components
 
-**New page:** `frontend/src/pages/library/BacklogPage.tsx`
+#### Play Next Prioritizer (already implemented)
 
-- Route: `/library/backlog` — add to `router.tsx` as a child of the authenticated layout.
-- Link from `LibraryPage.tsx`: add a "Play Next" button or tab on the Backlog tab panel.
+**Page:** `frontend/src/pages/library/BacklogPage.tsx` at `/library/backlog`
 
-**New components:**
+- AI-ranked list of backlog games in `BacklogPriorityCard` format.
+- Filter bar (`BacklogFilters`) with genre select and max-hours input.
+- Each card: game art, name, genre badges, playtime, taste match %, staleness nudge, **Play** button, **+ Queue** button.
 
-- `BacklogPriorityCard` — extends `GameCard` to show `priority_score` as a small colored badge, `playtime_hours` (e.g. "~12h to beat"), a staleness nudge ("Added 8 months ago"), and pin/dismiss action buttons.
-- `BacklogFilters` — a horizontal filter bar with a genre select (populated from the user's distinct backlog genres) and a "Max hours" number input. Can be built with Mantine `Select` and `NumberInput`.
+#### Play Queue (new)
 
-**State:** All server state via TanStack Query (`queryKey: ['library', 'backlog', 'prioritized', filters]`). Pin/dismiss use `useMutation` with optimistic updates.
+**Page:** `frontend/src/pages/library/PlayQueuePage.tsx` at `/library/queue`
+
+- Horizontal wrapping grid layout — cards flow left-to-right; when a row fills, a new row wraps below.
+- Drag-and-drop reordering via `dnd-kit` (`@dnd-kit/core` + `@dnd-kit/sortable`). Better horizontal/grid support than `@hello-pangea/dnd`.
+- `onDragEnd`: optimistic reorder → `PUT /api/library/queue/order`. On error, rolls back to the previous snapshot.
+- Empty state: "No games queued yet. Head to Play Next to find candidates." with a link to `/library/backlog`.
+
+**Component:** `frontend/src/components/library/PlayQueueItem.tsx`
+
+- Portrait card format (like a game cover):
+  - Game cover art
+  - Position number badge (top-left overlay)
+  - Game name
+  - Playtime (`hltb_main_hours ?? playtime`) shown as "~Nh"
+  - Remove button (`IconX`, top-right overlay)
+- Fixed card width so cards tile naturally.
+- No AI scores — the queue is about user-decided order.
+
+**Navigation:**
+- `LibraryPage.tsx` Backlog tab header: two buttons side by side — "Play Next" (→ `/library/backlog`) and "My Queue" (→ `/library/queue`).
+- `BacklogPriorityCard.tsx`: "**+ Queue**" button alongside the existing "Play" button. If the game is already in the queue, button shows "In Queue" (disabled).
+
+**State:**
+- `usePlayQueue()` — TanStack Query, key `['play-queue']`
+- `useEnqueueGame()` — mutation, invalidates `['play-queue']`; shows notification "Added to queue at position N"
+- `useDequeueGame()` — mutation, optimistic remove
+- `useReorderQueue()` — mutation, optimistic reorder with snapshot rollback on error
+- `useUpdateLibraryEntry()` — updated to handle `LibraryEntryUpdateOut`; if `queue_advanced && next_game`, shows Mantine notification: "Now playing: [game name]"
+
+**Install:** `npm install @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities` (from `frontend/`)
 
 ### Integration with Existing Models
 
-- Reads `LibraryEntry` rows where `status = 'backlog'` and `dismissed = False` (or from `BacklogPriority`).
-- Reads `Game.playtime` — already stored on the `Game` model, no new sync needed.
-- Reads cosine scores from `RecommendationItem` joined to the latest `Recommendation` for the user — no new recommendation computation required.
-- Does not modify or retrigger the recommendation engine.
-- Mood/genre filtering uses `Game.genres` JSON array, already in the DB.
+- Play Next Prioritizer: reads `LibraryEntry` (status=backlog), `Game`, `RecommendationItem`. No writes.
+- Play Queue: reads/writes `PlayQueueEntry`; cascades from `LibraryEntry` deletion automatically.
+- Auto-advance modifies `LibraryEntry.status` (same as the existing `PATCH /library/{entry_id}` endpoint).
+- Neither feature triggers new recommendation batches.
 
 ### External APIs
 
-None. All data is already in the database (`Game.playtime` comes from RAWG sync, `RecommendationItem.score` from the recommendation engine).
-
-If higher-quality completion time data is desired in the future, the HowLongToBeat API (unofficial, community-maintained) could be queried by game title and cached on `Game` as a separate `hltb_main_story_hours` column. This is out of scope for MVP given `Game.playtime` already covers the core use case.
+None. All data is in the database.
 
 ### User Role Access
 
 | Feature | BASIC | PREMIUM | ADMIN |
 |---------|-------|---------|-------|
 | View prioritized backlog | Yes | Yes | Yes |
-| Pin / Dismiss | Yes | Yes | Yes |
 | Mood/genre filter | Yes | Yes | Yes |
-| Taste score shown (requires recommendation batch) | Yes | Yes | Yes |
-
-This is a BASIC-tier feature — it uses data the user already has and requires no premium AI calls.
+| Taste score (requires recommendation batch) | Yes | Yes | Yes |
+| View / manage play queue | Yes | Yes | Yes |
+| Drag-and-drop reorder | Yes | Yes | Yes |
+| Auto-advance on completion | Yes | Yes | Yes |
 
 ### UX Flow
 
-1. User navigates to `/library` and clicks the "Backlog" tab. A "Play Next" button appears in the tab header.
-2. Clicking "Play Next" navigates to `/library/backlog`.
-3. The page shows a ranked list of backlog games in `BacklogPriorityCard` format. Above the list, a filter bar lets the user pick a mood genre or set a max-hours ceiling.
-4. Each card shows: game art, name, genre badges, "~N hours to beat" (from `playtime_hours`), a match percentage (from `taste_score`), and a staleness nudge ("You added this 9 months ago") when `stale_months >= 6`.
-5. The user can pin a game (it floats to the top) or dismiss it (it disappears from the list). These actions call the PATCH endpoints and use optimistic updates so the list reorders instantly.
-6. A "Start Playing" button on each card changes the library status to `playing` via the existing PATCH `/library/{entry_id}` endpoint (which needs to be implemented — it is currently a stub).
+1. User opens `/library` → Backlog tab. Two buttons appear: **Play Next** and **My Queue**.
+2. **Play Next** (`/library/backlog`): AI-ranked list. User browses and clicks **+ Queue** to add a game to their queue, or **Play** to start immediately.
+3. **My Queue** (`/library/queue`): Horizontal card grid showing the user's planned play order. User drags cards to reorder. Clicking **×** on a card removes it from the queue.
+4. When the user finishes a queued game and marks it `completed` (via the library edit modal or elsewhere), the server removes it from the queue and automatically marks the next queued game as `playing`. A notification appears: "Now playing: [next game name]."
+5. If the queue is empty when a game completes, no auto-advance occurs.
+
+### Edge Cases
+
+| Scenario | Behaviour |
+|----------|-----------|
+| Game removed from library while in queue | `ON DELETE CASCADE` removes the queue row automatically |
+| Game completed but not in queue | No queue action; `queue_advanced: false` returned |
+| Queue is empty when game completes | No status change; `queue_advanced: false` |
+| User tries to enqueue a non-backlog game | `422` — only backlog games can be queued |
+| User tries to enqueue a game already in the queue | `409` — already in queue |
+| `PUT /order` list doesn't match current queue | `400` — stale UI guard |
 
 ### Impact on Recommendation Engine
 

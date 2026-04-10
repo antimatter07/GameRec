@@ -3,6 +3,7 @@ from app.models.user import User, UserRole
 from app.models.game import Game
 from app.models.library import LibraryEntry, LibraryStatus
 from app.models.recommendation import Recommendation, RecommendationItem, RecommendationFeedback
+from app.models.play_queue import PlayQueueEntry
 
 __all__ = [
     "User",
@@ -13,4 +14,5 @@ __all__ = [
     "Recommendation",
     "RecommendationItem",
     "RecommendationFeedback",
+    "PlayQueueEntry",
 ]

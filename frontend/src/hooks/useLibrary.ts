@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { notifications } from '@mantine/notifications';
 import { libraryApi } from '../api/library';
 import type { BacklogFiltersParams } from '../api/library';
 import type { LibraryEntryCreate, LibraryEntryUpdate } from '../types/library';
@@ -39,9 +40,17 @@ export function useUpdateLibraryEntry() {
   return useMutation({
     mutationFn: ({ id, updates }: { id: number; updates: LibraryEntryUpdate }) =>
       libraryApi.update(id, updates),
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['library'] });
       queryClient.invalidateQueries({ queryKey: ['library-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['play-queue'] });
+      if (data.queue_advanced && data.next_game) {
+        notifications.show({
+          title: 'Queue advanced',
+          message: `Now playing: ${data.next_game.game.name}`,
+          color: 'teal',
+        });
+      }
     },
   });
 }

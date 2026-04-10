@@ -38,6 +38,8 @@ class GameListOut(BaseModel):
     rating:           float | None
     genres:           list[Any]
     platforms:        list[Any]
+    playtime:         int | None   = None
+    hltb_main_hours:  float | None = None
 
     model_config = {"from_attributes": True}
 
