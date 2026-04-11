@@ -99,6 +99,14 @@ def reorder(db: Session, user_id: int, payload: PlayQueueReorder) -> dict:
         )
 
     entry_map = {row.entry_id: row for row in current}
+    n = len(current)
+
+    # Shift all positions out of range first to avoid unique constraint conflicts
+    # during the intermediate state when two rows would temporarily share a position.
+    for row in current:
+        row.position += n
+    db.flush()
+
     for new_pos, entry_id in enumerate(payload.ordered_entry_ids, start=1):
         entry_map[entry_id].position = new_pos
     db.commit()

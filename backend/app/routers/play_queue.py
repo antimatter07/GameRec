@@ -15,12 +15,12 @@ DBDep          = Annotated[Session, Depends(get_db)]
 CurrentUserDep = Annotated[User, Depends(require_basic)]
 
 
-@router.get("/", response_model=PlayQueueOut)
+@router.get("", response_model=PlayQueueOut)
 def get_queue(db: DBDep, current_user: CurrentUserDep):
     return play_queue_service.get_queue(db, current_user.id)
 
 
-@router.post("/", response_model=PlayQueueOut, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=PlayQueueOut, status_code=status.HTTP_201_CREATED)
 def enqueue_game(payload: PlayQueueEnqueue, db: DBDep, current_user: CurrentUserDep):
     return play_queue_service.enqueue(db, current_user.id, payload)
 
