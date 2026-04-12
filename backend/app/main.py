@@ -5,7 +5,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 from app.config import settings
-from app.routers import auth, users, games, library, recommendations, feedback, admin, play_queue
+from app.routers import auth, users, games, library, recommendations, feedback, admin, play_queue, journal
 
 # TODO: Replace with the user-aware key function from app.core.rate_limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -37,6 +37,7 @@ app.include_router(library.router,         prefix="/api/library",         tags=[
 app.include_router(recommendations.router, prefix="/api/recommendations", tags=["recommendations"])
 app.include_router(feedback.router,        prefix="/api/feedback",        tags=["feedback"])
 app.include_router(admin.router,           prefix="/api/admin",           tags=["admin"])
+app.include_router(journal.router,         prefix="/api/journal",         tags=["journal"])
 
 
 @app.get("/api/health", tags=["health"])

@@ -62,7 +62,7 @@ export default function CatalogPage() {
           </SimpleGrid>
 
           <Center>
-            <Pagination total={totalPages} value={page} onChange={setPage} />
+            <Pagination color="teal" total={totalPages} value={page} onChange={setPage} radius="lg"/>
           </Center>
         </>
       )}

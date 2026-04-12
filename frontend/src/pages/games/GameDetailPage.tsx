@@ -11,9 +11,13 @@ import {
   Text,
   Title,
 } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import { IconClock } from '@tabler/icons-react';
 import { useParams } from 'react-router';
+import { LogSessionModal } from '../../components/journal/LogSessionModal';
+import { JournalFeedItem } from '../../components/journal/JournalFeedItem';
 import { useGame } from '../../hooks/useGames';
+import { useSessionsList } from '../../hooks/useJournal';
 
 /**
  * Full game detail page.
@@ -27,6 +31,8 @@ import { useGame } from '../../hooks/useGames';
 export default function GameDetailPage() {
   const { gameId } = useParams<{ gameId: string }>();
   const { data: game, isLoading, isError } = useGame(Number(gameId));
+  const { data: recentSessions } = useSessionsList(Number(gameId), 1, 3);
+  const [logOpened, { open: openLog, close: closeLog }] = useDisclosure(false);
 
   if (isLoading) return <Center h={400}><Loader /></Center>;
   if (isError || !game) return <Text c="red">Game not found.</Text>;
@@ -74,8 +80,17 @@ export default function GameDetailPage() {
         </Stack>
 
         {/* TODO: Replace with AddToLibraryButton component */}
-        <Button>Add to Library</Button>
+        <Group>
+          <Button>Add to Library</Button>
+          <Button variant="light" onClick={openLog}>Log Session</Button>
+        </Group>
       </Group>
+
+      <LogSessionModal
+        gameId={Number(gameId)}
+        opened={logOpened}
+        onClose={closeLog}
+      />
 
       {(game.hltb_main_hours != null ||
         game.hltb_main_extra_hours != null ||
@@ -113,6 +128,15 @@ export default function GameDetailPage() {
           <Title order={4}>About</Title>
           {/* TODO: Sanitize HTML — see component-level TODO above */}
           <Text size="sm">{game.description.replace(/<[^>]+>/g, '')}</Text>
+        </Stack>
+      )}
+
+      {recentSessions && recentSessions.total > 0 && (
+        <Stack gap="xs">
+          <Title order={4}>Your Recent Sessions</Title>
+          {recentSessions.results.map((s) => (
+            <JournalFeedItem key={s.id} session={s} />
+          ))}
         </Stack>
       )}
 

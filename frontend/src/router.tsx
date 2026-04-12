@@ -13,6 +13,7 @@ import PlayQueuePage      from './pages/library/PlayQueuePage';
 import RecommendationsPage from './pages/recommendations/RecommendationsPage';
 import ProfilePage        from './pages/profile/ProfilePage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import JournalPage        from './pages/journal/JournalPage';
 
 // TODO: Switch to lazy() + Suspense for code splitting:
 //       const CatalogPage = lazy(() => import('./pages/games/CatalogPage'));
@@ -48,6 +49,7 @@ export const router = createBrowserRouter([
           { path: '/library/backlog',       element: <BacklogPage /> },
           { path: '/library/queue',         element: <PlayQueuePage /> },
           { path: '/recommendations',       element: <RecommendationsPage /> },
+          { path: '/journal',               element: <JournalPage /> },
           { path: '/profile',              element: <ProfilePage /> },
 
           // --- Admin only ---

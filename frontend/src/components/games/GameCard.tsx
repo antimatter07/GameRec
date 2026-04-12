@@ -50,10 +50,12 @@ export function GameCard({ game, showAdd = false }: GameCardProps) {
       <Card.Section>
         <Image
           src={game.background_image ?? undefined}
-          height={200}
+          //height={200}
           alt={game.name}
+           style={{ aspectRatio: '16 / 9', objectFit: 'cover' }}
           fallbackSrc="https://placehold.co/400x200?text=No+Image"
         />
+        
       </Card.Section>
 
       <Stack gap="xs" mt="sm">

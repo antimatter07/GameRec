@@ -5,6 +5,7 @@ import { useAuthStore } from '../../store/authStore';
 const NAV_ITEMS = [
   { label: 'Catalog',         to: '/games'           },
   { label: 'My Library',      to: '/library'         },
+  { label: 'Journal',         to: '/journal'         },
   { label: 'Recommendations', to: '/recommendations'  },
   { label: 'Profile',         to: '/profile'         },
 ];
