@@ -1,5 +1,5 @@
 import apiClient from './client';
-import type { User, UserUpdate } from '../types/user';
+import type { User } from '../types/user';
 
 export interface LoginCredentials {
   username: string; // OAuth2PasswordRequestForm uses "username"

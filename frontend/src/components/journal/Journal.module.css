@@ -1,0 +1,453 @@
+/* ─── Journal Dashboard ────────────────────────────────────────────────────── */
+
+.journalPage {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--mantine-spacing-lg) var(--mantine-spacing-md);
+}
+
+/* ─── Header ───────────────────────────────────────────────────────────────── */
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: var(--mantine-spacing-xl);
+  flex-wrap: wrap;
+  gap: var(--mantine-spacing-sm);
+}
+
+.headerTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.headerAccent {
+  color: var(--mantine-color-violet-5);
+}
+
+/* ─── Metric Cards ─────────────────────────────────────────────────────────── */
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--mantine-spacing-sm);
+  margin-bottom: var(--mantine-spacing-lg);
+}
+
+@media (max-width: 48em) {
+  .metricsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.metricCard {
+  position: relative;
+  overflow: hidden;
+  transition: border-color 150ms ease;
+}
+
+.metricCard:hover {
+  border-color: var(--mantine-color-dark-4);
+}
+
+.metricIcon {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--mantine-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.metricLabel {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--mantine-color-dimmed);
+  margin-bottom: 6px;
+}
+
+.metricValue {
+  font-size: 1.6rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.metricSub {
+  font-size: 0.7rem;
+  color: var(--mantine-color-dimmed);
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ─── Genre Bars ───────────────────────────────────────────────────────────── */
+
+.genreRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.genreLabel {
+  width: 76px;
+  font-size: 0.75rem;
+  color: var(--mantine-color-dimmed);
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.genreTrack {
+  flex: 1;
+  height: 20px;
+  background: var(--mantine-color-dark-6);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.genreFill {
+  height: 100%;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 8px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: white;
+  min-width: fit-content;
+  transition: width 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ─── Weekly Activity Grid ─────────────────────────────────────────────────── */
+
+.weeklyGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.dayCell {
+  aspect-ratio: 1;
+  border-radius: var(--mantine-radius-xs);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 0.62rem;
+  color: var(--mantine-color-dimmed);
+  transition: all 150ms ease;
+}
+
+.dayCellActive {
+  border: 1px solid var(--mantine-color-dark-4);
+}
+
+.dayLabel {
+  font-size: 0.55rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.dayHours {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--mantine-color-violet-4);
+}
+
+/* ─── Streak Ring ──────────────────────────────────────────────────────────── */
+
+.streakRing {
+  width: 100px;
+  height: 100px;
+  position: relative;
+  margin: 0 auto var(--mantine-spacing-sm);
+}
+
+.streakRingSvg {
+  transform: rotate(-90deg);
+}
+
+.streakCenter {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.streakNumber {
+  font-size: 1.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--mantine-color-violet-4);
+}
+
+.streakUnit {
+  font-size: 0.6rem;
+  color: var(--mantine-color-dimmed);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ─── Emotion Chips ────────────────────────────────────────────────────────── */
+
+.emotionChipGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.emotionPct {
+  font-size: 0.62rem;
+  color: var(--mantine-color-dimmed);
+  margin-left: 2px;
+}
+
+/* ─── Backlog Progress ─────────────────────────────────────────────────────── */
+
+.backlogMiniCards {
+  display: flex;
+  gap: 10px;
+  margin-bottom: var(--mantine-spacing-md);
+}
+
+.backlogMiniCard {
+  flex: 1;
+  text-align: center;
+  padding: 10px;
+  border-radius: var(--mantine-radius-sm);
+  background: var(--mantine-color-dark-6);
+}
+
+.backlogMiniValue {
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.backlogMiniLabel {
+  font-size: 0.65rem;
+  color: var(--mantine-color-dimmed);
+  margin-top: 2px;
+}
+
+.backlogBarContainer {
+  height: 8px;
+  background: var(--mantine-color-dark-6);
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+}
+
+.backlogBarFill {
+  height: 100%;
+  transition: width 500ms ease;
+}
+
+/* ─── Session List ─────────────────────────────────────────────────────────── */
+
+.sessionItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--mantine-color-dark-6);
+  border-radius: var(--mantine-radius-sm);
+  border: 1px solid transparent;
+  transition: all 150ms ease;
+  cursor: pointer;
+}
+
+.sessionItem:hover {
+  border-color: var(--mantine-color-dark-4);
+  background: var(--mantine-color-dark-5);
+}
+
+.sessionCover {
+  width: 44px;
+  height: 58px;
+  border-radius: 6px;
+  background: var(--mantine-color-dark-5);
+  flex-shrink: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sessionCover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sessionInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.sessionTitle {
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sessionMeta {
+  font-size: 0.7rem;
+  color: var(--mantine-color-dimmed);
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.sessionDuration {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
+  color: var(--mantine-color-violet-4);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.sessionEmotionDots {
+  display: flex;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.emotionDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+/* ─── Rating Bars ──────────────────────────────────────────────────────────── */
+
+.ratingBarRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.ratingAxisLabel {
+  width: 72px;
+  font-size: 0.68rem;
+  color: var(--mantine-color-dimmed);
+  text-align: right;
+}
+
+.ratingTrack {
+  flex: 1;
+  height: 6px;
+  background: var(--mantine-color-dark-8);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.ratingFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 500ms ease;
+}
+
+.ratingValue {
+  width: 28px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--mantine-color-dimmed);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Insight Box ──────────────────────────────────────────────────────────── */
+
+.insightBox {
+  background: var(--mantine-color-dark-6);
+  border-radius: var(--mantine-radius-sm);
+  padding: 12px 14px;
+  margin-top: var(--mantine-spacing-sm);
+  border-left: 3px solid var(--mantine-color-violet-6);
+  font-size: 0.75rem;
+  color: var(--mantine-color-dimmed);
+  line-height: 1.5;
+}
+
+/* ─── Log Session Modal ────────────────────────────────────────────────────── */
+
+.emotionPickerHeader {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--mantine-color-dimmed);
+  margin-bottom: var(--mantine-spacing-xs);
+}
+
+/* ─── Multi-Axis Rating Widget ─────────────────────────────────────────────── */
+
+.ratingWidgetGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--mantine-spacing-sm);
+}
+
+@media (max-width: 36em) {
+  .ratingWidgetGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ratingGameCard {
+  background: var(--mantine-color-dark-6);
+  border-radius: var(--mantine-radius-sm);
+  padding: 12px 14px;
+}
+
+.ratingGameTitle {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+/* ─── Two-column layouts ───────────────────────────────────────────────────── */
+
+.twoColMain {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: var(--mantine-spacing-md);
+  margin-bottom: var(--mantine-spacing-md);
+}
+
+@media (max-width: 48em) {
+  .twoColMain {
+    grid-template-columns: 1fr;
+  }
+}
+
+.twoColEqual {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--mantine-spacing-md);
+  margin-bottom: var(--mantine-spacing-md);
+}
+
+@media (max-width: 48em) {
+  .twoColEqual {
+    grid-template-columns: 1fr;
+  }
+}

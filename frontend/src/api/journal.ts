@@ -1,40 +1,126 @@
 import apiClient from './client';
 import type {
-  JournalStats,
-  SessionLog,
   SessionLogCreate,
-  SessionLogListOut,
   SessionLogUpdate,
+  SessionLog,
+  MultiAxisRatingUpsert,
+  MultiAxisRating,
+  JournalStats,
+  EmotionStats,
+  EmotionStatsPeriod,
+  JournalFeedItem,
+  PaginatedResponse,
 } from '../types/journal';
 
-export interface SessionListParams {
-  game_id?:  number;
-  page?:     number;
-  page_size?: number;
+// ─── Feed date-group helper ────────────────────────────────────────────────────
+
+function toDateGroup(isoString: string): string {
+  const date  = new Date(isoString);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+
+  if (date.toDateString() === today.toDateString()) return 'Today';
+  if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+function sessionsToFeedItems(sessions: SessionLog[]): JournalFeedItem[] {
+  return sessions.map((s) => ({
+    type: s.is_milestone ? 'milestone' : 'session',
+    session: s,
+    date_group: toDateGroup(s.started_at),
+  }));
+}
+
+// ─── Journal API ──────────────────────────────────────────────────────────────
+
 export const journalApi = {
-  createSession: (payload: SessionLogCreate) =>
-    apiClient.post<SessionLog>('/journal/sessions', payload).then((r) => r.data),
+  // ── Sessions ────────────────────────────────────────────────────────────────
 
-  listSessions: (params: SessionListParams = {}) =>
-    apiClient
-      .get<SessionLogListOut>('/journal/sessions', { params })
-      .then((r) => r.data),
+  createSession: async (data: SessionLogCreate): Promise<SessionLog> => {
+    const res = await apiClient.post<SessionLog>('/journal/sessions', data);
+    return res.data;
+  },
 
-  updateSession: (sessionId: number, payload: SessionLogUpdate) =>
-    apiClient
-      .patch<SessionLog>(`/journal/sessions/${sessionId}`, payload)
-      .then((r) => r.data),
+  getSessions: async (params?: {
+    page?:      number;
+    per_page?:  number;
+    game_id?:   number;
+    date_from?: string;
+    date_to?:   string;
+  }): Promise<PaginatedResponse<SessionLog>> => {
+    const res = await apiClient.get<PaginatedResponse<SessionLog>>('/journal/sessions', { params });
+    return res.data;
+  },
 
-  deleteSession: (sessionId: number) =>
-    apiClient.delete(`/journal/sessions/${sessionId}`),
+  updateSession: async (sessionId: number, data: SessionLogUpdate): Promise<SessionLog> => {
+    const res = await apiClient.patch<SessionLog>(`/journal/sessions/${sessionId}`, data);
+    return res.data;
+  },
 
-  getStats: () =>
-    apiClient.get<JournalStats>('/journal/sessions/stats').then((r) => r.data),
+  deleteSession: async (sessionId: number): Promise<void> => {
+    await apiClient.delete(`/journal/sessions/${sessionId}`);
+  },
 
-  getFeed: (params: { page?: number; page_size?: number } = {}) =>
-    apiClient
-      .get<SessionLogListOut>('/journal/feed', { params })
-      .then((r) => r.data),
+  // ── Stats ────────────────────────────────────────────────────────────────────
+
+  getStats: async (): Promise<JournalStats> => {
+    const res = await apiClient.get<JournalStats>('/journal/sessions/stats');
+    return res.data;
+  },
+
+  // ── Feed ─────────────────────────────────────────────────────────────────────
+
+  getFeed: async (params?: {
+    page?:     number;
+    per_page?: number;
+  }): Promise<PaginatedResponse<JournalFeedItem>> => {
+    const res = await apiClient.get<PaginatedResponse<SessionLog>>('/journal/feed', { params });
+    const { items, ...rest } = res.data;
+    return { ...rest, items: sessionsToFeedItems(items) };
+  },
+
+  // ── Multi-Axis Ratings (no backend yet — degrade gracefully) ──────────────────
+
+  upsertRating: async (gameId: number, data: MultiAxisRatingUpsert): Promise<MultiAxisRating> => {
+    const res = await apiClient.put<MultiAxisRating>(`/journal/ratings/${gameId}`, data);
+    return res.data;
+  },
+
+  getRating: async (gameId: number): Promise<MultiAxisRating | null> => {
+    try {
+      const res = await apiClient.get<MultiAxisRating>(`/journal/ratings/${gameId}`);
+      return res.data;
+    } catch (err: any) {
+      if (err.response?.status === 404 || err.response?.status === 422) return null;
+      throw err;
+    }
+  },
+
+  getAllRatings: async (): Promise<MultiAxisRating[]> => {
+    try {
+      const res = await apiClient.get<MultiAxisRating[]>('/journal/ratings');
+      return res.data;
+    } catch (err: any) {
+      if (err.response?.status === 404 || err.response?.status === 422) return [];
+      throw err;
+    }
+  },
+
+  // ── Emotion Stats (no backend yet — degrade gracefully) ──────────────────────
+
+  getEmotionStats: async (params?: {
+    period?:  EmotionStatsPeriod;
+    game_id?: number;
+    genre?:   string;
+  }): Promise<EmotionStats | null> => {
+    try {
+      const res = await apiClient.get<EmotionStats>('/journal/emotions/stats', { params });
+      return res.data;
+    } catch (err: any) {
+      if (err.response?.status === 404 || err.response?.status === 422) return null;
+      throw err;
+    }
+  },
 };

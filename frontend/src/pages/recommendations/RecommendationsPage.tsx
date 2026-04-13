@@ -8,7 +8,6 @@ import {
   Progress,
   Stack,
   Text,
-  ThemeIcon,
   Title,
 } from '@mantine/core';
 import { useRecommendations, useSubmitFeedback } from '../../hooks/useRecommendations';

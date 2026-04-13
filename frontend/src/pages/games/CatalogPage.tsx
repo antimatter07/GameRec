@@ -55,7 +55,7 @@ export default function CatalogPage() {
             {data.total.toLocaleString()} games found
           </Text>
 
-          <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 4 }}>
+          <SimpleGrid cols={{ base: 3, sm: 5, md: 6, lg: 7 }} spacing="sm"> 
             {data.results.map((game) => (
               <GameCard key={game.id} game={game} showAdd />
             ))}

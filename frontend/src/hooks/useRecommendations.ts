@@ -28,7 +28,7 @@ export function useGameDNA() {
 }
 
 export function useSubmitFeedback() {
-  const queryClient = useQueryClient();
+  useQueryClient(); // available for future cache invalidation
   return useMutation({
     mutationFn: (payload: FeedbackCreate) => recommendationsApi.submitFeedback(payload),
     onSuccess: () => {

@@ -47,18 +47,19 @@ export function GameCard({ game, showAdd = false }: GameCardProps) {
 
   return (
     <Card shadow="sm" padding="sm" radius="md" withBorder component={Link} to={`/games/${game.id}`}>
-      <Card.Section>
+      <Card.Section style={{ flex: 3 }}>
         <Image
           src={game.background_image ?? undefined}
-          //height={200}
+          h="100%"
           alt={game.name}
-           style={{ aspectRatio: '16 / 9', objectFit: 'cover' }}
+          
+          style={{ objectFit: 'cover' }}
           fallbackSrc="https://placehold.co/400x200?text=No+Image"
         />
         
       </Card.Section>
 
-      <Stack gap="xs" mt="sm">
+      <Stack gap="xs" mt="sm" style={{ flex: 1 }}>
         <Text fw={600} lineClamp={2}>
           {game.name}
         </Text>

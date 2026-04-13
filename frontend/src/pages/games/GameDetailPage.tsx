@@ -2,9 +2,11 @@ import {
   Badge,
   Button,
   Center,
+  Divider,
   Group,
   Image,
   Loader,
+  Paper,
   Rating,
   SimpleGrid,
   Stack,
@@ -14,28 +16,26 @@ import {
 import { useDisclosure } from '@mantine/hooks';
 import { IconClock } from '@tabler/icons-react';
 import { useParams } from 'react-router';
-import { LogSessionModal } from '../../components/journal/LogSessionModal';
-import { JournalFeedItem } from '../../components/journal/JournalFeedItem';
-import { useGame } from '../../hooks/useGames';
-import { useSessionsList } from '../../hooks/useJournal';
+import { LogSessionModal }         from '../../components/journal/LogSessionModal';
+import { JournalFeedItem }         from '../../components/journal/JournalFeedItem';
+import { MultiAxisRatingWidget }   from '../../components/journal/MultiAxisRatingWidget';
+import { useGame }                 from '../../hooks/useGames';
+import { useJournalSessions }      from '../../hooks/useJournal';
+import { useLibrary }              from '../../hooks/useLibrary';
 
-/**
- * Full game detail page.
- * TODO: Render game.screenshots in a Carousel (Mantine Carousel)
- * TODO: Add "Add to Library" button with status selector (Select + Button)
- * TODO: If game is in library, show current status + rating + edit option
- * TODO: Strip HTML tags from game.description (RAWG returns HTML)
- *       — use a lightweight lib like dompurify + dangerouslySetInnerHTML,
- *         or parse with a regex for the basic cases
- */
 export default function GameDetailPage() {
   const { gameId } = useParams<{ gameId: string }>();
-  const { data: game, isLoading, isError } = useGame(Number(gameId));
-  const { data: recentSessions } = useSessionsList(Number(gameId), 1, 3);
+  const id = Number(gameId);
+
+  const { data: game,           isLoading, isError } = useGame(id);
+  const { data: recentSessions }                     = useJournalSessions({ game_id: id, per_page: 3 });
+  const { data: library }                            = useLibrary();
   const [logOpened, { open: openLog, close: closeLog }] = useDisclosure(false);
 
   if (isLoading) return <Center h={400}><Loader /></Center>;
   if (isError || !game) return <Text c="red">Game not found.</Text>;
+
+  const libraryEntry = library?.find((e) => e.game.id === id) ?? null;
 
   return (
     <Stack gap="lg">
@@ -82,16 +82,29 @@ export default function GameDetailPage() {
         {/* TODO: Replace with AddToLibraryButton component */}
         <Group>
           <Button>Add to Library</Button>
-          <Button variant="light" onClick={openLog}>Log Session</Button>
+          <Button variant="light" color="violet" onClick={openLog}>
+            Log Session
+          </Button>
         </Group>
       </Group>
 
       <LogSessionModal
-        gameId={Number(gameId)}
+        gameId={id}
+        gameTitle={game.name}
+        libraryEntryId={libraryEntry?.id}
         opened={logOpened}
         onClose={closeLog}
       />
 
+      {/* ── Multi-axis ratings ────────────────────────────────────────────── */}
+      {libraryEntry && (
+        <Paper p="md" radius="md" withBorder>
+          <Text size="sm" fw={600} mb="sm">Your ratings</Text>
+          <MultiAxisRatingWidget gameId={id} />
+        </Paper>
+      )}
+
+      {/* ── How Long to Beat ─────────────────────────────────────────────── */}
       {(game.hltb_main_hours != null ||
         game.hltb_main_extra_hours != null ||
         game.hltb_completionist_hours != null) && (
@@ -123,18 +136,21 @@ export default function GameDetailPage() {
         </Stack>
       )}
 
+      {/* ── About ─────────────────────────────────────────────────────────── */}
       {game.description && (
         <Stack gap="xs">
           <Title order={4}>About</Title>
-          {/* TODO: Sanitize HTML — see component-level TODO above */}
+          {/* TODO: Sanitize HTML — RAWG returns HTML */}
           <Text size="sm">{game.description.replace(/<[^>]+>/g, '')}</Text>
         </Stack>
       )}
 
-      {recentSessions && recentSessions.total > 0 && (
+      {/* ── Recent sessions ───────────────────────────────────────────────── */}
+      {recentSessions && recentSessions.items.length > 0 && (
         <Stack gap="xs">
+          <Divider />
           <Title order={4}>Your Recent Sessions</Title>
-          {recentSessions.results.map((s) => (
+          {recentSessions.items.map((s) => (
             <JournalFeedItem key={s.id} session={s} />
           ))}
         </Stack>

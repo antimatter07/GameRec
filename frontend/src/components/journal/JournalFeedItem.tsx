@@ -1,62 +1,119 @@
-import { Badge, Card, Group, Image, Stack, Text } from '@mantine/core';
-import { IconClock, IconFlag } from '@tabler/icons-react';
+import { Text, Badge, Tooltip, Image } from '@mantine/core';
+import { IconTrophy } from '@tabler/icons-react';
+import { EmotionType, EMOTION_CONFIG } from '../../types/journal';
 import type { SessionLog } from '../../types/journal';
+import classes from './Journal.module.css';
 
-interface Props {
-  session: SessionLog;
+// ─── Mantine color string → CSS variable mapping ─────────────────────────────
+const EMOTION_CSS_COLORS: Record<EmotionType, string> = {
+  [EmotionType.FRUSTRATED]:   'var(--mantine-color-orange-6)',
+  [EmotionType.HAPPY]:        'var(--mantine-color-yellow-5)',
+  [EmotionType.SAD]:          'var(--mantine-color-blue-4)',
+  [EmotionType.ANGRY]:        'var(--mantine-color-red-6)',
+  [EmotionType.RELAXED]:      'var(--mantine-color-teal-5)',
+  [EmotionType.BORED]:        'var(--mantine-color-gray-5)',
+  [EmotionType.PROUD]:        'var(--mantine-color-yellow-7)',
+  [EmotionType.CREEPED_OUT]:  'var(--mantine-color-grape-6)',
+  [EmotionType.DISAPPOINTED]: 'var(--mantine-color-gray-6)',
+};
+
+function formatDuration(minutes: number | null): string {
+  if (!minutes) return '—';
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
 }
 
-export function JournalFeedItem({ session }: Props) {
-  const date = new Date(session.started_at).toLocaleDateString(undefined, {
-    month: 'short',
-    day:   'numeric',
-    year:  'numeric',
+function formatDate(isoString: string): string {
+  const date = new Date(isoString);
+  const now  = new Date();
+  const diffMs   = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) {
+    return `Today, ${date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+  }
+  if (diffDays === 1) {
+    return `Yesterday, ${date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+  }
+  return date.toLocaleDateString([], {
+    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
   });
+}
 
+interface JournalFeedItemProps {
+  session:  SessionLog;
+  onClick?: () => void;
+}
+
+export function JournalFeedItem({ session, onClick }: JournalFeedItemProps) {
   return (
-    <Card withBorder padding="sm" radius="md">
-      <Group align="flex-start" wrap="nowrap">
-        <Image
-          src={session.game.background_image ?? undefined}
-          width={72}
-          height={48}
-          radius="sm"
-          alt={session.game.name}
-          fallbackSrc="https://placehold.co/72x48?text=?"
-        />
+    <div className={classes.sessionItem} onClick={onClick}>
+      <div className={classes.sessionCover}>
+        {session.game_cover_url ? (
+          <Image
+            src={session.game_cover_url}
+            alt={session.game_title ?? 'Game'}
+            w={44}
+            h={58}
+            fit="cover"
+          />
+        ) : (
+          <Text size="lg">🎮</Text>
+        )}
+      </div>
 
-        <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
-          <Group justify="space-between" wrap="nowrap">
-            <Text fw={600} size="sm" truncate>
-              {session.game.name}
-            </Text>
-            <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>
-              {date}
-            </Text>
-          </Group>
-
-          <Group gap="xs">
-            {session.duration_minutes != null && (
-              <Badge size="xs" variant="light" leftSection={<IconClock size={10} />}>
-                {session.duration_minutes >= 60
-                  ? `${(session.duration_minutes / 60).toFixed(1)}h`
-                  : `${session.duration_minutes}m`}
-              </Badge>
-            )}
-            {session.is_milestone && (
-              <Badge size="xs" color="yellow" variant="light" leftSection={<IconFlag size={10} />}>
-                {session.milestone_label ?? 'Milestone'}
-              </Badge>
-            )}
-          </Group>
-
-          {session.notes && (
-            <Text size="xs" c="dimmed" lineClamp={2}>
-              {session.notes}
-            </Text>
+      <div className={classes.sessionInfo}>
+        <div className={classes.sessionTitle}>
+          {session.game_title ?? `Game #${session.game_id}`}
+        </div>
+        <div className={classes.sessionMeta}>
+          <span>{formatDate(session.started_at)}</span>
+          {session.game_genres && session.game_genres.length > 0 && (
+            <>
+              <span>·</span>
+              <span>{session.game_genres.slice(0, 2).join(' / ')}</span>
+            </>
           )}
-        </Stack>
-      </Group>
-    </Card>
+          {session.is_milestone && session.milestone_label && (
+            <Badge
+              size="xs"
+              variant="light"
+              color="yellow"
+              leftSection={<IconTrophy size={10} />}
+            >
+              {session.milestone_label}
+            </Badge>
+          )}
+        </div>
+      </div>
+
+      {/* Emotion dots */}
+      {session.emotions && session.emotions.length > 0 && (
+        <div className={classes.sessionEmotionDots}>
+          {session.emotions.slice(0, 5).map((emotion, i) => (
+            <Tooltip
+              key={`${emotion}-${i}`}
+              label={EMOTION_CONFIG[emotion]?.label ?? emotion}
+              withArrow
+              position="top"
+            >
+              <div
+                className={classes.emotionDot}
+                style={{
+                  background: EMOTION_CSS_COLORS[emotion] ?? 'var(--mantine-color-gray-5)',
+                }}
+              />
+            </Tooltip>
+          ))}
+        </div>
+      )}
+
+      <div className={classes.sessionDuration}>
+        {formatDuration(session.duration_minutes)}
+      </div>
+    </div>
   );
 }

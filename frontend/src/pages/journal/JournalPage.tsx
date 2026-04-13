@@ -1,161 +1,297 @@
-import { useMemo } from 'react';
-import {
-  Anchor,
-  Center,
-  Loader,
-  Pagination,
-  Stack,
-  Tabs,
-  Text,
-  Title,
-} from '@mantine/core';
 import { useState } from 'react';
-import { Link } from 'react-router';
-import { JournalFeedItem } from '../../components/journal/JournalFeedItem';
-import { JournalStatsCard } from '../../components/journal/JournalStatsCard';
-import { useJournalFeed, useJournalStats, useSessionsList } from '../../hooks/useJournal';
-import type { SessionLog } from '../../types/journal';
+import {
+  Paper,
+  Text,
+  Group,
+  Button,
+  Tabs,
+  Stack,
+  Loader,
+  Center,
+  Anchor,
+  SimpleGrid,
+} from '@mantine/core';
+import { IconPlus, IconTimeline, IconChartBar, IconMoodSmile } from '@tabler/icons-react';
+import {
+  useJournalStats,
+  useJournalFeed,
+  useAllRatings,
+  useEmotionStats,
+} from '../../hooks/useJournal';
+import {
+  MetricCards,
+  GenreHoursChart,
+  WeeklyActivityCard,
+  EmotionSummaryCard,
+  BacklogProgressCard,
+  JournalFeedItem,
+  LogSessionModal,
+  MultiAxisRatingBars,
+} from '../../components/journal';
+import classes from '../../components/journal/Journal.module.css';
+import { EMOTION_CONFIG } from '../../types/journal';
 
-const PAGE_SIZE = 20;
+const RATING_COLORS = [
+  'var(--mantine-color-violet-5)',
+  'var(--mantine-color-teal-5)',
+  'var(--mantine-color-pink-5)',
+  'var(--mantine-color-blue-5)',
+  'var(--mantine-color-orange-5)',
+  'var(--mantine-color-grape-5)',
+];
+
+const EMOTION_CSS_COLORS: Record<string, string> = {
+  frustrated:   'var(--mantine-color-orange-6)',
+  happy:        'var(--mantine-color-yellow-5)',
+  sad:          'var(--mantine-color-blue-4)',
+  angry:        'var(--mantine-color-red-6)',
+  relaxed:      'var(--mantine-color-teal-5)',
+  bored:        'var(--mantine-color-gray-5)',
+  proud:        'var(--mantine-color-yellow-7)',
+  creeped_out:  'var(--mantine-color-grape-6)',
+  disappointed: 'var(--mantine-color-gray-6)',
+};
 
 export default function JournalPage() {
-  const [feedPage, setFeedPage] = useState(1);
-  const [byGamePage, setByGamePage] = useState(1);
+  const [activeTab,    setActiveTab]    = useState<string | null>('overview');
+  const [logModalOpen, setLogModalOpen] = useState(false);
 
-  const { data: feed,  isLoading: feedLoading  } = useJournalFeed(feedPage, PAGE_SIZE);
-  const { data: stats, isLoading: statsLoading } = useJournalStats();
-  // Fetch all sessions (large page) to group by game for the By Game tab
-  const { data: allSessions } = useSessionsList(undefined, 1, 500);
+  const { data: stats,        isLoading: statsLoading    } = useJournalStats();
+  const { data: feedData,     isLoading: feedLoading     } = useJournalFeed();
+  const { data: ratings,      isLoading: ratingsLoading  } = useAllRatings();
+  const { data: emotionStats, isLoading: emotionsLoading } = useEmotionStats({ period: '30d' });
 
-  const gameGroups = useMemo(() => {
-    if (!allSessions) return [];
-    const map = new Map<number, { game: SessionLog['game']; totalMinutes: number; count: number }>();
-    for (const s of allSessions.results) {
-      const existing = map.get(s.game_id);
-      if (existing) {
-        existing.totalMinutes += s.duration_minutes ?? 0;
-        existing.count += 1;
-      } else {
-        map.set(s.game_id, { game: s.game, totalMinutes: s.duration_minutes ?? 0, count: 1 });
-      }
-    }
-    return Array.from(map.values()).sort((a, b) => b.totalMinutes - a.totalMinutes);
-  }, [allSessions]);
+  const isLoading = statsLoading || feedLoading || ratingsLoading || emotionsLoading;
 
-  const byGameTotal = gameGroups.length;
-  const byGameSlice = gameGroups.slice((byGamePage - 1) * PAGE_SIZE, byGamePage * PAGE_SIZE);
+  if (isLoading && !stats) {
+    return (
+      <Center py={80}>
+        <Stack align="center" gap="sm">
+          <Loader color="violet" size="md" />
+          <Text size="sm" c="dimmed">Loading your journal…</Text>
+        </Stack>
+      </Center>
+    );
+  }
 
-  // Group feed items by calendar date for section headers
-  const feedGrouped = useMemo(() => {
-    if (!feed) return [];
-    const groups: Array<{ label: string; sessions: SessionLog[] }> = [];
-    const today     = new Date().toDateString();
-    const yesterday = new Date(Date.now() - 86_400_000).toDateString();
-
-    for (const s of feed.results) {
-      const d    = new Date(s.started_at);
-      const key  = d.toDateString();
-      const label =
-        key === today     ? 'Today' :
-        key === yesterday ? 'Yesterday' :
-        d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
-
-      const last = groups[groups.length - 1];
-      if (last && last.label === label) {
-        last.sessions.push(s);
-      } else {
-        groups.push({ label, sessions: [s] });
-      }
-    }
-    return groups;
-  }, [feed]);
+  const currentMonth = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   return (
-    <Stack gap="lg">
-      <Title order={2}>Gaming Journal</Title>
+    <div className={classes.journalPage}>
+      {/* ─── Header ─────────────────────────────────────────────────────────── */}
+      <div className={classes.header}>
+        <div>
+          <Text className={classes.headerTitle}>
+            Gaming <span className={classes.headerAccent}>Journal</span>
+          </Text>
+          <Text size="xs" c="dimmed">
+            Your play sessions, moods, and progress — all in one place
+          </Text>
+        </div>
+        <Button leftSection={<IconPlus size={16} />} color="violet" onClick={() => setLogModalOpen(true)}>
+          Log session
+        </Button>
+      </div>
 
-      <Tabs defaultValue="feed">
+      {/* ─── Tabs ────────────────────────────────────────────────────────────── */}
+      <Tabs value={activeTab} onChange={setActiveTab} variant="pills" color="violet" mb="lg">
         <Tabs.List>
-          <Tabs.Tab value="feed">Feed</Tabs.Tab>
-          <Tabs.Tab value="stats">Stats</Tabs.Tab>
-          <Tabs.Tab value="by-game">By Game</Tabs.Tab>
+          <Tabs.Tab value="overview" leftSection={<IconChartBar size={14} />}>Overview</Tabs.Tab>
+          <Tabs.Tab value="feed"     leftSection={<IconTimeline size={14} />}>Feed</Tabs.Tab>
+          <Tabs.Tab value="mood"     leftSection={<IconMoodSmile size={14} />}>Mood profile</Tabs.Tab>
         </Tabs.List>
 
-        {/* ── Feed ── */}
-        <Tabs.Panel value="feed" pt="md">
-          {feedLoading ? (
-            <Center h={200}><Loader /></Center>
-          ) : !feed || feed.total === 0 ? (
-            <Text c="dimmed">No sessions logged yet. Head to a game page and log your first session!</Text>
-          ) : (
-            <Stack gap="lg">
-              {feedGrouped.map((group) => (
-                <Stack key={group.label} gap="xs">
-                  <Text fw={600} size="sm" c="dimmed">{group.label}</Text>
-                  {group.sessions.map((s) => (
-                    <JournalFeedItem key={s.id} session={s} />
-                  ))}
-                </Stack>
-              ))}
-              {feed.total > PAGE_SIZE && (
-                <Center>
-                  <Pagination
-                    value={feedPage}
-                    onChange={setFeedPage}
-                    total={Math.ceil(feed.total / PAGE_SIZE)}
-                  />
-                </Center>
+        {/* ════ OVERVIEW ════════════════════════════════════════════════════ */}
+        <Tabs.Panel value="overview" pt="lg">
+          {stats && <MetricCards stats={stats} />}
+
+          <div className={classes.twoColMain}>
+            <Paper p="md" radius="md" withBorder>
+              <Group justify="space-between" mb="sm">
+                <Text size="sm" fw={600}>Hours per genre — {currentMonth}</Text>
+              </Group>
+              {stats && <GenreHoursChart genres={stats.top_genres_this_month} />}
+              {stats && stats.top_genres_this_month.length > 0 && (
+                <div className={classes.insightBox}>
+                  You spent{' '}
+                  <Text span fw={600} c="var(--mantine-color-text)">
+                    {stats.total_hours_this_month.toFixed(0)} hours
+                  </Text>{' '}
+                  gaming this month.
+                  {stats.top_genres_this_month[0] && (
+                    <>
+                      {' '}{stats.top_genres_this_month[0].genre} dominated at{' '}
+                      <Text span fw={600} c="var(--mantine-color-text)">
+                        {Math.round((stats.top_genres_this_month[0].hours / stats.total_hours_this_month) * 100)}%
+                      </Text>{' '}
+                      of total playtime.
+                    </>
+                  )}
+                </div>
               )}
-            </Stack>
-          )}
-        </Tabs.Panel>
+            </Paper>
 
-        {/* ── Stats ── */}
-        <Tabs.Panel value="stats" pt="md">
-          {statsLoading ? (
-            <Center h={200}><Loader /></Center>
-          ) : !stats ? (
-            <Text c="dimmed">No data yet.</Text>
-          ) : (
-            <JournalStatsCard stats={stats} />
-          )}
-        </Tabs.Panel>
+            <Paper p="md" radius="md" withBorder>
+              <Text size="sm" fw={600} mb="sm">Weekly activity</Text>
+              {stats && (
+                <WeeklyActivityCard
+                  dailyHours={stats.daily_hours_this_week}
+                  currentStreak={stats.current_streak_days}
+                  longestStreak={stats.longest_streak_days}
+                />
+              )}
+            </Paper>
+          </div>
 
-        {/* ── By Game ── */}
-        <Tabs.Panel value="by-game" pt="md">
-          {!allSessions ? (
-            <Center h={200}><Loader /></Center>
-          ) : byGameTotal === 0 ? (
-            <Text c="dimmed">No sessions logged yet.</Text>
-          ) : (
+          <div className={classes.twoColEqual}>
+            <Paper p="md" radius="md" withBorder>
+              <Text size="sm" fw={600} mb="sm">How gaming makes you feel</Text>
+              <EmotionSummaryCard
+                emotionStats={emotionStats ?? null}
+                dominantEmotion={stats?.dominant_emotion_this_month ?? null}
+                coveragePct={stats?.emotion_coverage_pct ?? null}
+                totalSessions={stats?.sessions_this_month ?? 0}
+              />
+            </Paper>
+
+            <Paper p="md" radius="md" withBorder>
+              <Text size="sm" fw={600} mb="sm">Backlog progress</Text>
+              {stats && (
+                <BacklogProgressCard
+                  completed={stats.games_completed}
+                  playing={stats.games_playing}
+                  backlog={stats.games_in_backlog}
+                />
+              )}
+            </Paper>
+          </div>
+
+          {/* Recent sessions */}
+          <Paper p="md" radius="md" withBorder mb="md">
+            <Group justify="space-between" mb="sm">
+              <Text size="sm" fw={600}>Recent sessions</Text>
+              <Anchor size="xs" c="violet.4" onClick={() => setActiveTab('feed')}>
+                View all →
+              </Anchor>
+            </Group>
             <Stack gap="xs">
-              {byGameSlice.map(({ game, totalMinutes, count }) => (
-                <Anchor key={game.id} component={Link} to={`/games/${game.id}`} underline="never">
-                  <Stack gap={2} style={{ padding: '8px 0', borderBottom: '1px solid var(--mantine-color-default-border)' }}>
-                    <Text fw={600}>{game.name}</Text>
-                    <Text size="sm" c="dimmed">
-                      {count} session{count !== 1 ? 's' : ''} ·{' '}
-                      {totalMinutes >= 60
-                        ? `${(totalMinutes / 60).toFixed(1)}h`
-                        : `${totalMinutes}m`}{' '}
-                      logged
-                    </Text>
-                  </Stack>
-                </Anchor>
+              {feedData?.items.slice(0, 5).map((item) => (
+                <JournalFeedItem key={item.session.id} session={item.session} />
               ))}
-              {byGameTotal > PAGE_SIZE && (
-                <Center mt="sm">
-                  <Pagination
-                    value={byGamePage}
-                    onChange={setByGamePage}
-                    total={Math.ceil(byGameTotal / PAGE_SIZE)}
-                  />
-                </Center>
+              {(!feedData || feedData.items.length === 0) && (
+                <Text size="sm" c="dimmed" ta="center" py="lg">
+                  No sessions logged yet. Click "Log session" to get started!
+                </Text>
               )}
             </Stack>
+          </Paper>
+
+          {/* Multi-axis ratings */}
+          {ratings && ratings.length > 0 && (
+            <Paper p="md" radius="md" withBorder>
+              <Text size="sm" fw={600} mb="sm">Multi-axis ratings</Text>
+              <div className={classes.ratingWidgetGrid}>
+                {ratings.map((r, i) => (
+                  <div key={r.id} className={classes.ratingGameCard}>
+                    <div className={classes.ratingGameTitle}>{r.game_title ?? `Game #${r.game_id}`}</div>
+                    <MultiAxisRatingBars rating={r} color={RATING_COLORS[i % RATING_COLORS.length]} />
+                  </div>
+                ))}
+              </div>
+            </Paper>
+          )}
+        </Tabs.Panel>
+
+        {/* ════ FEED ════════════════════════════════════════════════════════ */}
+        <Tabs.Panel value="feed" pt="lg">
+          <Stack gap="xs">
+            {feedData?.items.map((item) => (
+              <JournalFeedItem key={item.session.id} session={item.session} />
+            ))}
+            {(!feedData || feedData.items.length === 0) && (
+              <Text size="sm" c="dimmed" ta="center" py="xl">
+                Your journal is empty. Log your first session to see it here.
+              </Text>
+            )}
+          </Stack>
+        </Tabs.Panel>
+
+        {/* ════ MOOD PROFILE ════════════════════════════════════════════════ */}
+        <Tabs.Panel value="mood" pt="lg">
+          <Paper p="md" radius="md" withBorder mb="md">
+            <Text size="sm" fw={600} mb="md">Emotion breakdown — last 30 days</Text>
+            <EmotionSummaryCard
+              emotionStats={emotionStats ?? null}
+              dominantEmotion={stats?.dominant_emotion_this_month ?? null}
+              coveragePct={stats?.emotion_coverage_pct ?? null}
+              totalSessions={stats?.sessions_this_month ?? 0}
+            />
+          </Paper>
+
+          {emotionStats && emotionStats.per_game.length > 0 && (
+            <Paper p="md" radius="md" withBorder mb="md">
+              <Text size="sm" fw={600} mb="sm">Emotions by game</Text>
+              <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
+                {emotionStats.per_game.map((g) => {
+                  const config = EMOTION_CONFIG[g.dominant_emotion];
+                  return (
+                    <Group key={g.game_id} gap="sm" wrap="nowrap">
+                      <div style={{ width: 40, height: 40, borderRadius: 8, background: 'var(--mantine-color-dark-6)', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {g.cover_url
+                          ? <img src={g.cover_url} alt={g.game_title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          : <Text size="md">🎮</Text>}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <Text size="xs" fw={600} truncate>{g.game_title}</Text>
+                        <Text size="xs" c="dimmed">
+                          {config?.label ?? g.dominant_emotion} · {g.session_count} sessions
+                        </Text>
+                      </div>
+                      <div style={{ width: 10, height: 10, borderRadius: '50%', background: EMOTION_CSS_COLORS[g.dominant_emotion] ?? 'var(--mantine-color-gray-5)', flexShrink: 0 }} />
+                    </Group>
+                  );
+                })}
+              </SimpleGrid>
+            </Paper>
+          )}
+
+          {emotionStats && emotionStats.per_genre.length > 0 && (
+            <Paper p="md" radius="md" withBorder>
+              <Text size="sm" fw={600} mb="sm">Emotions by genre</Text>
+              <Stack gap="xs">
+                {emotionStats.per_genre.map((g) => (
+                  <Group key={g.genre} justify="space-between">
+                    <Text size="xs" w={80}>{g.genre}</Text>
+                    <Group gap={3}>
+                      {g.emotion_breakdown.slice(0, 5).map((e) => (
+                        <div
+                          key={e.emotion}
+                          style={{
+                            width: Math.max(6, Math.round(e.percentage * 0.8)),
+                            height: 16,
+                            borderRadius: 3,
+                            background: EMOTION_CSS_COLORS[e.emotion] ?? 'var(--mantine-color-gray-5)',
+                            opacity: 0.8,
+                          }}
+                          title={`${EMOTION_CONFIG[e.emotion]?.label}: ${Math.round(e.percentage)}%`}
+                        />
+                      ))}
+                    </Group>
+                    <Text size="xs" c="dimmed" w={60} ta="right">{g.session_count} sessions</Text>
+                  </Group>
+                ))}
+              </Stack>
+            </Paper>
           )}
         </Tabs.Panel>
       </Tabs>
-    </Stack>
+
+      {/* ─── Log Session Modal ───────────────────────────────────────────────── */}
+      <LogSessionModal
+        opened={logModalOpen}
+        onClose={() => setLogModalOpen(false)}
+        gameId={0}
+      />
+    </div>
   );
 }
