@@ -13,7 +13,6 @@ import {
   SimpleGrid,
   Autocomplete,
 } from '@mantine/core';
-import { DateTimePicker } from '@mantine/dates';
 import {
   IconClock,
   IconNote,
@@ -30,11 +29,10 @@ import {
 } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useCreateSession } from '../../hooks/useJournal';
-import { useGamesList } from '../../hooks/useGames';
+import { useLibrary } from '../../hooks/useLibrary';
 import { EmotionType, EMOTION_CONFIG } from '../../types/journal';
 import type { SessionLogCreate } from '../../types/journal';
 
-// Map icon names to actual components
 const EMOTION_ICONS: Record<string, React.ElementType> = {
   IconMoodConfuzed,
   IconMoodSmile,
@@ -67,12 +65,12 @@ export function LogSessionModal({
   const pickerMode = gameId === 0;
 
   // Game picker state (only used when pickerMode is true)
-  const [gameSearch,       setGameSearch]       = useState('');
-  const [selectedGameId,   setSelectedGameId]   = useState<number | null>(null);
-  const [selectedGameTitle, setSelectedGameTitle] = useState('');
+  const [gameSearch,            setGameSearch]            = useState('');
+  const [selectedGameId,        setSelectedGameId]        = useState<number | null>(null);
+  const [selectedGameTitle,     setSelectedGameTitle]     = useState('');
+  const [selectedLibraryEntryId, setSelectedLibraryEntryId] = useState<number | null>(null);
 
   // Session form state
-  const [startedAt,       setStartedAt]       = useState<Date | null>(new Date());
   const [durationMinutes, setDurationMinutes] = useState<number | ''>('');
   const [notes,           setNotes]           = useState('');
   const [isMilestone,     setIsMilestone]     = useState(false);
@@ -81,18 +79,18 @@ export function LogSessionModal({
 
   const createSession = useCreateSession();
 
-  // Game search — always called (hook rules); results only used when in pickerMode
-  const search = pickerMode && gameSearch.length >= 2 ? gameSearch : '';
-  const { data: searchResults } = useGamesList(1, 8, { search });
+  // Always called (hook rules); results only used in picker mode
+  const { data: libraryData } = useLibrary();
 
   const effectiveGameId    = pickerMode ? (selectedGameId ?? 0) : gameId;
   const effectiveGameTitle = pickerMode ? selectedGameTitle : gameTitle;
+  const effectiveLibraryEntryId = pickerMode ? selectedLibraryEntryId : (libraryEntryId ?? null);
 
   const resetForm = () => {
     setGameSearch('');
     setSelectedGameId(null);
     setSelectedGameTitle('');
-    setStartedAt(new Date());
+    setSelectedLibraryEntryId(null);
     setDurationMinutes('');
     setNotes('');
     setIsMilestone(false);
@@ -106,7 +104,6 @@ export function LogSessionModal({
   };
 
   const handleSubmit = () => {
-    if (!startedAt) return;
     if (effectiveGameId === 0) {
       notifications.show({ color: 'yellow', message: 'Please select a game first.' });
       return;
@@ -114,8 +111,8 @@ export function LogSessionModal({
 
     const data: SessionLogCreate = {
       game_id:          effectiveGameId,
-      library_entry_id: libraryEntryId ?? null,
-      started_at:       startedAt.toISOString(),
+      library_entry_id: effectiveLibraryEntryId,
+      started_at:       new Date().toISOString(),
       duration_minutes: typeof durationMinutes === 'number' ? durationMinutes : null,
       notes:            notes.trim() || null,
       is_milestone:     isMilestone,
@@ -138,7 +135,9 @@ export function LogSessionModal({
     if (values.length <= 5) setSelectedEmotions(values);
   };
 
-  const gameOptions = searchResults?.results?.map((g: any) => g.name) ?? [];
+  const libraryOptions = (libraryData ?? [])
+    .filter((e) => e.game.name.toLowerCase().includes(gameSearch.toLowerCase()))
+    .map((e) => e.game.name);
 
   const modalTitle = pickerMode
     ? 'Log session'
@@ -151,35 +150,29 @@ export function LogSessionModal({
         {pickerMode && (
           <Autocomplete
             label="Game"
-            placeholder="Type to search for a game…"
+            placeholder="Search your library…"
             leftSection={<IconSearch size={16} />}
             value={gameSearch}
             onChange={(val) => {
               setGameSearch(val);
-              // If the user clears text, clear selection too
               if (!val) {
                 setSelectedGameId(null);
                 setSelectedGameTitle('');
+                setSelectedLibraryEntryId(null);
               }
             }}
             onOptionSubmit={(val) => {
-              const game = searchResults?.results?.find((g: any) => g.name === val);
-              if (game) {
-                setSelectedGameId(game.id);
-                setSelectedGameTitle(game.name);
-                setGameSearch(game.name);
+              const entry = libraryData?.find((e) => e.game.name === val);
+              if (entry) {
+                setSelectedGameId(entry.game.id);
+                setSelectedGameTitle(entry.game.name);
+                setSelectedLibraryEntryId(entry.id);
+                setGameSearch(entry.game.name);
               }
             }}
-            data={gameOptions}
+            data={libraryOptions}
           />
         )}
-
-        <DateTimePicker
-          label="Start time"
-          value={startedAt}
-          onChange={(val: any) => setStartedAt(val)}
-          leftSection={<IconClock size={16} />}
-        />
 
         <NumberInput
           label="Duration (minutes)"
@@ -252,7 +245,7 @@ export function LogSessionModal({
           <Button
             onClick={handleSubmit}
             loading={createSession.isPending}
-            disabled={!startedAt || (pickerMode && !selectedGameId)}
+            disabled={pickerMode && !selectedGameId}
           >
             Save session
           </Button>

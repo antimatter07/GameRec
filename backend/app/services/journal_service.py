@@ -67,12 +67,29 @@ def create_session(db: Session, user_id: int, payload: SessionLogCreate) -> Sess
     if not game:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Game not found")
 
+    is_first = (
+        db.query(SessionLog)
+        .filter(SessionLog.user_id == user_id, SessionLog.game_id == payload.game_id)
+        .count() == 0
+    )
+
     # emotions are accepted in the payload but not yet persisted (no column)
     data = payload.model_dump(exclude={"emotions"})
     entry = SessionLog(user_id=user_id, **data)
     db.add(entry)
     db.commit()
     db.refresh(entry)
+
+    if is_first:
+        lib_entry = (
+            db.query(LibraryEntry)
+            .filter(LibraryEntry.user_id == user_id, LibraryEntry.game_id == payload.game_id)
+            .first()
+        )
+        if lib_entry and lib_entry.status != LibraryStatus.PLAYING:
+            lib_entry.status = LibraryStatus.PLAYING
+            db.commit()
+
     loaded = _fetch_with_game(db, entry.id)
     return _session_to_out(loaded)
 

@@ -98,6 +98,8 @@ export function useCreateSession() {
       qc.invalidateQueries({ queryKey: journalKeys.stats() });
       qc.invalidateQueries({ queryKey: journalKeys.feed() });
       qc.invalidateQueries({ queryKey: journalKeys.emotionStats() });
+      qc.invalidateQueries({ queryKey: ['library'] });
+      qc.invalidateQueries({ queryKey: ['library-stats'] });
     },
   });
 }
