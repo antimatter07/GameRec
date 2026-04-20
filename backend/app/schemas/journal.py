@@ -7,23 +7,21 @@ from pydantic import BaseModel, Field
 
 class SessionLogCreate(BaseModel):
     game_id:          int
-    library_entry_id: int | None    = None
-    started_at:       datetime
-    ended_at:         datetime | None = None
-    duration_minutes: int | None    = Field(None, ge=1)
-    notes:            str | None    = None
-    is_milestone:     bool          = False
-    milestone_label:  str | None    = None
+    library_entry_id: int | None       = None
+    ended_at:         datetime | None  = None
+    duration_minutes: int | None       = Field(None, ge=1)
+    notes:            str | None       = None
+    is_milestone:     bool             = False
+    milestone_label:  str | None       = None
     emotions:         list[str] | None = None  # stored in future migration; ignored for now
 
 
 class SessionLogUpdate(BaseModel):
-    started_at:       datetime | None = None
-    ended_at:         datetime | None = None
-    duration_minutes: int | None      = Field(None, ge=1)
-    notes:            str | None      = None
-    is_milestone:     bool | None     = None
-    milestone_label:  str | None      = None
+    ended_at:         datetime | None  = None
+    duration_minutes: int | None       = Field(None, ge=1)
+    notes:            str | None       = None
+    is_milestone:     bool | None      = None
+    milestone_label:  str | None       = None
     emotions:         list[str] | None = None  # ignored until emotions column exists
 
 

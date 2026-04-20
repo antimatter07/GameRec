@@ -70,7 +70,7 @@ export function JournalFeedItem({ session, onClick }: JournalFeedItemProps) {
           {session.game_title ?? `Game #${session.game_id}`}
         </div>
         <div className={classes.sessionMeta}>
-          <span>{formatDate(session.started_at)}</span>
+          <span>Logged {formatDate(session.started_at)}</span>
           {session.game_genres && session.game_genres.length > 0 && (
             <>
               <span>·</span>

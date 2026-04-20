@@ -75,6 +75,7 @@ def create_session(db: Session, user_id: int, payload: SessionLogCreate) -> Sess
 
     # emotions are accepted in the payload but not yet persisted (no column)
     data = payload.model_dump(exclude={"emotions"})
+    data["started_at"] = datetime.now(timezone.utc)
     entry = SessionLog(user_id=user_id, **data)
     db.add(entry)
     db.commit()

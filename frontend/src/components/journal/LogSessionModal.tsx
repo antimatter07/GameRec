@@ -112,7 +112,6 @@ export function LogSessionModal({
     const data: SessionLogCreate = {
       game_id:          effectiveGameId,
       library_entry_id: effectiveLibraryEntryId,
-      started_at:       new Date().toISOString(),
       duration_minutes: typeof durationMinutes === 'number' ? durationMinutes : null,
       notes:            notes.trim() || null,
       is_milestone:     isMilestone,

@@ -19,7 +19,9 @@ class SessionLog(Base):
     library_entry_id: Mapped[int | None]     = mapped_column(
         Integer, ForeignKey("library_entries.id", ondelete="SET NULL"), nullable=True
     )
-    started_at:       Mapped[datetime]       = mapped_column(DateTime, nullable=False)
+    started_at:       Mapped[datetime]       = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+    )
     ended_at:         Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     duration_minutes: Mapped[int | None]     = mapped_column(Integer, nullable=True)
     notes:            Mapped[str | None]     = mapped_column(Text, nullable=True)

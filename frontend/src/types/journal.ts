@@ -33,25 +33,23 @@ export const NEGATIVE_EMOTIONS: EmotionType[] = ['frustrated', 'angry', 'bored',
 // ─── Session Logs ─────────────────────────────────────────────────────────────
 
 export interface SessionLogCreate {
-  game_id:          number;
+  game_id:           number;
   library_entry_id?: number | null;
-  started_at:       string;
-  ended_at?:        string | null;
+  ended_at?:         string | null;
   duration_minutes?: number | null;
-  notes?:           string | null;
-  is_milestone?:    boolean;
-  milestone_label?: string | null;
-  emotions?:        EmotionType[] | null;
+  notes?:            string | null;
+  is_milestone?:     boolean;
+  milestone_label?:  string | null;
+  emotions?:         EmotionType[] | null;
 }
 
 export interface SessionLogUpdate {
-  started_at?:      string;
-  ended_at?:        string | null;
+  ended_at?:         string | null;
   duration_minutes?: number | null;
-  notes?:           string | null;
-  is_milestone?:    boolean;
-  milestone_label?: string | null;
-  emotions?:        EmotionType[] | null;
+  notes?:            string | null;
+  is_milestone?:     boolean;
+  milestone_label?:  string | null;
+  emotions?:         EmotionType[] | null;
 }
 
 export interface SessionLog {
