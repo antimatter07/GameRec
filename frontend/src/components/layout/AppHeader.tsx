@@ -1,15 +1,15 @@
-import { ActionIcon, Avatar, Group, Menu, Text, useMantineColorScheme } from '@mantine/core';
-import { IconLogout, IconMoon, IconSun, IconUser } from '@tabler/icons-react';
+import { Avatar, Group, Menu, Text } from '@mantine/core';
+import { IconLogout, IconUser } from '@tabler/icons-react';
 import { Link } from 'react-router';
 import { useAuth } from '../../hooks/useAuth';
 import { useAuthStore } from '../../store/authStore';
 
 export function AppHeader() {
-  const { colorScheme, toggleColorScheme } = useMantineColorScheme();
   const user = useAuthStore((s) => s.user);
   const { logout } = useAuth();
 
   const displayName = user?.display_name ?? user?.email ?? '';
+  const avatarLabel = displayName ? displayName.charAt(0).toUpperCase() : '?';
 
   return (
     <Group h="100%" px="md" justify="space-between">
@@ -18,15 +18,11 @@ export function AppHeader() {
       </Text>
 
       <Group>
-        <ActionIcon variant="default" onClick={toggleColorScheme} size="lg">
-          {colorScheme === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}
-        </ActionIcon>
-
         <Menu position="bottom-end" withArrow>
           <Menu.Target>
             <Group gap="xs" style={{ cursor: 'pointer' }}>
               <Avatar radius="xl" size="sm" color="blue">
-                {displayName.charAt(0).toUpperCase()}
+                {avatarLabel}
               </Avatar>
               <Text size="sm">{displayName}</Text>
             </Group>
