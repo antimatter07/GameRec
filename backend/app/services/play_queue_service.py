@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from sqlalchemy import update
+from sqlalchemy import text, update
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.library import LibraryEntry, LibraryStatus
@@ -35,10 +35,10 @@ def enqueue(db: Session, user_id: int, payload: PlayQueueEnqueue) -> dict:
     )
     if not entry:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Library entry not found")
-    if entry.status != LibraryStatus.BACKLOG:
+    if entry.status == LibraryStatus.PLAYING:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Only backlog games can be added to the queue",
+            detail="Currently-playing games cannot be added to the queue",
         )
 
     existing = (
@@ -74,7 +74,10 @@ def dequeue(db: Session, user_id: int, entry_id: int) -> None:
     db.delete(queue_entry)
     db.flush()
 
-    # Compact positions for all entries after the removed one
+    # Defer the position uniqueness check to commit so the bulk decrement does not
+    # trigger a per-row constraint violation when PostgreSQL processes rows in an
+    # order that temporarily creates a duplicate position mid-statement.
+    db.execute(text("SET CONSTRAINTS uq_queue_user_position DEFERRED"))
     db.execute(
         update(PlayQueueEntry)
         .where(PlayQueueEntry.user_id == user_id, PlayQueueEntry.position > removed_pos)
@@ -101,8 +104,8 @@ def reorder(db: Session, user_id: int, payload: PlayQueueReorder) -> dict:
     entry_map = {row.entry_id: row for row in current}
     n = len(current)
 
-    # Shift all positions out of range first to avoid unique constraint conflicts
-    # during the intermediate state when two rows would temporarily share a position.
+    # Shift all positions out of range first so no target position collides with
+    # an existing position during the per-row ORM updates that follow.
     for row in current:
         row.position += n
     db.flush()
@@ -119,7 +122,7 @@ def advance_queue_after_completion(db: Session, user_id: int, completed_entry_id
     Called after a library entry is marked 'completed'.
     If the entry was in the queue:
       - Remove it from the queue
-      - Mark the new position-1 entry as 'playing'
+      - Promote the new head to 'playing' only if its status is 'backlog'
     Returns metadata for the API response.
     """
     queue_entry = (
@@ -134,7 +137,8 @@ def advance_queue_after_completion(db: Session, user_id: int, completed_entry_id
     db.delete(queue_entry)
     db.flush()
 
-    # Compact positions
+    # Same deferral as dequeue — same compact-shift UPDATE, same constraint risk.
+    db.execute(text("SET CONSTRAINTS uq_queue_user_position DEFERRED"))
     db.execute(
         update(PlayQueueEntry)
         .where(PlayQueueEntry.user_id == user_id, PlayQueueEntry.position > removed_pos)
@@ -142,7 +146,6 @@ def advance_queue_after_completion(db: Session, user_id: int, completed_entry_id
     )
     db.flush()
 
-    # Find new head
     next_queue_entry = (
         db.query(PlayQueueEntry)
         .filter(PlayQueueEntry.user_id == user_id, PlayQueueEntry.position == 1)
@@ -154,7 +157,10 @@ def advance_queue_after_completion(db: Session, user_id: int, completed_entry_id
         return {"queue_advanced": False, "next_game": None}
 
     next_library_entry = next_queue_entry.entry
-    next_library_entry.status = LibraryStatus.PLAYING
+    # Only auto-promote backlog games — completed/dropped games in the queue
+    # retain their status rather than being reset to playing.
+    if next_library_entry.status == LibraryStatus.BACKLOG:
+        next_library_entry.status = LibraryStatus.PLAYING
     db.commit()
     db.refresh(next_library_entry)
 
