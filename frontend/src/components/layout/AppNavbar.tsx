@@ -3,6 +3,7 @@ import { NavLink as RouterNavLink } from 'react-router';
 import {
   IconCompass,
   IconBooks,
+  IconListNumbers,
   IconNotebook,
   IconStars,
   IconUser,
@@ -14,6 +15,7 @@ import { useAuthStore } from '../../store/authStore';
 const NAV_ITEMS = [
   { label: 'Catalog',         to: '/games',           icon: IconCompass       },
   { label: 'My Library',      to: '/library',         icon: IconBooks         },
+  { label: 'Queue',           to: '/queue',           icon: IconListNumbers   },
   { label: 'Journal',         to: '/journal',         icon: IconNotebook      },
   { label: 'Recommendations', to: '/recommendations', icon: IconStars         },
   { label: 'Profile',         to: '/profile',         icon: IconUser          },

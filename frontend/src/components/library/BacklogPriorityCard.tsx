@@ -1,10 +1,8 @@
 import { Badge, Button, Group, Image, Paper, Stack, Text } from '@mantine/core';
-import { notifications } from '@mantine/notifications';
 import { IconClock, IconStar } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import type { PrioritizedBacklogItem } from '../../api/library';
 import { useUpdateLibraryEntry } from '../../hooks/useLibrary';
-import { useEnqueueGame, usePlayQueue } from '../../hooks/usePlayQueue';
 
 interface BacklogPriorityCardProps {
   item: PrioritizedBacklogItem;
@@ -13,26 +11,10 @@ interface BacklogPriorityCardProps {
 export function BacklogPriorityCard({ item }: BacklogPriorityCardProps) {
   const { game, playtime_hours, taste_score, stale_months } = item;
   const updateEntry = useUpdateLibraryEntry();
-  const enqueue = useEnqueueGame();
-  const { data: queue } = usePlayQueue();
   const navigate = useNavigate();
-
-  const isQueued = queue?.entries.some((e) => e.entry_id === item.entry_id) ?? false;
 
   const handleStartPlaying = () => {
     updateEntry.mutate({ id: item.entry_id, updates: { status: 'playing' } });
-  };
-
-  const handleEnqueue = () => {
-    enqueue.mutate(item.entry_id, {
-      onSuccess: (data) => {
-        const pos = data.entries.find((e) => e.entry_id === item.entry_id)?.position;
-        notifications.show({
-          message: `Added to queue${pos != null ? ` at position ${pos}` : ''}`,
-          color: 'grape',
-        });
-      },
-    });
   };
 
   return (
@@ -93,16 +75,6 @@ export function BacklogPriorityCard({ item }: BacklogPriorityCardProps) {
             loading={updateEntry.isPending}
           >
             Play
-          </Button>
-          <Button
-            size="xs"
-            variant={isQueued ? 'outline' : 'light'}
-            color="grape"
-            disabled={isQueued}
-            onClick={handleEnqueue}
-            loading={enqueue.isPending}
-          >
-            {isQueued ? 'In Queue' : '+ Queue'}
           </Button>
         </Stack>
       </Group>

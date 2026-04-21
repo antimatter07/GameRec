@@ -148,15 +148,6 @@ export default function LibraryPage() {
                   >
                     Play Next
                   </Button>
-                  <Button
-                    size="xs"
-                    variant="light"
-                    color="grape"
-                    rightSection={<IconArrowRight size={14} />}
-                    onClick={() => navigate('/library/queue')}
-                  >
-                    My Queue
-                  </Button>
                 </Group>
               )}
               {filtered.length === 0 ? (
