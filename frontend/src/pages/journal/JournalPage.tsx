@@ -10,6 +10,7 @@ import {
   Center,
   Anchor,
   SimpleGrid,
+  Pagination,
 } from '@mantine/core';
 import { IconPlus, IconTimeline, IconChartBar, IconMoodSmile } from '@tabler/icons-react';
 import {
@@ -55,9 +56,10 @@ const EMOTION_CSS_COLORS: Record<string, string> = {
 export default function JournalPage() {
   const [activeTab,    setActiveTab]    = useState<string | null>('overview');
   const [logModalOpen, setLogModalOpen] = useState(false);
+  const [feedPage,     setFeedPage]     = useState(1);
 
   const { data: stats,        isLoading: statsLoading    } = useJournalStats();
-  const { data: feedData,     isLoading: feedLoading     } = useJournalFeed();
+  const { data: feedData,     isLoading: feedLoading     } = useJournalFeed(feedPage);
   const { data: ratings,      isLoading: ratingsLoading  } = useAllRatings();
   const { data: emotionStats, isLoading: emotionsLoading } = useEmotionStats({ period: '30d' });
 
@@ -214,6 +216,17 @@ export default function JournalPage() {
               </Text>
             )}
           </Stack>
+          {feedData && feedData.total > feedData.per_page && (
+            <Group justify="center" mt="lg">
+              <Pagination
+                color="violet"
+                radius="md"
+                total={Math.ceil(feedData.total / feedData.per_page)}
+                value={feedPage}
+                onChange={setFeedPage}
+              />
+            </Group>
+          )}
         </Tabs.Panel>
 
         {/* ════ MOOD PROFILE ════════════════════════════════════════════════ */}

@@ -21,6 +21,8 @@ import JournalPage        from './pages/journal/JournalPage';
 /** Redirects unauthenticated users to /login */
 function ProtectedRoute() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated());
+
+  //if authenticated, render child route (Outlet is placeholder for nested routes)
   return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
 }
 
@@ -48,7 +50,6 @@ export const router = createBrowserRouter([
           { path: '/library',               element: <LibraryPage /> },
           { path: '/library/backlog',       element: <BacklogPage /> },
           { path: '/queue',                 element: <QueuePage /> },
-          { path: '/library/queue',         element: <Navigate to="/queue" replace /> },
           { path: '/recommendations',       element: <RecommendationsPage /> },
           { path: '/journal',               element: <JournalPage /> },
           { path: '/profile',              element: <ProfilePage /> },
