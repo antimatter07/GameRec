@@ -1,3 +1,4 @@
+import { isAxiosError } from 'axios';
 import { Anchor, Button, Container, Paper, PasswordInput, Text, TextInput, Title } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
@@ -19,8 +20,8 @@ export default function RegisterPage() {
   const handleSubmit = form.onSubmit(async (values) => {
     try {
       await register(values);
-    } catch (err: any) {
-      const message = err?.response?.data?.detail ?? 'Registration failed';
+    } catch (err: unknown) {
+      const message = isAxiosError(err) ? (err.response?.data?.detail ?? 'Registration failed') : 'Registration failed';
       notifications.show({ color: 'red', title: 'Error', message });
     }
   });

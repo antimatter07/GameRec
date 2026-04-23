@@ -1,3 +1,4 @@
+import { isAxiosError } from 'axios';
 import apiClient from './client';
 import type {
   SessionLogCreate,
@@ -92,8 +93,8 @@ export const journalApi = {
     try {
       const res = await apiClient.get<MultiAxisRating>(`/journal/ratings/${gameId}`);
       return res.data;
-    } catch (err: any) {
-      if (err.response?.status === 404 || err.response?.status === 422) return null;
+    } catch (err: unknown) {
+      if (isAxiosError(err) && (err.response?.status === 404 || err.response?.status === 422)) return null;
       throw err;
     }
   },
@@ -102,8 +103,8 @@ export const journalApi = {
     try {
       const res = await apiClient.get<MultiAxisRating[]>('/journal/ratings');
       return res.data;
-    } catch (err: any) {
-      if (err.response?.status === 404 || err.response?.status === 422) return [];
+    } catch (err: unknown) {
+      if (isAxiosError(err) && (err.response?.status === 404 || err.response?.status === 422)) return [];
       throw err;
     }
   },
@@ -118,8 +119,8 @@ export const journalApi = {
     try {
       const res = await apiClient.get<EmotionStats>('/journal/emotions/stats', { params });
       return res.data;
-    } catch (err: any) {
-      if (err.response?.status === 404 || err.response?.status === 422) return null;
+    } catch (err: unknown) {
+      if (isAxiosError(err) && (err.response?.status === 404 || err.response?.status === 422)) return null;
       throw err;
     }
   },

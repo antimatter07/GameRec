@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Stack, Group, Text, Rating, Button, Paper } from '@mantine/core';
 import { IconDeviceFloppy } from '@tabler/icons-react';
 import { useGameRating, useUpsertRating } from '../../hooks/useJournal';
@@ -28,33 +28,25 @@ export function MultiAxisRatingWidget({
   const { data: existing, isLoading } = useGameRating(gameId);
   const upsertRating = useUpsertRating();
 
-  const [ratings, setRatings] = useState<Record<AxisKey, number | null>>({
-    story: null, gameplay: null, visuals: null, soundtrack: null, overall: null,
-  });
-  const [dirty, setDirty] = useState(false);
+  const [localEdits, setLocalEdits] = useState<Partial<Record<AxisKey, number>>>({});
 
-  useEffect(() => {
-    if (existing) {
-      setRatings({
-        story:     existing.story,
-        gameplay:  existing.gameplay,
-        visuals:   existing.visuals,
-        soundtrack: existing.soundtrack,
-        overall:   existing.overall,
-      });
-      setDirty(false);
-    }
-  }, [existing]);
+  const ratings: Record<AxisKey, number | null> = {
+    story:      localEdits.story      ?? existing?.story      ?? null,
+    gameplay:   localEdits.gameplay   ?? existing?.gameplay   ?? null,
+    visuals:    localEdits.visuals    ?? existing?.visuals    ?? null,
+    soundtrack: localEdits.soundtrack ?? existing?.soundtrack ?? null,
+    overall:    localEdits.overall    ?? existing?.overall    ?? null,
+  };
+  const dirty = Object.keys(localEdits).length > 0;
 
   const handleChange = (axis: AxisKey, value: number) => {
-    setRatings((prev) => ({ ...prev, [axis]: value }));
-    setDirty(true);
+    setLocalEdits((prev) => ({ ...prev, [axis]: value }));
   };
 
   const handleSave = () => {
     upsertRating.mutate(
       { gameId, data: ratings },
-      { onSuccess: () => setDirty(false) },
+      { onSuccess: () => setLocalEdits({}) },
     );
   };
 

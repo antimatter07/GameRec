@@ -1,3 +1,4 @@
+import { isAxiosError } from 'axios';
 import { Badge, Button, Card, Group, Image, Rating, Stack, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconBookmark, IconBookmarkFilled } from '@tabler/icons-react';
@@ -24,12 +25,16 @@ export function GameCard({ game, showAdd = false }: GameCardProps) {
     try {
       await addToLibrary.mutateAsync({ game_id: game.id });
       notifications.show({ color: 'green', message: `${game.name} added to library` });
-    } catch (err: any) {
-      const detail = err?.response?.data?.detail;
-      if (err?.response?.status === 409) {
-        notifications.show({ color: 'yellow', message: 'Already in your library' });
+    } catch (err: unknown) {
+      if (isAxiosError(err)) {
+        const detail = err.response?.data?.detail as string | undefined;
+        if (err.response?.status === 409) {
+          notifications.show({ color: 'yellow', message: 'Already in your library' });
+        } else {
+          notifications.show({ color: 'red', message: detail ?? 'Failed to add to library' });
+        }
       } else {
-        notifications.show({ color: 'red', message: detail ?? 'Failed to add to library' });
+        notifications.show({ color: 'red', message: 'Failed to add to library' });
       }
     }
   };
