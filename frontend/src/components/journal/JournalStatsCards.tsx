@@ -191,7 +191,7 @@ export function WeeklyActivityCard({ dailyHours, currentStreak, longestStreak }:
 
       <div style={{ textAlign: 'center' }}>
         <div className={classes.streakRing}>
-          <svg viewBox="0 0 100 100" width="100" height="100" className={classes.streakRingSvg}>
+          <svg viewBox="0 0 100 100" width="100%" height="100%" className={classes.streakRingSvg}>
             <circle cx="50" cy="50" r="42" fill="none" stroke="var(--mantine-color-dark-5)" strokeWidth="6" />
             <circle
               cx="50" cy="50" r="42" fill="none"

@@ -260,24 +260,25 @@ export default function JournalPage() {
               <Text size="sm" fw={600} mb="sm">Emotions by genre</Text>
               <Stack gap="xs">
                 {emotionStats.per_genre.map((g) => (
-                  <Group key={g.genre} justify="space-between">
-                    <Text size="xs" w={80}>{g.genre}</Text>
-                    <Group gap={3}>
+                  <Group key={g.genre} justify="space-between" wrap="nowrap">
+                    <Text size="xs" style={{ minWidth: 64, flex: '0 0 auto' }} truncate>{g.genre}</Text>
+                    <div style={{ display: 'flex', flex: 1, gap: 2, marginInline: 8 }}>
                       {g.emotion_breakdown.slice(0, 5).map((e) => (
                         <div
                           key={e.emotion}
                           style={{
-                            width: Math.max(6, Math.round(e.percentage * 0.8)),
+                            flex: e.percentage,
                             height: 16,
                             borderRadius: 3,
                             background: EMOTION_CSS_COLORS[e.emotion] ?? 'var(--mantine-color-gray-5)',
                             opacity: 0.8,
+                            minWidth: 4,
                           }}
                           title={`${EMOTION_CONFIG[e.emotion]?.label}: ${Math.round(e.percentage)}%`}
                         />
                       ))}
-                    </Group>
-                    <Text size="xs" c="dimmed" w={60} ta="right">{g.session_count} sessions</Text>
+                    </div>
+                    <Text size="xs" c="dimmed" style={{ minWidth: 52, flex: '0 0 auto', textAlign: 'right' }}>{g.session_count} sessions</Text>
                   </Group>
                 ))}
               </Stack>
