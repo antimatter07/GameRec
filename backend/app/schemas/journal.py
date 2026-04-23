@@ -13,7 +13,7 @@ class SessionLogCreate(BaseModel):
     notes:            str | None       = None
     is_milestone:     bool             = False
     milestone_label:  str | None       = None
-    emotions:         list[str] | None = None  # stored in future migration; ignored for now
+    emotions:         list[str] | None = None
 
 
 class SessionLogUpdate(BaseModel):
@@ -22,7 +22,7 @@ class SessionLogUpdate(BaseModel):
     notes:            str | None       = None
     is_milestone:     bool | None      = None
     milestone_label:  str | None       = None
-    emotions:         list[str] | None = None  # ignored until emotions column exists
+    emotions:         list[str] | None = None
 
 
 class SessionLogOut(BaseModel):
@@ -83,6 +83,75 @@ class JournalStats(BaseModel):
     games_completed:           int
     games_in_backlog:          int
     games_playing:             int
-    # Emotion fields (null until emotions backend is implemented)
+    # Emotion summary
     dominant_emotion_this_month: str | None
     emotion_coverage_pct:        float | None
+
+
+# ─── Multi-Axis Ratings ───────────────────────────────────────────────────────
+
+class MultiAxisRatingUpsert(BaseModel):
+    story:      float | None = Field(None, ge=0, le=5)
+    gameplay:   float | None = Field(None, ge=0, le=5)
+    visuals:    float | None = Field(None, ge=0, le=5)
+    soundtrack: float | None = Field(None, ge=0, le=5)
+    overall:    float | None = Field(None, ge=0, le=5)
+
+
+class MultiAxisRatingOut(BaseModel):
+    id:               int
+    user_id:          int
+    game_id:          int
+    library_entry_id: int | None
+    story:            float | None
+    gameplay:         float | None
+    visuals:          float | None
+    soundtrack:       float | None
+    overall:          float | None
+    created_at:       datetime
+    updated_at:       datetime
+    game_title:       str | None
+    game_cover_url:   str | None
+
+    model_config = {"from_attributes": False}
+
+
+# ─── Emotion Stats ────────────────────────────────────────────────────────────
+
+class EmotionFrequencyItem(BaseModel):
+    emotion:       str
+    session_count: int
+    percentage:    float
+
+
+class EmotionGameCorrelation(BaseModel):
+    game_id:          int
+    game_title:       str
+    cover_url:        str | None
+    dominant_emotion: str
+    session_count:    int
+
+
+class EmotionGenreCorrelation(BaseModel):
+    genre:             str
+    dominant_emotion:  str
+    session_count:     int
+    emotion_breakdown: list[EmotionFrequencyItem]
+
+
+class EmotionMonthlyBucket(BaseModel):
+    month:     str
+    frequency: list[EmotionFrequencyItem]
+
+
+class EmotionStats(BaseModel):
+    period:                       str
+    total_sessions_with_emotions: int
+    total_sessions:               int
+    frequency:                    list[EmotionFrequencyItem]
+    most_common_emotion:          str | None
+    top_positive_game:            EmotionGameCorrelation | None
+    top_negative_game:            EmotionGameCorrelation | None
+    per_game:                     list[EmotionGameCorrelation]
+    per_genre:                    list[EmotionGenreCorrelation]
+    monthly_breakdown:            list[EmotionMonthlyBucket]
