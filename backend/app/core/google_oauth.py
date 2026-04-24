@@ -1,28 +1,36 @@
-from google.auth.transport import requests as google_requests
-from google.oauth2 import id_token as google_id_token
+import httpx
 
 from app.config import settings
+
+GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
 
 
 class GoogleTokenError(Exception):
     pass
 
 
-def verify_google_id_token(token: str) -> dict:
-    """Verify a Google ID token and return its claims, or raise GoogleTokenError."""
+def verify_google_access_token(access_token: str) -> dict:
+    """
+    Call Google's userinfo endpoint to validate an access_token and return user claims.
+    Returns dict with: sub, email, email_verified, name, picture.
+    """
     if not settings.GOOGLE_CLIENT_ID:
         raise GoogleTokenError("Google OAuth is not configured on this server")
     try:
-        claims = google_id_token.verify_oauth2_token(
-            token, google_requests.Request(), settings.GOOGLE_CLIENT_ID
+        response = httpx.get(
+            GOOGLE_USERINFO_URL,
+            headers={"Authorization": f"Bearer {access_token}"},
+            timeout=10,
         )
-    except ValueError as e:
-        raise GoogleTokenError(f"Invalid Google token: {e}") from e
+        response.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        raise GoogleTokenError(f"Google rejected the token: {e.response.status_code}") from e
+    except httpx.HTTPError as e:
+        raise GoogleTokenError(f"Could not reach Google: {e}") from e
 
-    if claims.get("iss") not in ("accounts.google.com", "https://accounts.google.com"):
-        raise GoogleTokenError("Token has wrong issuer")
+    claims = response.json()
     if not claims.get("email_verified"):
         raise GoogleTokenError("Google account email is not verified")
-
-    # claims contains: sub, email, email_verified, name, picture, aud, iss, exp
+    if not claims.get("sub"):
+        raise GoogleTokenError("Missing user ID in Google response")
     return claims

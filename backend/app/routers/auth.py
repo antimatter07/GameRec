@@ -59,7 +59,7 @@ def refresh_token(refresh_token: str, db: DBDep):
 @router.post("/google", response_model=Token)
 def google_login(payload: GoogleLoginRequest, db: DBDep):
     try:
-        return auth_service.login_with_google(db, payload.id_token)
+        return auth_service.login_with_google(db, payload.google_token)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
 

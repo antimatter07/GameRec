@@ -2,9 +2,9 @@ import { isAxiosError } from 'axios';
 import { Anchor, Button, Container, Divider, Paper, PasswordInput, Text, TextInput, Title } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { GoogleLogin } from '@react-oauth/google';
 import { Link } from 'react-router';
 import { useAuth } from '../../hooks/useAuth';
+import { GoogleSignInButton } from '../../components/GoogleSignInButton';
 
 export default function RegisterPage() {
   const { register, loginWithGoogle } = useAuth();
@@ -38,20 +38,22 @@ export default function RegisterPage() {
       </Text>
 
       <Paper withBorder shadow="md" p={30} mt={30} radius="md">
-        <GoogleLogin
-          onSuccess={(cred: { credential?: string }) => {
-            if (cred.credential) loginWithGoogle(cred.credential).catch(() => {
-              notifications.show({ color: 'red', title: 'Google sign-in failed', message: 'Try again or register with email' });
-            });
-          }}
+        <GoogleSignInButton
+          fullWidth
+          label="Sign up with Google"
+          onSuccess={(accessToken) =>
+            loginWithGoogle(accessToken).catch(() =>
+              notifications.show({ color: 'red', title: 'Google sign-in failed', message: 'Try again or register with email' })
+            )
+          }
           onError={() =>
             notifications.show({ color: 'red', title: 'Google sign-in failed', message: 'Try again or register with email' })
           }
-          width="100%"
-          text="signup_with"
         />
 
-        <Divider label="or register with email" labelPosition="center" my="md" />
+        {import.meta.env.VITE_GOOGLE_CLIENT_ID && (
+          <Divider label="or register with email" labelPosition="center" my="md" />
+        )}
 
         <form onSubmit={handleSubmit}>
           <TextInput

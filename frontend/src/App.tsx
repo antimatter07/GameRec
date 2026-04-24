@@ -84,14 +84,20 @@ const queryClient = new QueryClient({
 export default function App() {
   const colorScheme = useUIStore((s) => s.colorScheme);
 
-  return (
-    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID ?? ''}>
-      <QueryClientProvider client={queryClient}>
-        <MantineProvider theme={theme} defaultColorScheme={colorScheme}>
-          <Notifications position="top-right" />
-          <RouterProvider router={router} />
-        </MantineProvider>
-      </QueryClientProvider>
-    </GoogleOAuthProvider>
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+  const inner = (
+    <QueryClientProvider client={queryClient}>
+      <MantineProvider theme={theme} defaultColorScheme={colorScheme}>
+        <Notifications position="top-right" />
+        <RouterProvider router={router} />
+      </MantineProvider>
+    </QueryClientProvider>
+  );
+
+  return googleClientId ? (
+    <GoogleOAuthProvider clientId={googleClientId}>{inner}</GoogleOAuthProvider>
+  ) : (
+    inner
   );
 }

@@ -42,6 +42,6 @@ export const authApi = {
   logout: (refreshToken: string) =>
     apiClient.post('/auth/logout', null, { params: { refresh_token: refreshToken } }),
 
-  googleLogin: (idToken: string) =>
-    apiClient.post<AuthTokens>('/auth/google', { id_token: idToken }).then((r) => r.data),
+  googleLogin: (accessToken: string) =>
+    apiClient.post<AuthTokens>('/auth/google', { google_token: accessToken }).then((r) => r.data),
 };

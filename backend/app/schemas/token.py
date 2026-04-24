@@ -14,4 +14,4 @@ class TokenPayload(BaseModel):
 
 
 class GoogleLoginRequest(BaseModel):
-    id_token: str
+    google_token: str  # access_token from Google implicit flow

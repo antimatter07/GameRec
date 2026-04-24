@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.core.redis_client import redis_client
 from app.core.security import create_access_token, create_refresh_token, verify_password
-from app.core.google_oauth import verify_google_id_token, GoogleTokenError
+from app.core.google_oauth import verify_google_access_token, GoogleTokenError
 from app.models.auth_identity import AuthIdentity
 from app.models.user import User, UserRole
 
@@ -63,7 +63,7 @@ def login_with_google(db: Session, id_token_str: str) -> dict:
     After this call the session is 100% our JWT flow; Google is not consulted again.
     """
     try:
-        claims = verify_google_id_token(id_token_str)
+        claims = verify_google_access_token(id_token_str)
     except GoogleTokenError as e:
         raise ValueError(str(e))
 
