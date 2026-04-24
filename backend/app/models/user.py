@@ -18,7 +18,7 @@ class User(Base):
 
     id:              Mapped[int]      = mapped_column(primary_key=True)
     email:           Mapped[str]      = mapped_column(String(255), unique=True, nullable=False, index=True)
-    hashed_password: Mapped[str]      = mapped_column(String(255), nullable=False)
+    hashed_password: Mapped[str | None] = mapped_column(String(255), nullable=True)
     display_name:    Mapped[str]      = mapped_column(String(100), nullable=True)
     avatar_url:      Mapped[str]      = mapped_column(String(500), nullable=True)
     bio:             Mapped[str]      = mapped_column(Text,        nullable=True)
@@ -30,6 +30,7 @@ class User(Base):
     )
 
     # Relationships
+    auth_identities    = relationship("AuthIdentity",    back_populates="user", cascade="all, delete-orphan")
     library_entries    = relationship("LibraryEntry",    back_populates="user", cascade="all, delete-orphan")
     recommendations    = relationship("Recommendation",  back_populates="user", cascade="all, delete-orphan")
     play_queue_entries = relationship("PlayQueueEntry",  back_populates="user", cascade="all, delete-orphan")

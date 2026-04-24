@@ -1,12 +1,13 @@
 import { isAxiosError } from 'axios';
-import { Anchor, Button, Container, Paper, PasswordInput, Text, TextInput, Title } from '@mantine/core';
+import { Anchor, Button, Container, Divider, Paper, PasswordInput, Text, TextInput, Title } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
+import { GoogleLogin } from '@react-oauth/google';
 import { Link } from 'react-router';
 import { useAuth } from '../../hooks/useAuth';
 
 export default function RegisterPage() {
-  const { register } = useAuth();
+  const { register, loginWithGoogle } = useAuth();
 
   const form = useForm({
     initialValues: { email: '', display_name: '', password: '' },
@@ -37,6 +38,21 @@ export default function RegisterPage() {
       </Text>
 
       <Paper withBorder shadow="md" p={30} mt={30} radius="md">
+        <GoogleLogin
+          onSuccess={(cred: { credential?: string }) => {
+            if (cred.credential) loginWithGoogle(cred.credential).catch(() => {
+              notifications.show({ color: 'red', title: 'Google sign-in failed', message: 'Try again or register with email' });
+            });
+          }}
+          onError={() =>
+            notifications.show({ color: 'red', title: 'Google sign-in failed', message: 'Try again or register with email' })
+          }
+          width="100%"
+          text="signup_with"
+        />
+
+        <Divider label="or register with email" labelPosition="center" my="md" />
+
         <form onSubmit={handleSubmit}>
           <TextInput
             label="Display name"

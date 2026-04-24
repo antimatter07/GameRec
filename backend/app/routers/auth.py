@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.core.security import create_access_token, decode_access_token
-from app.schemas.token import Token
+from app.schemas.token import Token, GoogleLoginRequest
 from app.schemas.user import UserCreate, UserOut
 from app.services import auth_service, user_service
 
@@ -54,6 +54,14 @@ def refresh_token(refresh_token: str, db: DBDep):
     # Blacklist old refresh token and issue a fresh pair
     auth_service.revoke_refresh_token(refresh_token)
     return auth_service.issue_tokens(user)
+
+
+@router.post("/google", response_model=Token)
+def google_login(payload: GoogleLoginRequest, db: DBDep):
+    try:
+        return auth_service.login_with_google(db, payload.id_token)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)

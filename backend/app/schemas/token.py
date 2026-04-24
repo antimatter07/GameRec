@@ -11,3 +11,7 @@ class TokenPayload(BaseModel):
     sub:  int   # user ID
     role: str
     exp:  int
+
+
+class GoogleLoginRequest(BaseModel):
+    id_token: str

@@ -40,5 +40,13 @@ export function useAuth() {
     setUser(updatedUser);
   };
 
-  return { user, isAuthenticated, login, register, logout, updateProfile };
+  const loginWithGoogle = async (idToken: string) => {
+    const tokens = await authApi.googleLogin(idToken);
+    useAuthStore.getState().setAccessToken(tokens.access_token);
+    const me = await usersApi.getMe();
+    setAuth(me, tokens.access_token, tokens.refresh_token);
+    navigate('/games');
+  };
+
+  return { user, isAuthenticated, login, loginWithGoogle, register, logout, updateProfile };
 }

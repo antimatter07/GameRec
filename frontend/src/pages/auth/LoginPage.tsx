@@ -1,11 +1,12 @@
-import { Anchor, Button, Container, Paper, PasswordInput, Text, TextInput, Title } from '@mantine/core';
+import { Anchor, Button, Container, Divider, Paper, PasswordInput, Text, TextInput, Title } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
+import { GoogleLogin } from '@react-oauth/google';
 import { Link } from 'react-router';
 import { useAuth } from '../../hooks/useAuth';
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
 
   const form = useForm({
     initialValues: { email: '', password: '' },
@@ -34,6 +35,20 @@ export default function LoginPage() {
       </Text>
 
       <Paper withBorder shadow="md" p={30} mt={30} radius="md">
+        <GoogleLogin
+          onSuccess={(cred: { credential?: string }) => {
+            if (cred.credential) loginWithGoogle(cred.credential).catch(() => {
+              notifications.show({ color: 'red', title: 'Google sign-in failed', message: 'Try again or use email/password' });
+            });
+          }}
+          onError={() =>
+            notifications.show({ color: 'red', title: 'Google sign-in failed', message: 'Try again or use email/password' })
+          }
+          width="100%"
+        />
+
+        <Divider label="or sign in with email" labelPosition="center" my="md" />
+
         <form onSubmit={handleSubmit}>
           <TextInput
             label="Email"

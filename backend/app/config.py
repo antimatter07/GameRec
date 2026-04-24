@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     RATE_LIMIT_PREMIUM: str = "100/minute"
     RATE_LIMIT_ADMIN: str = "200/minute"
 
+    # Google OAuth
+    GOOGLE_CLIENT_ID: str = ""
+
     # CORS
     ALLOWED_ORIGINS: list[str] = ["http://localhost:5173"]
 

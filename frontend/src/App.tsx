@@ -2,6 +2,7 @@ import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
 import '@mantine/dates/styles.css';
 
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { MantineProvider, createTheme, type MantineColorsTuple } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -84,11 +85,13 @@ export default function App() {
   const colorScheme = useUIStore((s) => s.colorScheme);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <MantineProvider theme={theme} defaultColorScheme={colorScheme}>
-        <Notifications position="top-right" />
-        <RouterProvider router={router} />
-      </MantineProvider>
-    </QueryClientProvider>
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID ?? ''}>
+      <QueryClientProvider client={queryClient}>
+        <MantineProvider theme={theme} defaultColorScheme={colorScheme}>
+          <Notifications position="top-right" />
+          <RouterProvider router={router} />
+        </MantineProvider>
+      </QueryClientProvider>
+    </GoogleOAuthProvider>
   );
 }
