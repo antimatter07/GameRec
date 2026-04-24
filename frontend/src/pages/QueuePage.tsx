@@ -3,11 +3,13 @@ import { Box, Center, Group, Loader, Paper, Stack, Text, Title } from '@mantine/
 import {
   DndContext,
   closestCenter,
+  pointerWithin,
   PointerSensor,
   useDroppable,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type CollisionDetection,
 } from '@dnd-kit/core';
 import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable';
 import { PlayQueueItem } from '../components/library/PlayQueueItem';
@@ -24,9 +26,19 @@ import type { LibraryEntry } from '../types/library';
 
 const POOL_STATUSES = new Set(['backlog', 'completed', 'dropped']);
 
+// Prefer pointer-within detection so empty containers are valid drop targets,
+// fall back to closestCenter for precise reordering within a populated container.
+const collisionDetection: CollisionDetection = (args) => {
+  const pointerCollisions = pointerWithin(args);
+  if (pointerCollisions.length > 0) return pointerCollisions;
+  return closestCenter(args);
+};
+
 function DroppableZone({ id, children }: { id: string; children: React.ReactNode }) {
   const { setNodeRef } = useDroppable({ id });
-  return <div ref={setNodeRef}>{children}</div>;
+  // minHeight ensures the droppable rect is always large enough to detect,
+  // even when the container has no sortable children.
+  return <div ref={setNodeRef} style={{ minHeight: 80 }}>{children}</div>;
 }
 
 export default function QueuePage() {
@@ -104,7 +116,7 @@ export default function QueuePage() {
         </Text>
       </Group>
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragEnd={handleDragEnd}>
         {/* Top: the queue */}
         <Paper withBorder radius="md" p="md">
           <Stack gap="xs">
