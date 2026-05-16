@@ -1,46 +1,51 @@
 import axios from 'axios';
+import type { AxiosError } from 'axios';
 import { useAuthStore } from '../store/authStore';
 
-// TODO: Move base URL to an env variable (import.meta.env.VITE_API_URL)
 const apiClient = axios.create({
-  baseURL: 'http://localhost:8000/api',
+  baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api',
+  withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });
 
-// --- Request interceptor: attach access token ---
+function readCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+
+  const prefix = `${name}=`;
+  for (const cookie of document.cookie.split(';')) {
+    const trimmed = cookie.trim();
+    if (trimmed.startsWith(prefix)) {
+      return decodeURIComponent(trimmed.slice(prefix.length));
+    }
+  }
+  return null;
+}
+
 apiClient.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().accessToken;
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  const method = (config.method ?? 'get').toUpperCase();
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+    const csrfToken = readCookie('csrf_token');
+    if (csrfToken) {
+      config.headers['X-CSRF-Token'] = csrfToken;
+    }
+  }
   return config;
 });
 
-// --- Response interceptor: handle token refresh on 401 ---
 apiClient.interceptors.response.use(
   (response) => response,
-  async (error) => {
-    const original = error.config;
-    if (error.response?.status === 401 && !original._retry) {
-      original._retry = true;
-      const { refreshToken, setAccessToken, logout } = useAuthStore.getState();
-      if (refreshToken) {
-        try {
-          const { data } = await axios.post(
-            'http://localhost:8000/api/auth/refresh',
-            null,
-            { params: { refresh_token: refreshToken } },
-          );
-          setAccessToken(data.access_token);
-          original.headers.Authorization = `Bearer ${data.access_token}`;
-          return apiClient(original);
-        } catch {
-          logout();
-          window.location.href = '/login';
-        }
-      } else {
-        logout();
+  async (error: AxiosError) => {
+    const url = error.config?.url ?? '';
+    const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/google') || url.includes('/auth/logout');
+
+    if (error.response?.status === 401 && !isAuthEndpoint) {
+      useAuthStore.getState().logout();
+      const currentPath = window.location.pathname;
+      if (currentPath !== '/login' && currentPath !== '/register') {
         window.location.href = '/login';
       }
     }
+
     return Promise.reject(error);
   },
 );

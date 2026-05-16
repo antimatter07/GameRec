@@ -3,12 +3,15 @@ import '@mantine/notifications/styles.css';
 import '@mantine/dates/styles.css';
 
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import { MantineProvider, createTheme, type MantineColorsTuple } from '@mantine/core';
+import { useEffect, useRef, useState } from 'react';
+import { Center, Loader, MantineProvider, createTheme, type MantineColorsTuple } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from 'react-router';
 
+import { usersApi } from './api/users';
 import { router } from './router';
+import { useAuthStore } from './store/authStore';
 import { useUIStore } from './store/uiStore';
 
 // ─── Custom violet ramp ────────────────────────────────────────────────────────
@@ -81,6 +84,40 @@ const queryClient = new QueryClient({
   },
 });
 
+function AuthBootstrap() {
+  const [isBootstrapping, setIsBootstrapping] = useState(true);
+  const hasStarted = useRef(false);
+
+  useEffect(() => {
+    if (hasStarted.current) return;
+    hasStarted.current = true;
+
+    async function bootstrap() {
+      const { setUser, logout } = useAuthStore.getState();
+      try {
+        const me = await usersApi.getMe();
+        setUser(me);
+      } catch {
+        logout();
+      } finally {
+        setIsBootstrapping(false);
+      }
+    }
+
+    void bootstrap();
+  }, []);
+
+  if (isBootstrapping) {
+    return (
+      <Center h="100vh">
+        <Loader />
+      </Center>
+    );
+  }
+
+  return <RouterProvider router={router} />;
+}
+
 export default function App() {
   const colorScheme = useUIStore((s) => s.colorScheme);
 
@@ -90,7 +127,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <MantineProvider theme={theme} defaultColorScheme={colorScheme}>
         <Notifications position="top-right" />
-        <RouterProvider router={router} />
+        <AuthBootstrap />
       </MantineProvider>
     </QueryClientProvider>
   );

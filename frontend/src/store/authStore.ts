@@ -1,43 +1,19 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import type { User } from '../types/user';
 
 interface AuthState {
   user: User | null;
-  accessToken: string | null;
-  refreshToken: string | null;
-
-  setAuth: (user: User, accessToken: string, refreshToken: string) => void;
-  setUser: (user: User) => void;
-  setAccessToken: (token: string) => void;
+  setUser: (user: User | null) => void;
   logout: () => void;
-
   isAuthenticated: () => boolean;
 }
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set, get) => ({
-      user:         null,
-      accessToken:  null,
-      refreshToken: null,
+export const useAuthStore = create<AuthState>()((set, get) => ({
+  user: null,
 
-      setAuth: (user, accessToken, refreshToken) =>
-        set({ user, accessToken, refreshToken }),
+  setUser: (user) => set({ user }),
 
-      setUser: (user) => set({ user }),
+  logout: () => set({ user: null }),
 
-      setAccessToken: (token) => set({ accessToken: token }),
-
-      logout: () => set({ user: null, accessToken: null, refreshToken: null }),
-
-      isAuthenticated: () => get().accessToken !== null,
-    }),
-    {
-      name: 'auth-storage', // localStorage key
-      // TODO: Consider storing only the refresh token in localStorage and keeping
-      //       the access token in memory to reduce XSS exposure.
-      //       partialize: (state) => ({ refreshToken: state.refreshToken }),
-    },
-  ),
-);
+  isAuthenticated: () => get().user !== null,
+}));

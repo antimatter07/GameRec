@@ -6,12 +6,6 @@ export interface LoginCredentials {
   password: string;
 }
 
-export interface AuthTokens {
-  access_token: string;
-  refresh_token: string;
-  token_type: string;
-}
-
 export interface RegisterPayload {
   email: string;
   password: string;
@@ -28,20 +22,15 @@ export const authApi = {
     form.append('username', credentials.username);
     form.append('password', credentials.password);
     return apiClient
-      .post<AuthTokens>('/auth/login', form, {
+      .post<User>('/auth/login', form, {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       })
       .then((r) => r.data);
   },
 
-  refresh: (refreshToken: string) =>
-    apiClient
-      .post<AuthTokens>('/auth/refresh', null, { params: { refresh_token: refreshToken } })
-      .then((r) => r.data),
-
-  logout: (refreshToken: string) =>
-    apiClient.post('/auth/logout', null, { params: { refresh_token: refreshToken } }),
+  logout: () =>
+    apiClient.post('/auth/logout'),
 
   googleLogin: (accessToken: string) =>
-    apiClient.post<AuthTokens>('/auth/google', { google_token: accessToken }).then((r) => r.data),
+    apiClient.post<User>('/auth/google', { google_token: accessToken }).then((r) => r.data),
 };
