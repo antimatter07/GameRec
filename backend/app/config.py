@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    SESSION_EXPIRE_DAYS: int = 7
 
     # RAWG API — get your key at rawg.io/apidocs
     RAWG_API_KEY: str

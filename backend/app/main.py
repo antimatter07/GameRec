@@ -1,11 +1,13 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 from app.config import settings
 from app.routers import auth, users, games, library, recommendations, feedback, admin, play_queue, journal
+from app.services import auth_service
 
 # TODO: Replace with the user-aware key function from app.core.rate_limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -27,6 +29,28 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+_SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
+
+
+@app.middleware("http")
+async def csrf_guard(request: Request, call_next):
+    if not request.url.path.startswith("/api"):
+        return await call_next(request)
+
+    csrf_cookie = request.cookies.get(auth_service.CSRF_COOKIE_NAME)
+
+    if request.method not in _SAFE_METHODS:
+        csrf_header = request.headers.get("X-CSRF-Token")
+        if not csrf_cookie or not csrf_header or csrf_cookie != csrf_header:
+            return JSONResponse(status_code=403, content={"detail": "CSRF validation failed"})
+
+    response = await call_next(request)
+
+    if request.method in _SAFE_METHODS and not csrf_cookie:
+        auth_service.set_csrf_cookie(response, auth_service.generate_csrf_token())
+
+    return response
 
 # --- Routers ---
 app.include_router(auth.router,            prefix="/api/auth",            tags=["auth"])

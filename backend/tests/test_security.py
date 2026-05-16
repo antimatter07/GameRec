@@ -6,9 +6,8 @@ import pytest
 from fastapi import HTTPException
 
 from app.core.security import (
-    create_access_token,
-    create_refresh_token,
-    decode_access_token,
+    create_auth_token,
+    decode_auth_token,
     hash_password,
     verify_password,
 )
@@ -40,45 +39,44 @@ def test_hashes_are_unique_per_call():
     assert verify_password("same", h2)
 
 
-# ── Access token ───────────────────────────────────────────────────────────────
+# ── Auth token ────────────────────────────────────────────────────────────────
 
-def test_access_token_roundtrip():
-    token = create_access_token(user_id=42, role="BASIC")
-    payload = decode_access_token(token)
+def test_auth_token_roundtrip():
+    token = create_auth_token(user_id=42, role="basic")
+    payload = decode_auth_token(token)
     assert payload["sub"] == "42"
-    assert payload["role"] == "BASIC"
-    assert payload["type"] == "access"
+    assert payload["role"] == "basic"
+    assert payload["type"] == "auth"
+    assert "jti" in payload
 
 
-def test_access_token_contains_expiry():
-    token = create_access_token(user_id=1, role="BASIC")
-    payload = decode_access_token(token)
+def test_auth_token_contains_expiry():
+    token = create_auth_token(user_id=1, role="basic")
+    payload = decode_auth_token(token)
     assert "exp" in payload
-
-
-def test_refresh_token_rejected_by_decode_access_token():
-    # decode_access_token must reject a refresh token
-    token = create_refresh_token(user_id=42)
-    with pytest.raises(HTTPException) as exc:
-        decode_access_token(token)
-    assert exc.value.status_code == 401
 
 
 def test_invalid_token_raises_401():
     with pytest.raises(HTTPException) as exc:
-        decode_access_token("not.a.valid.token")
+        decode_auth_token("not.a.valid.token")
     assert exc.value.status_code == 401
 
 
 def test_tampered_token_raises_401():
-    token = create_access_token(user_id=1, role="BASIC")
+    token = create_auth_token(user_id=1, role="basic")
     tampered = token[:-10] + "XXXXXXXXXX"
     with pytest.raises(HTTPException) as exc:
-        decode_access_token(tampered)
+        decode_auth_token(tampered)
     assert exc.value.status_code == 401
 
 
 def test_different_user_ids_produce_different_tokens():
-    t1 = create_access_token(user_id=1, role="BASIC")
-    t2 = create_access_token(user_id=2, role="BASIC")
+    t1 = create_auth_token(user_id=1, role="basic")
+    t2 = create_auth_token(user_id=2, role="basic")
+    assert t1 != t2
+
+
+def test_same_user_id_produce_different_tokens_due_to_jti():
+    t1 = create_auth_token(user_id=1, role="basic")
+    t2 = create_auth_token(user_id=1, role="basic")
     assert t1 != t2

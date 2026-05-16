@@ -1,12 +1,11 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.core.security import create_access_token, decode_access_token
-from app.schemas.token import Token, GoogleLoginRequest
+from app.schemas.token import GoogleLoginRequest
 from app.schemas.user import UserCreate, UserOut
 from app.services import auth_service, user_service
 
@@ -20,8 +19,8 @@ def register(user_in: UserCreate, db: DBDep):
     return user_service.create_user(db, user_in)
 
 
-@router.post("/login", response_model=Token)
-def login(db: DBDep, form_data: OAuth2PasswordRequestForm = Depends()):
+@router.post("/login", response_model=UserOut)
+def login(response: Response, db: DBDep, form_data: OAuth2PasswordRequestForm = Depends()):
     user = auth_service.authenticate_user(db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(
@@ -29,44 +28,33 @@ def login(db: DBDep, form_data: OAuth2PasswordRequestForm = Depends()):
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    return auth_service.issue_tokens(user)
+    token = auth_service.issue_auth_token(user)
+    auth_service.set_auth_cookie(response, token)
+    auth_service.set_csrf_cookie(response, auth_service.generate_csrf_token())
+    return user
 
 
-@router.post("/refresh", response_model=Token)
-def refresh_token(refresh_token: str, db: DBDep):
-    if auth_service.is_refresh_token_blacklisted(refresh_token):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has been revoked")
+@router.post("/google", response_model=UserOut)
+def google_login(payload: GoogleLoginRequest, response: Response, db: DBDep):
     try:
-        from app.config import settings
-        import jwt
-        payload = jwt.decode(refresh_token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
-        if payload.get("type") != "refresh":
-            raise ValueError("Wrong token type")
-        user_id = int(payload["sub"])
-    except Exception:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
-
-    from app.models.user import User
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user or not user.is_active:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
-
-    # Blacklist old refresh token and issue a fresh pair
-    auth_service.revoke_refresh_token(refresh_token)
-    return auth_service.issue_tokens(user)
-
-
-@router.post("/google", response_model=Token)
-def google_login(payload: GoogleLoginRequest, db: DBDep):
-    try:
-        return auth_service.login_with_google(db, payload.google_token)
+        user = auth_service.login_with_google(db, payload.google_token)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+    token = auth_service.issue_auth_token(user)
+    auth_service.set_auth_cookie(response, token)
+    auth_service.set_csrf_cookie(response, auth_service.generate_csrf_token())
+    return user
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-def logout(refresh_token: str):
-    auth_service.revoke_refresh_token(refresh_token)
+def logout(
+    response: Response,
+    auth_token: str | None = Cookie(default=None, alias=auth_service.AUTH_COOKIE_NAME),
+):
+    if auth_token:
+        auth_service.revoke_auth_token(auth_token)
+    auth_service.clear_auth_cookie(response)
+    auth_service.set_csrf_cookie(response, auth_service.generate_csrf_token())
 
 
 # ---- Stretch goals ----

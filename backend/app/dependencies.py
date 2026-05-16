@@ -1,26 +1,27 @@
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import Cookie, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.core.security import decode_access_token
 from app.models.user import User, UserRole
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+from app.services import auth_service
 
 
 def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    auth_cookie: str | None = Cookie(default=None, alias=auth_service.AUTH_COOKIE_NAME),
     db: Session = Depends(get_db),
 ) -> User:
-    """Decode the JWT and return the authenticated User, or raise 401."""
-    payload = decode_access_token(token)
-    user = db.query(User).filter(User.id == int(payload["sub"])).first()
-    if not user or not user.is_active:
+    """Resolve the authenticated user from the JWT auth cookie."""
+    if not auth_cookie:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    user = auth_service.get_user_for_token(db, auth_cookie)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
         )
     return user
 
