@@ -1,10 +1,12 @@
+import type { KeyboardEvent, MouseEvent } from 'react';
 import { isAxiosError } from 'axios';
-import { Badge, Button, Card, Group, Image, Rating, Stack, Text } from '@mantine/core';
+import { Button, Card, Group, Image, Rating, Stack, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconBookmark, IconBookmarkFilled } from '@tabler/icons-react';
-import { Link } from 'react-router';
+import { IconBookmark, IconTrash } from '@tabler/icons-react';
+import { useNavigate } from 'react-router';
 import { useAddToLibrary, useLibrary, useRemoveFromLibrary } from '../../hooks/useLibrary';
 import type { GameListItem } from '../../types/game';
+import classes from './GameCard.module.css';
 
 interface GameCardProps {
   game: GameListItem;
@@ -16,12 +18,17 @@ export function GameCard({ game, showAdd = false }: GameCardProps) {
   const { data: library } = useLibrary();
   const addToLibrary = useAddToLibrary();
   const removeFromLibrary = useRemoveFromLibrary();
+  const navigate = useNavigate();
 
   const libraryEntry = library?.find((entry) => entry.game.id === game.id) ?? null;
   const inLibrary = libraryEntry !== null;
+  const releaseYear = game.released ? new Date(game.released).getFullYear() : null;
 
-  const handleAdd = async (e: React.MouseEvent) => {
+  const openGame = () => navigate(`/games/${game.id}`);
+
+  const handleAdd = async (e: MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     try {
       await addToLibrary.mutateAsync({ game_id: game.id });
       notifications.show({ color: 'green', message: `${game.name} added to library` });
@@ -39,80 +46,85 @@ export function GameCard({ game, showAdd = false }: GameCardProps) {
     }
   };
 
-  const handleRemove = async (e: React.MouseEvent) => {
+  const handleRemove = async (e: MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     if (!libraryEntry) return;
+
     try {
       await removeFromLibrary.mutateAsync(libraryEntry.id);
-      notifications.show({ color: 'blue', message: `${game.name} removed from library` });
+      notifications.show({ color: 'red', message: `${game.name} removed from library` });
     } catch {
       notifications.show({ color: 'red', message: 'Failed to remove from library' });
     }
   };
 
   return (
-    <Card shadow="sm" padding="sm" radius="md" withBorder component={Link} to={`/games/${game.id}`}>
-      <Card.Section style={{ flex: 3 }}>
+    <Card
+      className={classes.card}
+      padding="sm"
+      radius="md"
+      withBorder
+      role="link"
+      tabIndex={0}
+      onClick={openGame}
+      onKeyDown={(event: KeyboardEvent) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          openGame();
+        }
+      }}
+      aria-label={`Open ${game.name}`}
+    >
+      <Card.Section className={classes.imageSection}>
         <Image
           src={game.background_image ?? undefined}
-          h="100%"
           alt={game.name}
-          
-          style={{ objectFit: 'cover' }}
+          className={classes.image}
           fallbackSrc="https://placehold.co/400x200?text=No+Image"
         />
-        
       </Card.Section>
 
-      <Stack gap="xs" mt="sm" style={{ flex: 1 }}>
-        <Text fw={600} lineClamp={2}>
+      <Stack gap={10} mt="sm" className={classes.body}>
+        <Text fw={600} lineClamp={2} className={classes.title}>
           {game.name}
         </Text>
 
-        <Group gap="xs">
-          {game.genres.slice(0, 2).map((g) => (
-            <Badge key={g.id} size="xs" variant="light">
-              {g.name}
-            </Badge>
-          ))}
-          {inLibrary && (
-            <Badge size="xs" color="green" variant="filled">
-              In Library
-            </Badge>
-          )}
+        <Text size="sm" c="dimmed" className={classes.meta}>
+          {releaseYear ?? 'TBA'}
+        </Text>
+
+        <Group gap={8} align="center" className={classes.ratingRow}>
+          <Rating value={(game.rating ?? 0) / 2} fractions={2} readOnly size="sm" color="orange" />
+          <Text size="sm" c="dimmed" className={classes.ratingValue}>
+            {game.rating !== null ? game.rating.toFixed(1) : 'NR'}
+          </Text>
         </Group>
 
-        {game.rating !== null && (
-          <Group gap="xs">
-            <Rating value={game.rating / 2} fractions={2} readOnly size="xs" />
-            <Text size="xs" c="dimmed">
-              {game.rating.toFixed(1)}
-            </Text>
-          </Group>
-        )}
-
         {showAdd && (
-          <Group gap="xs" mt="xs">
+          <Group gap="xs" mt="auto">
             {!inLibrary ? (
               <Button
-                size="xs"
+                className={classes.actionButton}
+                size="md"
                 variant="filled"
-                leftSection={<IconBookmark size={14} />}
+                color="violet"
+                leftSection={<IconBookmark size={15} />}
                 onClick={handleAdd}
                 loading={addToLibrary.isPending}
-                style={{ flex: 1 }}
+                fullWidth
               >
                 Add to Library
               </Button>
             ) : (
               <Button
-                size="xs"
-                variant="light"
-                color="red"
-                leftSection={<IconBookmarkFilled size={14} />}
+                className={`${classes.actionButton} ${classes.removeButton}`}
+                size="md"
+                variant="filled"
+                leftSection={<IconTrash size={15} />}
                 onClick={handleRemove}
                 loading={removeFromLibrary.isPending}
-                style={{ flex: 1 }}
+                fullWidth
               >
                 Remove
               </Button>

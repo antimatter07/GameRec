@@ -1,6 +1,7 @@
-import { ActionIcon, Button, Group, NumberInput, Select, TextInput } from '@mantine/core';
-import { IconSearch } from '@tabler/icons-react';
+import { Button, Group, Select, TextInput } from '@mantine/core';
+import { IconRefresh, IconSearch } from '@tabler/icons-react';
 import type { GameFilters } from '../../types/game';
+import classes from './GameFilters.module.css';
 
 interface GameFiltersProps {
   filters: GameFilters;
@@ -29,55 +30,73 @@ const PLATFORM_OPTIONS = [
   { value: 'nintendo-switch', label: 'Nintendo Switch' },
 ];
 
+const YEAR_OPTIONS = Array.from({ length: new Date().getFullYear() - 1979 }, (_, index) => {
+  const year = String(new Date().getFullYear() - index);
+  return { value: year, label: year };
+});
+
 /**
  * Filter bar for the game catalog.
  * TODO: Sync filter state with URL search params (useSearchParams)
  */
 export function GameFiltersBar({ filters, onChange, onReset, searchInput, onSearchInputChange }: GameFiltersProps) {
   const update = (partial: Partial<GameFilters>) => onChange({ ...filters, ...partial });
-  const commitSearch = () => update({ search: searchInput || undefined });
+  const commitSearch = () => update({ search: searchInput.trim() || undefined });
 
   return (
-    <Group wrap="wrap" gap="sm">
+    <Group className={classes.filtersRow} wrap="wrap" gap="md" align="center">
       <TextInput
+        className={classes.searchInput}
         placeholder="Search games..."
         value={searchInput}
         onChange={(e) => onSearchInputChange(e.currentTarget.value)}
         onKeyDown={(e) => e.key === 'Enter' && commitSearch()}
-        rightSection={
-          <ActionIcon variant="subtle" onClick={commitSearch} aria-label="Search">
-            <IconSearch size={16} />
-          </ActionIcon>
-        }
-        style={{ flex: 1, minWidth: 200 }}
+        onBlur={commitSearch}
+        leftSection={<IconSearch size={18} stroke={1.7} />}
+        size="md"
+        radius="md"
       />
 
       <Select
+        className={classes.filterSelect}
         placeholder="Genre"
         clearable
         data={GENRE_OPTIONS}
         value={filters.genre ?? null}
         onChange={(v) => update({ genre: v ?? undefined })}
+        size="md"
+        radius="md"
       />
 
       <Select
+        className={classes.filterSelect}
         placeholder="Platform"
         clearable
         data={PLATFORM_OPTIONS}
         value={filters.platform ?? null}
         onChange={(v) => update({ platform: v ?? undefined })}
+        size="md"
+        radius="md"
       />
 
-      <NumberInput
+      <Select
+        className={classes.yearSelect}
         placeholder="Year"
-        min={1970}
-        max={new Date().getFullYear()}
-        value={filters.year ?? ''}
-        onChange={(v) => update({ year: typeof v === 'number' ? v : undefined })}
-        style={{ width: 100 }}
+        clearable
+        data={YEAR_OPTIONS}
+        value={filters.year ? String(filters.year) : null}
+        onChange={(v) => update({ year: v ? Number(v) : undefined })}
+        size="md"
+        radius="md"
       />
 
-      <Button variant="subtle" onClick={onReset}>
+      <Button
+        className={classes.resetButton}
+        variant="subtle"
+        color="violet"
+        leftSection={<IconRefresh size={16} stroke={1.8} />}
+        onClick={onReset}
+      >
         Reset
       </Button>
     </Group>

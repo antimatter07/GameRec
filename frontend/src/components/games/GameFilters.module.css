@@ -1,0 +1,67 @@
+.filtersRow {
+  width: 100%;
+  align-items: stretch;
+}
+
+.searchInput {
+  flex: 1 1 460px;
+  min-width: 320px;
+}
+
+.filterSelect {
+  flex: 0 0 180px;
+}
+
+.yearSelect {
+  flex: 0 0 124px;
+}
+
+.searchInput :global(.mantine-Input-input),
+.filterSelect :global(.mantine-Input-input),
+.yearSelect :global(.mantine-Input-input) {
+  min-height: 42px;
+  border-color: var(--mantine-color-dark-4);
+  background: var(--mantine-color-dark-6);
+  color: var(--mantine-color-gray-0);
+  box-shadow: none;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease;
+}
+
+.searchInput :global(.mantine-Input-input)::placeholder,
+.filterSelect :global(.mantine-Input-input)::placeholder,
+.yearSelect :global(.mantine-Input-input)::placeholder {
+  color: var(--mantine-color-gray-5);
+}
+
+.searchInput :global(.mantine-Input-section),
+.filterSelect :global(.mantine-Input-section),
+.yearSelect :global(.mantine-Input-section) {
+  color: var(--mantine-color-gray-5);
+}
+
+.searchInput :global(.mantine-Input-input:focus),
+.filterSelect :global(.mantine-Input-input:focus),
+.yearSelect :global(.mantine-Input-input:focus) {
+  border-color: var(--mantine-color-violet-6);
+}
+
+.resetButton {
+  align-self: stretch;
+  min-height: 42px;
+  padding-inline: 0;
+}
+
+@media (max-width: 900px) {
+  .searchInput,
+  .filterSelect,
+  .yearSelect {
+    flex-basis: 100%;
+    min-width: 0;
+  }
+
+  .resetButton {
+    align-self: flex-start;
+  }
+}
