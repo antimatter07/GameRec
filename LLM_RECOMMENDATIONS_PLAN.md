@@ -21,30 +21,56 @@ RAWG has ~900k games. The full catalog does not fit on Supabase free tier as vec
 
 ## 1. Filter Strategy (Do This First)
 
-Goal: exclude shovelware, vaporware, and extremely obscure entries while preserving niche indie hits (e.g. Graveyard Keeper: metacritic 74, rating ~4.0, modest ratings_count — easily passes).
+Goal: exclude shovelware, vaporware, placeholder rows, and zero-traction junk while preserving recognized indies, cult games, niche AA/AAA titles, regional games, and popular mainstream releases. The filter should not require RAWG metadata to be perfect; many legitimate games have missing descriptions, missing Metacritic scores, sparse ratings, or incomplete artwork.
 
-### Hard gates (must ALL pass, or the game is discarded)
+### Minimal validity gates
+
+These are the only true hard rejects:
 
 | Gate | Rationale |
 |---|---|
-| `description` non-null, `len(description) >= 50` chars | Required to embed meaningfully. |
-| `released` non-null AND `released <= today` | Drops vaporware / unreleased entries. |
-| `len(genres) >= 1` | Drops stubs / unclassified entries. |
-| `background_image` non-null | Games without artwork are almost always shovelware, delisted, or placeholder rows. |
+| `released` is null OR `released <= today` | Keep older/poorly synced games with missing dates, but drop future/unreleased vaporware. |
+| Has at least one metadata anchor: `description`, `background_image`, screenshots, website, stores, platforms, genres, or tags | A real game can have incomplete metadata; shovelware/placeholders usually have almost none. |
+| Has at least one classification anchor: `genres`, `tags`, or `platforms` | Avoid unclassified stubs while allowing games that have tags/platforms but no genre. |
 
-### Signal gates (keep if ANY ONE passes — the "hidden gem escape hatches")
+Do **not** require `description >= 50`, `background_image`, and `released` to all exist. Those are useful confidence signals, but making them mandatory risks dropping legitimate older games, experimental indies, regional releases, and known games with incomplete RAWG rows.
+
+### Strong keep signals
+
+Keep immediately if ANY ONE of these passes:
 
 | Gate | Catches |
 |---|---|
-| `metacritic >= 60` | Critically reviewed. Graveyard Keeper (74) ✓, most reviewed indies ✓. |
-| `rating >= 3.8` AND `ratings_count >= 30` | Niche audience love. A cult hit with 40 enthusiastic ratings survives. |
-| `added >= 200` | RAWG's cumulative-library-adds popularity signal. Catches games with an audience but no critic reviews. |
+| `metacritic >= 60` | Critically reviewed games, including many AA/AAA and well-covered indies. |
+| `added >= 200` | RAWG's cumulative-library-adds popularity signal. Catches games with a real audience but no critic reviews. |
 | `ratings_count >= 100` | Any game this many users cared enough to rate is worth keeping. |
+| `rating >= 3.6` AND `ratings_count >= 10` | Niche games with modest but credible audience approval. |
+| `rating >= 4.0` AND `ratings_count >= 5` | Small recognized/cult indies with very few RAWG ratings but clear enthusiasm. |
+| `playtime > 0` AND `added >= 50` | Games that RAWG users actually played or tracked, even if rating volume is thin. |
 
-**Why 4 signal gates OR'd together:** each catches a different kind of meaningful game. Shovelware fails all four simultaneously; hidden gems usually hit at least one. Graveyard-Keeper-style games typically hit 3–4 of them.
+**Why softer signal gates:** the goal is not to prove that every retained game is famous; it is to avoid deleting real, loved games just because RAWG has sparse data. Shovelware and placeholder rows usually fail all meaningful traction signals simultaneously.
+
+### Zero-traction reject rule
+
+Drop if ALL of these are true:
+
+| Gate | Rationale |
+|---|---|
+| `ratings_count == 0` or null | Nobody rated it. |
+| `added < 20` or null | Almost nobody added it to a library/wishlist/backlog. |
+| `metacritic` is null | No critic signal. |
+| `playtime == 0` or null | No playtime signal. |
+| Fewer than two metadata anchors from: `description`, `background_image`, screenshots, website, stores, platforms, genres, tags | Looks like a placeholder, scrape artifact, or no-traction shovelware row. |
+
+This rule better matches the product goal: remove games with no quality, popularity, or metadata evidence while keeping quiet but credible games.
 
 ### Optional exclusion tags (post-filter)
-- Drop entries where `tags` contain any of: `dlc`, `expansion`, `soundtrack`, `demo` (keep these as separate entities if needed later — they pollute the recommender).
+- Drop entries where `tags` contain any of: `soundtrack`, `demo`.
+- Usually drop `dlc` and `expansion`, but treat them as a separate entity type or allowlist exceptions. Some expansions are culturally important or close to standalone games, but they can pollute a recommender if mixed into the main catalog.
+
+### Curated keep allowlist
+- Maintain a small allowlist of known indie, cult, retro, regional, or niche AAA/AA titles that must survive even if RAWG metadata is sparse. Store by RAWG slug/id in a simple checked-in file such as `backend/app/data/game_filter_allowlist.json`.
+- Use the first seeded run to spot-check known examples: Graveyard Keeper, Outer Wilds, Disco Elysium, Hollow Knight, Kenshi, Dwarf Fortress, Pathologic 2, Rain World, Fear & Hunger, Cruelty Squad, and other taste-defining niche games.
 
 ### Two-layer application
 

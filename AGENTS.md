@@ -33,7 +33,18 @@ celery -A app.workers.celery_app inspect ping
 # Run Celery Beat scheduler (RAWG sync)
 celery -A app.workers.celery_app beat --loglevel=info
 
-# Manually trigger a task (worker must be running)
+# Manually trigger monthly RAWG catalog discovery/enrichment (worker must be running).
+# Use this once per month if you want to spend most of the RAWG monthly quota.
+# Do not run Celery Beat at the same time unless you also want scheduled weekly/daily jobs.
+python -c "from app.workers.tasks.rawg_sync import sync_catalog; sync_catalog.delay(19000)"
+
+# Manually trigger recent-release discovery only
+python -c "from app.workers.tasks.rawg_sync import sync_recent_releases; sync_recent_releases.delay(1000, 60)"
+
+# Manually enrich already-inserted games with full RAWG details/descriptions
+python -c "from app.workers.tasks.rawg_sync import enrich_known_games; enrich_known_games.delay(500)"
+
+# Manually trigger a HLTB task (worker must be running)
 python -c "from app.workers.tasks.hltb_sync import enrich_game_hltb; enrich_game_hltb.delay(<game_id>)"
 
 # Build game feature vectors (must be run manually after populating the games table,
@@ -70,6 +81,67 @@ HTTP request
 ```
 
 AI features (explanations, Game DNA) are **premium-only** and dispatched as Celery tasks so the HTTP response is not blocked.
+
+### RAWG catalog ingestion
+
+The RAWG ingestion pipeline is designed to maximize accepted games per API request while avoiding shovelware and duplicate rows.
+
+**Manual monthly workflow:**
+
+1. Run migrations:
+   ```bash
+   cd backend
+   source .venv/bin/activate
+   alembic upgrade head
+   ```
+2. Start a Celery worker:
+   ```bash
+   celery -A app.workers.celery_app worker --loglevel=info
+   ```
+3. In a second backend terminal, queue the monthly catalog run:
+   ```bash
+   python -c "from app.workers.tasks.rawg_sync import sync_catalog; sync_catalog.delay(19000)"
+   ```
+
+`sync_catalog(19000)` uses a 19,000-request budget, leaving some room below RAWG's 20,000/month free-tier limit. About 90% of the budget goes to cheap `/games` list-page discovery, and the remainder enriches already-inserted games with full detail descriptions.
+
+**Discovery-first design:**
+
+- `sync_catalog` crawls these passes with independent Postgres checkpoints: `popular_added`, `metacritic`, `high_rating`.
+- `sync_recent_releases(max_requests=1000, days_back=60)` crawls `recent_releases`.
+- Discovery inserts from RAWG list payloads only. These include `id`, `name`, `slug`, `released`, `background_image`, `rating`, `ratings_count`, `metacritic`, `added`, `playtime`, `genres`, `platforms`, `tags`, stores, and `short_screenshots`.
+- Full detail calls are treated as enrichment, not as a prerequisite for inserting catalog rows.
+
+**Filter behavior:**
+
+- The single source of truth is `app/services/game_filter.py`.
+- The filter keeps popular, reviewed, highly rated, played/tracked, niche, cult, and allowlisted games.
+- It rejects future releases, soundtrack/demo/DLC/expansion entries, rows with no metadata anchor, rows with no genre/tag/platform classification, and zero-traction entries.
+- The allowlist lives at `app/data/game_filter_allowlist.json`.
+
+**Duplicate and resume behavior:**
+
+- `Game.rawg_id` is unique and is the external identity used to prevent duplicate game rows.
+- The sync checks `Game.rawg_id` before insert, so overlapping RAWG passes and repeated monthly runs skip existing games.
+- Postgres remains the final guarantee against duplicate RAWG ids.
+- `rawg_sync_state` stores durable crawl checkpoints by pass (`next_page`, `completed`, last error/success).
+- `rawg_seen_games` tracks accepted/rejected RAWG ids. Rejected ids are skipped until `RAWG_REJECT_RECHECK_DAYS` elapses, default 90 days.
+- If the configured request budget or RAWG quota is exhausted, the task stops safely without advancing the current page checkpoint. The next monthly run resumes from the saved state.
+
+**Scheduled jobs:**
+
+Celery Beat is configured in `app/workers/celery_app.py`:
+
+- Monthly catalog sync: day 1 at 03:00 UTC, task `rawg_sync.sync_catalog`
+- Weekly recent-release sync: Monday at 03:00 UTC, task `rawg_sync.sync_recent_releases`
+- Daily detail enrichment: 03:30 UTC, task `rawg_sync.enrich_known_games`
+
+For a manual once-per-month quota-spending workflow, run only the Celery worker and trigger `sync_catalog(19000)` manually. Do not run Beat unless you want the scheduled jobs too.
+
+**Status monitoring:**
+
+- Admin endpoint: `GET /api/admin/pipeline/status`
+- Redis key: `rawg_sync:last_run`
 
 ### Auth flow
 

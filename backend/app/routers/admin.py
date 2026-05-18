@@ -75,8 +75,8 @@ def get_pipeline_status(current_user: AdminUserDep):
 @router.post("/pipeline/trigger", status_code=202)
 def trigger_pipeline(current_user: AdminUserDep):
     try:
-        from app.workers.tasks.rawg_sync import sync_games
-        task = sync_games.delay(1, 10)
+        from app.workers.tasks.rawg_sync import sync_catalog
+        task = sync_catalog.delay()
         task_id = task.id
     except Exception:
         task_id = None

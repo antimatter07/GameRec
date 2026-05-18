@@ -23,6 +23,12 @@ class Settings(BaseSettings):
     # RAWG API — get your key at rawg.io/apidocs
     RAWG_API_KEY: str
     RAWG_BASE_URL: str
+    RAWG_PAGE_SIZE: int = 40
+    RAWG_MONTHLY_REQUEST_BUDGET: int = 15000
+    RAWG_RECENT_REQUEST_BUDGET: int = 1000
+    RAWG_DETAIL_REFRESH_REQUEST_BUDGET: int = 500
+    RAWG_DISCOVERY_BUDGET_RATIO: float = 0.9
+    RAWG_REJECT_RECHECK_DAYS: int = 90
 
     # LLM for premium AI features (Anthropic Claude)
     ANTHROPIC_API_KEY: str = ""

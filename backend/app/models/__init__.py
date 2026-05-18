@@ -6,6 +6,7 @@ from app.models.library import LibraryEntry, LibraryStatus
 from app.models.recommendation import Recommendation, RecommendationItem, RecommendationFeedback
 from app.models.play_queue import PlayQueueEntry
 from app.models.journal import SessionLog
+from app.models.rawg_sync_state import RawgSeenGame, RawgSyncState
 
 __all__ = [
     "User",
@@ -19,4 +20,6 @@ __all__ = [
     "RecommendationFeedback",
     "PlayQueueEntry",
     "SessionLog",
+    "RawgSyncState",
+    "RawgSeenGame",
 ]

@@ -1,4 +1,5 @@
 from celery import Celery
+from celery.schedules import crontab
 
 from app.config import settings
 
@@ -19,13 +20,21 @@ celery_app.conf.update(
     accept_content=["json"],
     timezone="UTC",
     enable_utc=True,
-    # TODO: Uncomment and configure the beat schedule once rawg_sync is implemented
-    # from celery.schedules import crontab
-    # beat_schedule={
-    #     "sync-rawg-daily": {
-    #         "task": "rawg_sync.sync_games",
-    #         "schedule": crontab(hour=2, minute=0),  # 2 AM UTC daily
-    #         "args": (1, 50),  # page_start, page_end
-    #     },
-    # },
+    beat_schedule={
+        "sync-rawg-monthly-catalog": {
+            "task": "rawg_sync.sync_catalog",
+            "schedule": crontab(day_of_month=1, hour=3, minute=0),
+            "kwargs": {"max_requests": settings.RAWG_MONTHLY_REQUEST_BUDGET},
+        },
+        "sync-rawg-weekly-recent-releases": {
+            "task": "rawg_sync.sync_recent_releases",
+            "schedule": crontab(day_of_week=1, hour=3, minute=0),
+            "kwargs": {"max_requests": settings.RAWG_RECENT_REQUEST_BUDGET, "days_back": 60},
+        },
+        "enrich-rawg-known-games-daily": {
+            "task": "rawg_sync.enrich_known_games",
+            "schedule": crontab(hour=3, minute=30),
+            "kwargs": {"max_requests": settings.RAWG_DETAIL_REFRESH_REQUEST_BUDGET},
+        },
+    },
 )
