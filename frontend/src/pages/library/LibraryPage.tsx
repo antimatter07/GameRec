@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import type { ReactNode } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ActionIcon,
   Badge,
   Box,
+  Button,
   Center,
   Group,
   Loader,
@@ -10,16 +12,25 @@ import {
   Paper,
   Rating,
   Select,
-  SimpleGrid,
   Stack,
-  Text,
-  Button,
-  Title,
   Tabs,
+  Text,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
-import { IconArrowRight, IconPencil, IconTrash } from '@tabler/icons-react';
+import {
+  IconArrowRight,
+  IconBookmark,
+  IconBooks,
+  IconCheck,
+  IconLayoutGrid,
+  IconPencil,
+  IconPlayerPlay,
+  IconStar,
+  IconTrash,
+  IconTrophy,
+  IconX,
+} from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import { GameCard } from '../../components/games/GameCard';
 import {
@@ -29,33 +40,102 @@ import {
   useUpdateLibraryEntry,
 } from '../../hooks/useLibrary';
 import type { LibraryEntry, LibraryStatus } from '../../types/library';
+import classes from './LibraryPage.module.css';
 
-const STATUS_TABS: { value: LibraryStatus | 'all'; label: string }[] = [
-  { value: 'all',       label: 'All'       },
-  { value: 'playing',   label: 'Playing'   },
-  { value: 'completed', label: 'Completed' },
-  { value: 'backlog',   label: 'Backlog'   },
-  { value: 'dropped',   label: 'Dropped'   },
+const dateFormatter = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+});
+
+const STATUS_TABS: { value: LibraryStatus | 'all'; label: string; icon: ReactNode }[] = [
+  { value: 'all',       label: 'All',       icon: <IconLayoutGrid size={14} /> },
+  { value: 'playing',   label: 'Playing',   icon: <IconPlayerPlay size={14} /> },
+  { value: 'completed', label: 'Completed', icon: <IconCheck size={14} /> },
+  { value: 'backlog',   label: 'Backlog',   icon: <IconBookmark size={14} /> },
+  { value: 'dropped',   label: 'Dropped',   icon: <IconX size={14} /> },
 ];
 
-const STATUS_COLORS: Record<LibraryStatus, string> = {
-  playing:   'teal',
-  completed: 'blue',
-  backlog:   'gray',
-  dropped:   'red',
+const STATUS_LABELS: Record<LibraryStatus, string> = {
+  playing: 'Playing',
+  completed: 'Completed',
+  backlog: 'Backlog',
+  dropped: 'Dropped',
 };
 
+const STATUS_COLORS: Record<LibraryStatus, string> = {
+  playing: 'violet',
+  completed: 'teal',
+  backlog: 'blue',
+  dropped: 'grape',
+};
+
+const PANEL_COPY: Record<LibraryStatus | 'all', string> = {
+  all: 'Every title you have saved, with quick editing and status tracking.',
+  playing: 'Your active games, ready to pick back up without digging.',
+  completed: 'Finished runs, neatly archived with ratings close at hand.',
+  backlog: 'Games waiting for their turn, with a shortcut into Play Next.',
+  dropped: 'Titles you set aside, kept visible without cluttering the rest.',
+};
+
+const EMPTY_COPY: Record<LibraryStatus | 'all', string> = {
+  all: 'Your library is empty. Browse the catalog to start saving games.',
+  playing: 'Nothing is marked as playing right now.',
+  completed: 'No completed games yet.',
+  backlog: 'Your backlog is clear right now.',
+  dropped: 'No dropped games here.',
+};
+
+function formatGenres(entry: LibraryEntry) {
+  const genreNames = entry.game.genres.slice(0, 3).map((genre) => genre.name);
+  return genreNames.length > 0 ? genreNames.join(' • ') : 'No genres yet';
+}
+
 export default function LibraryPage() {
-  const { data: entries, isLoading } = useLibrary();
+  const { data: entries, isLoading, isError } = useLibrary();
   const { data: stats } = useLibraryStats();
   const removeEntry = useRemoveFromLibrary();
   const updateEntry = useUpdateLibraryEntry();
   const navigate = useNavigate();
 
+  const [activeTab, setActiveTab] = useState<string | null>('all');
   const [editingEntry, setEditingEntry] = useState<LibraryEntry | null>(null);
   const [editStatus, setEditStatus] = useState<LibraryStatus>('backlog');
   const [editRating, setEditRating] = useState<number>(0);
+  const [removingEntryId, setRemovingEntryId] = useState<number | null>(null);
   const [editOpened, { open: openEdit, close: closeEdit }] = useDisclosure(false);
+
+  const libraryEntries = entries ?? [];
+  const ratedEntries = useMemo(
+    () => libraryEntries.filter((entry) => entry.rating !== null),
+    [libraryEntries],
+  );
+
+  const statusCounts = useMemo(() => {
+    if (stats) {
+      return {
+        all: stats.total_games,
+        playing: stats.by_status.playing,
+        completed: stats.by_status.completed,
+        backlog: stats.by_status.backlog,
+        dropped: stats.by_status.dropped,
+      };
+    }
+
+    return libraryEntries.reduce(
+      (acc, entry) => {
+        acc.all += 1;
+        acc[entry.status] += 1;
+        return acc;
+      },
+      { all: 0, playing: 0, completed: 0, backlog: 0, dropped: 0 },
+    );
+  }, [libraryEntries, stats]);
+
+  const topGenre = stats?.top_genres[0] ?? null;
+  const completionRate = statusCounts.all > 0
+    ? Math.round((statusCounts.completed / statusCounts.all) * 100)
+    : 0;
 
   const handleOpenEdit = (entry: LibraryEntry) => {
     setEditingEntry(entry);
@@ -66,6 +146,7 @@ export default function LibraryPage() {
 
   const handleSaveEdit = async () => {
     if (!editingEntry) return;
+
     try {
       await updateEntry.mutateAsync({
         id: editingEntry.id,
@@ -75,161 +156,342 @@ export default function LibraryPage() {
         },
       });
       closeEdit();
-      notifications.show({ color: 'green', message: 'Entry updated' });
+      notifications.show({ color: 'green', message: 'Library entry updated' });
     } catch {
       notifications.show({ color: 'red', message: 'Failed to update entry' });
     }
   };
 
   const handleRemove = async (entryId: number, gameName: string) => {
+    setRemovingEntryId(entryId);
+
     try {
       await removeEntry.mutateAsync(entryId);
       notifications.show({ color: 'blue', message: `${gameName} removed from library` });
     } catch {
       notifications.show({ color: 'red', message: 'Failed to remove entry' });
+    } finally {
+      setRemovingEntryId((current) => (current === entryId ? null : current));
     }
   };
 
-  if (isLoading) return <Center h={400}><Loader /></Center>;
+  if (isLoading && !entries) {
+    return (
+      <Center py={80}>
+        <Stack align="center" gap="sm">
+          <Loader color="violet" size="md" />
+          <Text size="sm" c="dimmed">Loading your library…</Text>
+        </Stack>
+      </Center>
+    );
+  }
+
+  if (isError && !entries) {
+    return (
+      <Center py={80}>
+        <Paper p="md" radius="md" withBorder>
+          <Text size="sm" c="red.4">Failed to load your library. Please try again.</Text>
+        </Paper>
+      </Center>
+    );
+  }
 
   return (
-    <Stack gap="md">
-      <Title order={2}>My Library</Title>
+    <Stack gap="lg" className={classes.page}>
+      <div className={classes.header}>
+        <div>
+          <Text className={classes.headerTitle}>
+            My <span className={classes.headerAccent}>Library</span>
+          </Text>
+          <Text size="xs" c="dimmed" className={classes.headerSubtitle}>
+            Track what you are playing, what you have finished, and what deserves the next slot in rotation.
+          </Text>
+        </div>
 
-      {/* Stats bar */}
-      {stats && (
-        <Paper p="sm" withBorder radius="md">
-          <Group gap="lg" wrap="wrap">
-            <Text size="sm" fw={600}>
-              {stats.total_games} {stats.total_games === 1 ? 'game' : 'games'}
-            </Text>
-            {stats.avg_rating !== null && (
-              <Group gap={4}>
-                <Rating value={stats.avg_rating} fractions={2} readOnly size="xs" />
-                <Text size="xs" c="dimmed">avg {stats.avg_rating.toFixed(1)}</Text>
-              </Group>
-            )}
-            <Group gap="xs">
-              {stats.top_genres.slice(0, 3).map((g) => (
-                <Badge key={g.genre} size="xs" variant="light">{g.genre}</Badge>
-              ))}
-            </Group>
-          </Group>
+        <Button
+          leftSection={<IconArrowRight size={16} />}
+          color="violet"
+          onClick={() => navigate('/library/backlog')}
+        >
+          Play next
+        </Button>
+      </div>
+
+      <div className={classes.metricsGrid}>
+        <Paper className={classes.metricCard} p="md" radius="md" withBorder>
+          <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-violet-light)' }}>
+            <IconBooks size={18} color="var(--mantine-color-violet-5)" />
+          </div>
+          <div className={classes.metricLabel}>Total games</div>
+          <div className={classes.metricValue} style={{ color: 'var(--mantine-color-violet-4)' }}>
+            {statusCounts.all}
+          </div>
+          <div className={classes.metricSub}>
+            {topGenre
+              ? `${topGenre.genre} leads with ${topGenre.count} title${topGenre.count === 1 ? '' : 's'}`
+              : 'Start building your collection'}
+          </div>
         </Paper>
-      )}
 
-      <Tabs defaultValue="all">
-        <Tabs.List>
+        <Paper className={classes.metricCard} p="md" radius="md" withBorder>
+          <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-blue-light)' }}>
+            <IconPlayerPlay size={18} color="var(--mantine-color-blue-5)" />
+          </div>
+          <div className={classes.metricLabel}>Playing now</div>
+          <div className={classes.metricValue} style={{ color: 'var(--mantine-color-blue-4)' }}>
+            {statusCounts.playing}
+          </div>
+          <div className={classes.metricSub}>
+            {statusCounts.backlog > 0
+              ? `${statusCounts.backlog} waiting in backlog`
+              : 'Nothing waiting in backlog'}
+          </div>
+        </Paper>
+
+        <Paper className={classes.metricCard} p="md" radius="md" withBorder>
+          <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-teal-light)' }}>
+            <IconTrophy size={18} color="var(--mantine-color-teal-5)" />
+          </div>
+          <div className={classes.metricLabel}>Completed</div>
+          <div className={classes.metricValue} style={{ color: 'var(--mantine-color-teal-4)' }}>
+            {statusCounts.completed}
+          </div>
+          <div className={classes.metricSub}>
+            {statusCounts.all > 0 ? `${completionRate}% of your library finished` : 'No finished runs yet'}
+          </div>
+        </Paper>
+
+        <Paper className={classes.metricCard} p="md" radius="md" withBorder>
+          <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-yellow-light)' }}>
+            <IconStar size={18} color="var(--mantine-color-yellow-5)" />
+          </div>
+          <div className={classes.metricLabel}>Average rating</div>
+          <div className={classes.metricValue} style={{ color: 'var(--mantine-color-yellow-4)' }}>
+            {stats?.avg_rating !== null && stats?.avg_rating !== undefined
+              ? stats.avg_rating.toFixed(1)
+              : '—'}
+          </div>
+          <div className={classes.metricSub}>
+            {ratedEntries.length > 0 ? `${ratedEntries.length} rated entr${ratedEntries.length === 1 ? 'y' : 'ies'}` : 'Add ratings as you go'}
+          </div>
+        </Paper>
+      </div>
+
+      <div className={classes.overviewGrid}>
+        <Paper p="md" radius="md" withBorder>
+          <Group justify="space-between" mb="sm" className={classes.panelHeader}>
+            <div>
+              <Text size="sm" fw={600}>Status overview</Text>
+              <Text size="xs" c="dimmed">A quick read on how your collection is distributed.</Text>
+            </div>
+          </Group>
+
+          <Stack gap="sm">
+            {(Object.keys(STATUS_LABELS) as LibraryStatus[]).map((status) => {
+              const count = statusCounts[status];
+              const width = statusCounts.all > 0 ? Math.max((count / statusCounts.all) * 100, count > 0 ? 8 : 0) : 0;
+
+              return (
+                <div key={status} className={classes.statusRow}>
+                  <div className={classes.statusMeta}>
+                    <Text className={classes.statusLabel}>{STATUS_LABELS[status]}</Text>
+                    <Text className={classes.statusValue}>{count}</Text>
+                  </div>
+                  <div className={classes.statusTrack}>
+                    <div
+                      className={classes.statusFill}
+                      style={{
+                        width: `${width}%`,
+                        background: `var(--mantine-color-${STATUS_COLORS[status]}-5)`,
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </Stack>
+        </Paper>
+
+        <Paper p="md" radius="md" withBorder>
+          <Group justify="space-between" mb="sm" className={classes.panelHeader}>
+            <div>
+              <Text size="sm" fw={600}>Top genres</Text>
+              <Text size="xs" c="dimmed">The genres showing up most often across your saved titles.</Text>
+            </div>
+            <Text size="xs" c="dimmed" className={classes.panelMeta}>
+              {statusCounts.all} tracked
+            </Text>
+          </Group>
+
+          {stats && stats.top_genres.length > 0 ? (
+            <Stack gap="sm">
+              <div className={classes.genreCloud}>
+                {stats.top_genres.slice(0, 6).map((genre, index) => (
+                  <Badge
+                    key={genre.genre}
+                    size="sm"
+                    variant={index === 0 ? 'light' : 'default'}
+                    color={index === 0 ? 'violet' : 'gray'}
+                  >
+                    {genre.genre} {genre.count}
+                  </Badge>
+                ))}
+              </div>
+              <Text size="xs" c="dimmed" className={classes.genreInsight}>
+                {topGenre
+                  ? `${topGenre.genre} is setting the tone for your library right now.`
+                  : 'Genre trends will show up here as your library grows.'}
+              </Text>
+            </Stack>
+          ) : (
+            <Text size="sm" c="dimmed" py="lg">
+              Add a few more games to surface genre trends here.
+            </Text>
+          )}
+        </Paper>
+      </div>
+
+      <Tabs value={activeTab} onChange={setActiveTab} variant="pills" color="violet">
+        <Tabs.List className={classes.tabsList}>
           {STATUS_TABS.map((tab) => (
-            <Tabs.Tab key={tab.value} value={tab.value}>
-              {tab.label}
-              {entries && tab.value !== 'all' && (
-                <Badge size="xs" ml="xs" variant="light">
-                  {entries.filter((e) => e.status === tab.value).length}
-                </Badge>
-              )}
+            <Tabs.Tab key={tab.value} value={tab.value} leftSection={tab.icon}>
+              <span className={classes.tabLabel}>
+                <span>{tab.label}</span>
+                <span className={classes.tabCount}>{statusCounts[tab.value]}</span>
+              </span>
             </Tabs.Tab>
           ))}
         </Tabs.List>
 
         {STATUS_TABS.map((tab) => {
-          const filtered = (entries ?? []).filter(
-            (e) => tab.value === 'all' || e.status === tab.value
+          const filteredEntries = libraryEntries.filter(
+            (entry) => tab.value === 'all' || entry.status === tab.value,
           );
+
           return (
-            <Tabs.Panel key={tab.value} value={tab.value} pt="md">
-              {tab.value === 'backlog' && filtered.length > 0 && (
-                <Group justify="flex-end" mb="sm" gap="xs">
-                  <Button
-                    size="xs"
-                    variant="light"
-                    rightSection={<IconArrowRight size={14} />}
-                    onClick={() => navigate('/library/backlog')}
-                  >
-                    Play Next
-                  </Button>
+            <Tabs.Panel key={tab.value} value={tab.value} pt="lg">
+              <Paper p="md" radius="md" withBorder>
+                <Group justify="space-between" align="flex-start" gap="sm" mb="md" className={classes.panelHeader}>
+                  <div>
+                    <Text size="sm" fw={600}>
+                      {tab.value === 'all' ? 'All library titles' : `${tab.label} games`}
+                    </Text>
+                    <Text size="xs" c="dimmed">
+                      {PANEL_COPY[tab.value]}
+                    </Text>
+                  </div>
+
+                  {tab.value === 'backlog' && filteredEntries.length > 0 && (
+                    <Button
+                      size="xs"
+                      variant="light"
+                      color="violet"
+                      rightSection={<IconArrowRight size={14} />}
+                      onClick={() => navigate('/library/backlog')}
+                    >
+                      Open Play Next
+                    </Button>
+                  )}
                 </Group>
-              )}
-              {filtered.length === 0 ? (
-                <Text c="dimmed" ta="center" mt="xl">
-                  {entries?.length === 0
-                    ? 'Your library is empty. Browse the catalog to add games!'
-                    : `No ${tab.value} games.`}
-                </Text>
-              ) : (
-                <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 4 }}>
-                  {filtered.map((entry) => (
-                    <Box key={entry.id}>
-                      <GameCard game={entry.game} />
-                      <Paper px="xs" py={6} withBorder style={{ borderTop: 0, borderRadius: '0 0 8px 8px' }}>
-                        <Group justify="space-between" align="center">
-                          <Group gap="xs">
-                            <Badge size="xs" color={STATUS_COLORS[entry.status]} variant="light">
-                              {entry.status}
-                            </Badge>
-                            {entry.rating !== null && (
-                              <Rating value={entry.rating} fractions={2} readOnly size="xs" />
-                            )}
+
+                {filteredEntries.length === 0 ? (
+                  <div className={classes.emptyState}>
+                    <div>
+                      <Text size="sm" fw={600}>Nothing here yet</Text>
+                      <Text size="xs" c="dimmed" mt={4}>
+                        {EMPTY_COPY[tab.value]}
+                      </Text>
+                    </div>
+                  </div>
+                ) : (
+                  <Box className={classes.grid}>
+                    {filteredEntries.map((entry) => (
+                      <Box key={entry.id} className={classes.libraryItem}>
+                        <GameCard game={entry.game} />
+
+                        <Paper p="sm" radius="md" withBorder className={classes.entryMeta}>
+                          <Group justify="space-between" align="flex-start" gap="sm" wrap="nowrap">
+                            <div className={classes.entryInfo}>
+                              <Group gap={6} wrap="wrap" mb={6}>
+                                <Badge size="xs" color={STATUS_COLORS[entry.status]} variant="light">
+                                  {STATUS_LABELS[entry.status]}
+                                </Badge>
+                                {entry.rating !== null && (
+                                  <Group gap={6} wrap="nowrap">
+                                    <Rating value={entry.rating} fractions={2} readOnly size="xs" color="yellow" />
+                                    <Text size="xs" c="dimmed" className={classes.ratingText}>
+                                      {entry.rating.toFixed(1)}
+                                    </Text>
+                                  </Group>
+                                )}
+                              </Group>
+
+                              <Text className={classes.entryMetaLine}>
+                                Added {dateFormatter.format(new Date(entry.added_at))}
+                              </Text>
+                              <Text className={`${classes.entryMetaLine} ${classes.entryGenres}`}>
+                                {formatGenres(entry)}
+                              </Text>
+                            </div>
+
+                            <Group gap={6} className={classes.entryActions} wrap="nowrap">
+                              <ActionIcon
+                                size="sm"
+                                variant="subtle"
+                                color="gray"
+                                onClick={() => handleOpenEdit(entry)}
+                                aria-label="Edit entry"
+                              >
+                                <IconPencil size={14} />
+                              </ActionIcon>
+                              <ActionIcon
+                                size="sm"
+                                variant="subtle"
+                                color="red"
+                                onClick={() => handleRemove(entry.id, entry.game.name)}
+                                loading={removingEntryId === entry.id}
+                                aria-label="Remove from library"
+                              >
+                                <IconTrash size={14} />
+                              </ActionIcon>
+                            </Group>
                           </Group>
-                          <Group gap={4}>
-                            <ActionIcon
-                              size="xs"
-                              variant="subtle"
-                              onClick={() => handleOpenEdit(entry)}
-                              aria-label="Edit entry"
-                            >
-                              <IconPencil size={14} />
-                            </ActionIcon>
-                            <ActionIcon
-                              size="xs"
-                              variant="subtle"
-                              color="red"
-                              onClick={() => handleRemove(entry.id, entry.game.name)}
-                              loading={removeEntry.isPending}
-                              aria-label="Remove from library"
-                            >
-                              <IconTrash size={14} />
-                            </ActionIcon>
-                          </Group>
-                        </Group>
-                      </Paper>
-                    </Box>
-                  ))}
-                </SimpleGrid>
-              )}
+                        </Paper>
+                      </Box>
+                    ))}
+                  </Box>
+                )}
+              </Paper>
             </Tabs.Panel>
           );
         })}
       </Tabs>
 
-      {/* Edit modal — single shared instance */}
       <Modal opened={editOpened} onClose={closeEdit} title="Edit library entry" centered size="sm">
         <Stack gap="md">
           <Select
             label="Status"
             value={editStatus}
-            onChange={(v) => v && setEditStatus(v as LibraryStatus)}
+            onChange={(value) => value && setEditStatus(value as LibraryStatus)}
             data={[
-              { value: 'playing',   label: 'Playing'   },
+              { value: 'playing', label: 'Playing' },
               { value: 'completed', label: 'Completed' },
-              { value: 'backlog',   label: 'Backlog'   },
-              { value: 'dropped',   label: 'Dropped'   },
+              { value: 'backlog', label: 'Backlog' },
+              { value: 'dropped', label: 'Dropped' },
             ]}
           />
+
           <Stack gap={4}>
             <Text size="sm" fw={500}>Rating</Text>
-            <Rating
-              value={editRating}
-              fractions={2}
-              onChange={(v) => setEditRating(v)}
-            />
+            <Rating value={editRating} fractions={2} onChange={setEditRating} color="yellow" />
             {editRating > 0 && (
               <Text size="xs" c="dimmed">{editRating.toFixed(1)} / 5</Text>
             )}
           </Stack>
+
           <Group justify="flex-end">
             <Button variant="default" onClick={closeEdit}>Cancel</Button>
-            <Button onClick={handleSaveEdit} loading={updateEntry.isPending}>Save</Button>
+            <Button color="violet" onClick={handleSaveEdit} loading={updateEntry.isPending}>Save</Button>
           </Group>
         </Stack>
       </Modal>
