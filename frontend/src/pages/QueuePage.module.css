@@ -1,0 +1,271 @@
+.page {
+  gap: 1.25rem;
+  padding: var(--mantine-spacing-lg);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--mantine-spacing-sm);
+  flex-wrap: wrap;
+}
+
+.headerTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--mantine-color-gray-0);
+}
+
+.headerAccent {
+  color: var(--mantine-color-violet-5);
+}
+
+.headerSubtitle {
+  margin-top: 4px;
+  max-width: 700px;
+}
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--mantine-spacing-sm);
+}
+
+.metricCard {
+  position: relative;
+  overflow: hidden;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease;
+}
+
+.metricCard:hover {
+  border-color: var(--mantine-color-dark-4);
+  background: #171b27;
+}
+
+.metricIcon {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--mantine-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.metricLabel {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--mantine-color-dimmed);
+  margin-bottom: 6px;
+}
+
+.metricValue {
+  font-size: 1.6rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.metricSub {
+  margin-top: 6px;
+  font-size: 0.7rem;
+  color: var(--mantine-color-dimmed);
+  min-height: 1.1rem;
+}
+
+.overviewGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: var(--mantine-spacing-sm);
+}
+
+.panelHeader {
+  align-items: flex-start;
+}
+
+.panelMeta {
+  color: var(--mantine-color-dimmed);
+  font-variant-numeric: tabular-nums;
+}
+
+.nextUpCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--mantine-radius-sm);
+  background: var(--mantine-color-dark-6);
+}
+
+.nextUpCover {
+  width: 68px;
+  height: 68px;
+  border-radius: var(--mantine-radius-sm);
+  background: var(--mantine-color-dark-5);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.nextUpCover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.nextUpInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.nextUpTitle {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--mantine-color-gray-0);
+  line-height: 1.35;
+}
+
+.nextUpMeta {
+  margin-top: 3px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 0.72rem;
+  color: var(--mantine-color-dimmed);
+}
+
+.nextUpNote {
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+.genreCloud {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.genreRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.genreMeta {
+  width: 94px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.genreLabel {
+  font-size: 0.75rem;
+  color: var(--mantine-color-dimmed);
+}
+
+.genreValue {
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--mantine-color-gray-0);
+}
+
+.genreTrack {
+  flex: 1;
+  height: 10px;
+  border-radius: var(--mantine-radius-xs);
+  background: var(--mantine-color-dark-6);
+  overflow: hidden;
+}
+
+.genreFill {
+  height: 100%;
+  border-radius: var(--mantine-radius-xs);
+  transition: width 500ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.droppableZone {
+  min-height: 96px;
+  border-radius: var(--mantine-radius-md);
+  transition:
+    background 150ms ease,
+    border-color 150ms ease;
+}
+
+.droppableZoneActive {
+  background: rgba(124, 92, 252, 0.06);
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  align-items: stretch;
+}
+
+.emptyState,
+.emptyMiniState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--mantine-spacing-xl) var(--mantine-spacing-md);
+  border-radius: var(--mantine-radius-md);
+  background: var(--mantine-color-dark-6);
+}
+
+.emptyState {
+  min-height: 220px;
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.emptyMiniState {
+  min-height: 160px;
+}
+
+@media (max-width: 900px) {
+  .page {
+    padding: var(--mantine-spacing-md);
+  }
+
+  .metricsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .overviewGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .cardGrid {
+    grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+  }
+}
+
+@media (max-width: 30em) {
+  .metricsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .genreMeta {
+    width: 84px;
+  }
+
+  .nextUpCard {
+    flex-direction: column;
+  }
+}

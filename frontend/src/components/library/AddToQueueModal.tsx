@@ -10,10 +10,10 @@ interface AddToQueueModalProps {
 }
 
 const STATUS_COLORS: Record<LibraryStatus, string> = {
-  playing:   'teal',
+  playing:   'violet',
   completed: 'blue',
-  backlog:   'gray',
-  dropped:   'red',
+  backlog:   'teal',
+  dropped:   'grape',
 };
 
 export function AddToQueueModal({ entry, opened, onClose }: AddToQueueModalProps) {
@@ -70,7 +70,7 @@ export function AddToQueueModal({ entry, opened, onClose }: AddToQueueModalProps
 
           <Group justify="flex-end" gap="xs">
             <Button variant="default" onClick={onClose}>Cancel</Button>
-            <Button color="grape" onClick={handleAdd} loading={enqueue.isPending}>
+            <Button color="violet" onClick={handleAdd} loading={enqueue.isPending}>
               Add to Queue
             </Button>
           </Group>

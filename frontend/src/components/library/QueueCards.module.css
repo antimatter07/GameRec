@@ -1,0 +1,140 @@
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+  border: 1px solid var(--mantine-color-dark-4);
+  border-radius: var(--mantine-radius-md);
+  background: var(--mantine-color-dark-6);
+  overflow: hidden;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease,
+    opacity 150ms ease;
+  cursor: grab;
+  user-select: none;
+}
+
+.card:hover {
+  border-color: var(--mantine-color-dark-3);
+  background: #171b27;
+}
+
+.cardDragging {
+  opacity: 0.55;
+}
+
+.coverWrap {
+  position: relative;
+  height: 112px;
+  background: var(--mantine-color-dark-5);
+  overflow: hidden;
+}
+
+.coverImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.coverFallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mantine-color-dimmed);
+}
+
+.overlayLeft,
+.overlayRight {
+  position: absolute;
+  top: 8px;
+  z-index: 2;
+}
+
+.overlayLeft {
+  left: 8px;
+}
+
+.overlayRight {
+  right: 8px;
+}
+
+.queueBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: var(--mantine-radius-sm);
+  background: rgba(10, 12, 18, 0.78);
+  color: var(--mantine-color-gray-0);
+  font-size: 0.7rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  backdrop-filter: blur(8px);
+}
+
+.actionButton {
+  box-shadow: none;
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 12px;
+}
+
+.title {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--mantine-color-gray-0);
+  line-height: 1.35;
+  min-height: 2.35rem;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 0.7rem;
+  color: var(--mantine-color-dimmed);
+}
+
+.meta span:not(:last-child)::after {
+  content: "·";
+  margin-left: 6px;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.footerLeft {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.footnote {
+  font-size: 0.72rem;
+  color: var(--mantine-color-dimmed);
+  font-variant-numeric: tabular-nums;
+}
+
+.ratingValue {
+  font-size: 0.72rem;
+  color: var(--mantine-color-dimmed);
+  font-variant-numeric: tabular-nums;
+}

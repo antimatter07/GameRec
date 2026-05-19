@@ -1,21 +1,20 @@
-import { ActionIcon, Badge, Box, Image, Stack, Text } from '@mantine/core';
+import { ActionIcon, Badge, Group, Rating, Text } from '@mantine/core';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { IconPlus } from '@tabler/icons-react';
 import type { LibraryEntry, LibraryStatus } from '../../types/library';
+import classes from './QueueCards.module.css';
 
 interface QueuePoolCardProps {
   entry: LibraryEntry;
   onPlusClick: () => void;
 }
 
-const CARD_WIDTH = 140;
-
 const STATUS_COLORS: Record<LibraryStatus, string> = {
-  playing:   'teal',
+  playing:   'violet',
   completed: 'blue',
-  backlog:   'gray',
-  dropped:   'red',
+  backlog:   'teal',
+  dropped:   'grape',
 };
 
 export function QueuePoolCard({ entry, onPlusClick }: QueuePoolCardProps) {
@@ -26,69 +25,79 @@ export function QueuePoolCard({ entry, onPlusClick }: QueuePoolCardProps) {
   });
 
   const playtimeHours = game.hltb_main_hours ?? game.playtime ?? null;
+  const releaseYear = game.released ? new Date(game.released).getFullYear() : null;
+  const primaryGenres = game.genres.slice(0, 2).map((genre) => genre.name).join(' / ');
 
   return (
-    <Box
+    <div
       ref={setNodeRef}
       style={{
-        width: CARD_WIDTH,
-        flexShrink: 0,
-        position: 'relative',
         transform: CSS.Transform.toString(transform),
         transition,
-        opacity: isDragging ? 0.5 : 1,
-        cursor: 'grab',
       }}
+      className={`${classes.card} ${isDragging ? classes.cardDragging : ''}`}
       {...attributes}
       {...listeners}
     >
-      {/* Status badge */}
-      <Box
-        style={{
-          position: 'absolute',
-          top: 6,
-          left: 6,
-          zIndex: 2,
-        }}
-      >
-        <Badge size="xs" color={STATUS_COLORS[entry.status]} variant="filled">
-          {entry.status}
-        </Badge>
-      </Box>
+      <div className={classes.coverWrap}>
+        <div className={classes.overlayLeft}>
+          <Badge size="xs" color={STATUS_COLORS[entry.status]} variant="filled">
+            {entry.status}
+          </Badge>
+        </div>
 
-      {/* Add-to-queue button */}
-      <ActionIcon
-        size="xs"
-        variant="filled"
-        color="grape"
-        style={{ position: 'absolute', top: 6, right: 6, zIndex: 2 }}
-        onClick={(e) => {
-          e.stopPropagation();
-          onPlusClick();
-        }}
-        onPointerDown={(e) => e.stopPropagation()}
-        aria-label={`Add ${game.name} to queue`}
-      >
-        <IconPlus size={12} />
-      </ActionIcon>
+        <div className={classes.overlayRight}>
+          <ActionIcon
+            size="sm"
+            radius="sm"
+            variant="filled"
+            color="violet"
+            className={classes.actionButton}
+            onClick={(event) => {
+              event.stopPropagation();
+              onPlusClick();
+            }}
+            onPointerDown={(event) => event.stopPropagation()}
+            aria-label={`Add ${game.name} to queue`}
+          >
+            <IconPlus size={12} />
+          </ActionIcon>
+        </div>
 
-      <Image
-        src={game.background_image ?? undefined}
-        w={CARD_WIDTH}
-        h={100}
-        radius="sm"
-        fallbackSrc="https://placehold.co/140x100?text=?"
-        style={{ objectFit: 'cover', display: 'block' }}
-      />
+        {game.background_image ? (
+          <img src={game.background_image} alt={game.name} className={classes.coverImage} />
+        ) : (
+          <div className={classes.coverFallback}>
+            <Text size="lg">🎮</Text>
+          </div>
+        )}
+      </div>
 
-      <Stack gap={2} mt={4} px={2}>
-        <Text size="xs" fw={600} lineClamp={2} style={{ lineHeight: 1.3 }}>
+      <div className={classes.body}>
+        <Text className={classes.title} lineClamp={2}>
           {game.name}
         </Text>
-        {playtimeHours != null && (
-          <Text size="xs" c="dimmed">~{Number(playtimeHours).toFixed(0)}h</Text>
-        )}
-      </Stack>
-    </Box>
+
+        <div className={classes.meta}>
+          {releaseYear && <span>{releaseYear}</span>}
+          {primaryGenres && <span>{primaryGenres}</span>}
+        </div>
+
+        <div className={classes.footer}>
+          <div className={classes.footerLeft}>
+            {playtimeHours != null && (
+              <Text className={classes.footnote}>~{Number(playtimeHours).toFixed(0)}h</Text>
+            )}
+          </div>
+
+          {entry.rating !== null && (
+            <Group gap={4} wrap="nowrap">
+              <Rating value={entry.rating} fractions={2} readOnly size="xs" color="yellow" />
+              <Text className={classes.ratingValue}>{entry.rating.toFixed(1)}</Text>
+            </Group>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
