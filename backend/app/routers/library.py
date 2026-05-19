@@ -37,6 +37,8 @@ def add_to_library(entry: LibraryEntryCreate, db: DBDep, current_user: CurrentUs
     result = library_service.add_game(db, current_user.id, entry)
     try:
         from app.workers.tasks.recommendation import precompute_for_user
+        from app.services.ai_picks_service import invalidate_ai_picks_cache
+        invalidate_ai_picks_cache(current_user.id)
         precompute_for_user.delay(current_user.id)
     except Exception:
         pass  # Celery unavailable — recommendations will recompute on next request
@@ -60,7 +62,15 @@ def get_prioritized_backlog(
 
 @router.patch("/{entry_id}", response_model=LibraryEntryUpdateOut)
 def update_library_entry(entry_id: int, updates: LibraryEntryUpdate, db: DBDep, current_user: CurrentUserDep):
-    return library_service.update_entry(db, current_user.id, entry_id, updates)
+    result = library_service.update_entry(db, current_user.id, entry_id, updates)
+    try:
+        from app.workers.tasks.recommendation import precompute_for_user
+        from app.services.ai_picks_service import invalidate_ai_picks_cache
+        invalidate_ai_picks_cache(current_user.id)
+        precompute_for_user.delay(current_user.id)
+    except Exception:
+        pass
+    return result
 
 
 @router.delete("/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -68,6 +78,8 @@ def remove_from_library(entry_id: int, db: DBDep, current_user: CurrentUserDep):
     library_service.remove_game(db, current_user.id, entry_id)
     try:
         from app.workers.tasks.recommendation import precompute_for_user
+        from app.services.ai_picks_service import invalidate_ai_picks_cache
+        invalidate_ai_picks_cache(current_user.id)
         precompute_for_user.delay(current_user.id)
     except Exception:
         pass  # Celery unavailable — recommendations will recompute on next request

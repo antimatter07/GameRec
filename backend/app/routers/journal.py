@@ -17,6 +17,7 @@ from app.schemas.journal import (
     SessionLogUpdate,
 )
 from app.services import journal_service
+from app.services.ai_picks_service import invalidate_ai_picks_cache
 
 router = APIRouter()
 
@@ -28,7 +29,9 @@ CurrentUserDep = Annotated[User,    Depends(require_basic)]
 
 @router.post("/sessions", response_model=SessionLogOut, status_code=status.HTTP_201_CREATED)
 def log_session(payload: SessionLogCreate, db: DBDep, current_user: CurrentUserDep):
-    return journal_service.create_session(db, current_user.id, payload)
+    result = journal_service.create_session(db, current_user.id, payload)
+    invalidate_ai_picks_cache(current_user.id)
+    return result
 
 
 # NOTE: /sessions/stats must be before /sessions/{session_id} to avoid path-param clash.
@@ -55,12 +58,15 @@ def update_session(
     db: DBDep,
     current_user: CurrentUserDep,
 ):
-    return journal_service.update_session(db, current_user.id, session_id, payload)
+    result = journal_service.update_session(db, current_user.id, session_id, payload)
+    invalidate_ai_picks_cache(current_user.id)
+    return result
 
 
 @router.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_session(session_id: int, db: DBDep, current_user: CurrentUserDep):
     journal_service.delete_session(db, current_user.id, session_id)
+    invalidate_ai_picks_cache(current_user.id)
 
 
 @router.get("/feed", response_model=PaginatedSessionsOut)
@@ -82,7 +88,9 @@ def upsert_rating(
     db: DBDep,
     current_user: CurrentUserDep,
 ):
-    return journal_service.upsert_rating(db, current_user.id, game_id, payload)
+    result = journal_service.upsert_rating(db, current_user.id, game_id, payload)
+    invalidate_ai_picks_cache(current_user.id)
+    return result
 
 
 @router.get("/ratings", response_model=list[MultiAxisRatingOut])

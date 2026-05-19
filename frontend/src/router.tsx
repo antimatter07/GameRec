@@ -12,6 +12,7 @@ import LibraryPage        from './pages/library/LibraryPage';
 import BacklogPage        from './pages/library/BacklogPage';
 import QueuePage          from './pages/QueuePage';
 import RecommendationsPage from './pages/recommendations/RecommendationsPage';
+import AIPicksPage        from './pages/recommendations/AIPicksPage';
 import ProfilePage        from './pages/profile/ProfilePage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import JournalPage        from './pages/journal/JournalPage';
@@ -52,6 +53,7 @@ export const router = createBrowserRouter([
           { path: '/library/backlog',       element: <BacklogPage /> },
           { path: '/queue',                 element: <QueuePage /> },
           { path: '/recommendations',       element: <RecommendationsPage /> },
+          { path: '/recommendations/ai-picks', element: <AIPicksPage /> },
           { path: '/journal',               element: <JournalPage /> },
           { path: '/profile',              element: <ProfilePage /> },
 

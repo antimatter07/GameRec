@@ -1,9 +1,25 @@
+import enum
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, JSON, Text
+from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, Integer, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+
+
+def _enum_values(enum_cls: type[enum.Enum]) -> list[str]:
+    return [member.value for member in enum_cls]
+
+
+class RecommendationKind(str, enum.Enum):
+    COSINE = "cosine"
+    AI_PICKS = "ai_picks"
+
+
+class RecommendationStatus(str, enum.Enum):
+    PENDING = "pending"
+    READY = "ready"
+    FAILED = "failed"
 
 
 class Recommendation(Base):
@@ -13,6 +29,20 @@ class Recommendation(Base):
     id:               Mapped[int]      = mapped_column(primary_key=True)
     user_id:          Mapped[int]      = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     generated_at:     Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    kind:             Mapped[RecommendationKind] = mapped_column(
+        Enum(RecommendationKind, values_callable=_enum_values),
+        nullable=False,
+        default=RecommendationKind.COSINE,
+        server_default=RecommendationKind.COSINE.value,
+    )
+    status:           Mapped[RecommendationStatus] = mapped_column(
+        Enum(RecommendationStatus, values_callable=_enum_values),
+        nullable=False,
+        default=RecommendationStatus.READY,
+        server_default=RecommendationStatus.READY.value,
+    )
+    summary:          Mapped[str | None] = mapped_column(Text, nullable=True)
+    model_name:       Mapped[str | None] = mapped_column(String(120), nullable=True)
 
     # TODO: Snapshot the taste profile used for this batch so history stays
     #       meaningful even if the user's library changes later
@@ -36,6 +66,7 @@ class RecommendationItem(Base):
     # TODO: For basic users leave these null; populate for premium via Celery task
     explanation: Mapped[str]   = mapped_column(Text,  nullable=True)
     confidence:  Mapped[float] = mapped_column(Float, nullable=True)  # LLM confidence 0–1
+    because_you_liked: Mapped[list | None] = mapped_column(JSON, nullable=True)
 
     recommendation = relationship("Recommendation",        back_populates="items")
     game           = relationship("Game",                  back_populates="recommendation_items")

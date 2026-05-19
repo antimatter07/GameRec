@@ -32,6 +32,12 @@ class Settings(BaseSettings):
 
     # LLM for premium AI features (Anthropic Claude)
     ANTHROPIC_API_KEY: str = ""
+    GEMINI_API_KEY: str = ""
+    AI_PICKS_MODEL: str = "gemini-2.5-flash-lite"
+    AI_PICKS_REQUIRE_PREMIUM: bool = False
+    AI_PICKS_CACHE_HOURS: int = 24
+    AI_PICKS_MAX_CANDIDATES: int = 24
+    AI_PICKS_MAX_RESULTS: int = 6
 
     # SlowAPI rate limits (requests per minute)
     RATE_LIMIT_BASIC: str = "30/minute"

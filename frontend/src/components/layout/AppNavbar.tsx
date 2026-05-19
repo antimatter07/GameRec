@@ -5,6 +5,7 @@ import {
   IconBooks,
   IconListNumbers,
   IconNotebook,
+  IconSparkles,
   IconStars,
   IconUser,
   IconLayoutDashboard,
@@ -18,6 +19,7 @@ const NAV_ITEMS = [
   { label: 'Queue',           to: '/queue',           icon: IconListNumbers   },
   { label: 'Journal',         to: '/journal',         icon: IconNotebook      },
   { label: 'Recommendations', to: '/recommendations', icon: IconStars         },
+  { label: 'AI Picks',        to: '/recommendations/ai-picks', icon: IconSparkles },
   { label: 'Profile',         to: '/profile',         icon: IconUser          },
 ];
 

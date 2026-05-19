@@ -7,12 +7,25 @@ export interface RecommendationItem {
   game: GameListItem;
   explanation: string | null;   // null for basic users
   confidence: number | null;    // null for basic users
+  because_you_liked?: string[] | null;
 }
 
 export interface Recommendation {
   id: number;
   generated_at: string;
+  kind: 'cosine' | 'ai_picks';
+  status: 'pending' | 'ready' | 'failed';
+  summary: string | null;
+  model_name: string | null;
   items: RecommendationItem[];
+}
+
+export interface AIPicksState {
+  recommendation: Recommendation | null;
+  is_stale: boolean;
+  can_refresh: boolean;
+  cache_hours: number;
+  detail: string | null;
 }
 
 export interface FeedbackCreate {

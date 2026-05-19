@@ -1,5 +1,5 @@
 import apiClient from './client';
-import type { FeedbackCreate, GameDNA, Recommendation } from '../types/recommendation';
+import type { AIPicksState, FeedbackCreate, GameDNA, Recommendation } from '../types/recommendation';
 
 export interface RecommendationFilters {
   genre?: string;
@@ -19,6 +19,12 @@ export const recommendationsApi = {
         params: { page, page_size: pageSize },
       })
       .then((r) => r.data),
+
+  getAIPicks: () =>
+    apiClient.get<AIPicksState>('/recommendations/ai-picks').then((r) => r.data),
+
+  refreshAIPicks: () =>
+    apiClient.post<AIPicksState>('/recommendations/ai-picks/refresh').then((r) => r.data),
 
   /** Premium only */
   getGameDNA: () =>

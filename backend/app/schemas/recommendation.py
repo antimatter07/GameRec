@@ -13,6 +13,7 @@ class RecommendationItemOut(BaseModel):
     game:        GameListOut
     explanation: str | None   # None for basic users, LLM text for premium
     confidence:  float | None # None for basic users
+    because_you_liked: list[str] | None = None
 
     model_config = {"from_attributes": True}
 
@@ -20,9 +21,21 @@ class RecommendationItemOut(BaseModel):
 class RecommendationOut(BaseModel):
     id:           int
     generated_at: datetime
+    kind:         str
+    status:       str
+    summary:      str | None = None
+    model_name:   str | None = None
     items:        list[RecommendationItemOut]
 
     model_config = {"from_attributes": True}
+
+
+class AIPicksStateOut(BaseModel):
+    recommendation: RecommendationOut | None
+    is_stale: bool
+    can_refresh: bool
+    cache_hours: int
+    detail: str | None = None
 
 
 class FeedbackCreate(BaseModel):

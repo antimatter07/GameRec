@@ -18,6 +18,28 @@ export function useRecommendationHistory(page = 1) {
   });
 }
 
+export function useAIPicks() {
+  return useQuery({
+    queryKey: ['ai-picks'],
+    queryFn: recommendationsApi.getAIPicks,
+    refetchOnWindowFocus: false,
+    refetchInterval: (query) => {
+      const status = query.state.data?.recommendation?.status;
+      return status === 'pending' ? 3000 : false;
+    },
+  });
+}
+
+export function useRefreshAIPicks() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: recommendationsApi.refreshAIPicks,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['ai-picks'] });
+    },
+  });
+}
+
 /** Premium only */
 export function useGameDNA() {
   return useQuery({

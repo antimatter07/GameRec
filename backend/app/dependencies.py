@@ -1,6 +1,7 @@
 from fastapi import Cookie, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.permissions import can_access_ai_picks
 from app.database import get_db
 from app.models.user import User, UserRole
 from app.services import auth_service
@@ -42,3 +43,12 @@ def require_role(*roles: UserRole):
 require_basic   = require_role(UserRole.BASIC, UserRole.PREMIUM, UserRole.ADMIN)
 require_premium = require_role(UserRole.PREMIUM, UserRole.ADMIN)
 require_admin   = require_role(UserRole.ADMIN)
+
+
+def require_ai_picks(current_user: User = Depends(require_basic)) -> User:
+    if not can_access_ai_picks(current_user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="AI Picks is not available for your account",
+        )
+    return current_user

@@ -2,11 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
-from app.dependencies import require_basic, require_premium
-from app.models.recommendation import Recommendation, RecommendationItem
+from app.dependencies import require_ai_picks, require_basic, require_premium
+from app.models.recommendation import Recommendation, RecommendationItem, RecommendationKind
 from app.models.user import User, UserRole
-from app.schemas.recommendation import GameDNAOut, RecommendationOut
+from app.schemas.recommendation import AIPicksStateOut, GameDNAOut, RecommendationOut
 from app.services import ai_service, recommendation_service
+from app.services.ai_picks_service import get_ai_picks_state, request_ai_picks_refresh
 
 router = APIRouter()
 
@@ -32,7 +33,10 @@ def get_recommendations(
     recommendation = (
         db.query(Recommendation)
         .options(joinedload(Recommendation.items).joinedload(RecommendationItem.game))
-        .filter(Recommendation.id == recommendation.id)
+        .filter(
+            Recommendation.id == recommendation.id,
+            Recommendation.kind == RecommendationKind.COSINE,
+        )
         .one()
     )
 
@@ -60,13 +64,44 @@ def get_recommendation_history(
     recommendations = (
         db.query(Recommendation)
         .options(joinedload(Recommendation.items).joinedload(RecommendationItem.game))
-        .filter(Recommendation.user_id == current_user.id)
+        .filter(
+            Recommendation.user_id == current_user.id,
+            Recommendation.kind == RecommendationKind.COSINE,
+        )
         .order_by(Recommendation.generated_at.desc())
         .offset(offset)
         .limit(page_size)
         .all()
     )
     return recommendations
+
+
+@router.get("/ai-picks", response_model=AIPicksStateOut)
+def get_ai_picks(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_ai_picks),
+):
+    return get_ai_picks_state(current_user.id, db)
+
+
+@router.post("/ai-picks/refresh", response_model=AIPicksStateOut, status_code=status.HTTP_202_ACCEPTED)
+def refresh_ai_picks(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_ai_picks),
+):
+    try:
+        recommendation, should_enqueue = request_ai_picks_refresh(current_user.id, db)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+
+    if should_enqueue and recommendation.status.value == "pending":
+        try:
+            from app.workers.tasks.recommendation import generate_ai_picks
+            generate_ai_picks.delay(recommendation.id, current_user.id)
+        except Exception:
+            pass
+
+    return get_ai_picks_state(current_user.id, db)
 
 
 @router.get("/game-dna", response_model=GameDNAOut)

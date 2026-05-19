@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.models.library import LibraryEntry, LibraryStatus
 from app.models.game import Game
-from app.models.recommendation import Recommendation, RecommendationItem
+from app.models.recommendation import Recommendation, RecommendationItem, RecommendationKind, RecommendationStatus
 from app.models.user import User
 
 # Weight assigned to a library entry based on its status when no explicit
@@ -151,6 +151,8 @@ def compute_recommendations(user_id: int, db: Session) -> Recommendation:
     recommendation = Recommendation(
         user_id=user_id,
         generated_at=datetime.now(timezone.utc),
+        kind=RecommendationKind.COSINE,
+        status=RecommendationStatus.READY,
     )
     db.add(recommendation)
     db.flush()  # populate recommendation.id
@@ -182,6 +184,8 @@ def get_or_generate(user_id: int, db: Session) -> Recommendation:
         db.query(Recommendation)
         .filter(
             Recommendation.user_id == user_id,
+            Recommendation.kind == RecommendationKind.COSINE,
+            Recommendation.status == RecommendationStatus.READY,
             Recommendation.generated_at >= cutoff,
         )
         .order_by(Recommendation.generated_at.desc())
