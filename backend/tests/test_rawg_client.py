@@ -1,6 +1,7 @@
 import httpx
 import pytest
 
+from app.config import settings
 from app.utils.rawg_client import RAWGClient, RAWGQuotaExceeded, RAWGRetryableError
 
 
@@ -18,7 +19,7 @@ def _client_with_transport(monkeypatch, handler):
 
 def test_get_games_page_passes_query_params(monkeypatch):
     def handler(request):
-        assert request.url.params["key"] == "dummy-key-for-tests"
+        assert request.url.params["key"] == settings.RAWG_API_KEY
         assert request.url.params["page"] == "2"
         assert request.url.params["page_size"] == "20"
         assert request.url.params["ordering"] == "-added"
