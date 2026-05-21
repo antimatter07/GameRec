@@ -44,10 +44,10 @@ export function useUpdateLibraryEntry() {
       queryClient.invalidateQueries({ queryKey: ['library'] });
       queryClient.invalidateQueries({ queryKey: ['library-stats'] });
       queryClient.invalidateQueries({ queryKey: ['play-queue'] });
-      if (data.queue_advanced && data.next_game) {
+      if (data.queue_removed && data.next_game_candidate) {
         notifications.show({
-          title: 'Queue advanced',
-          message: `Now playing: ${data.next_game.game.name}`,
+          title: 'Removed from queue',
+          message: `${data.next_game_candidate.game.name} is ready when you want to start it.`,
           color: 'teal',
         });
       }

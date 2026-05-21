@@ -7,9 +7,30 @@ from sqlalchemy import Text, cast, func
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.game import Game
+from app.models.journal import GameRating
 from app.models.library import LibraryEntry, LibraryStatus
-from app.models.recommendation import Recommendation, RecommendationItem
 from app.schemas.library import LibraryEntryCreate, LibraryEntryUpdate
+
+QUEUEABLE_LIBRARY_STATUSES = {LibraryStatus.BACKLOG, LibraryStatus.REPLAYING}
+
+
+def _sync_overall_rating(db: Session, user_id: int, game_id: int, rating_value: float | None) -> None:
+    rating = (
+        db.query(GameRating)
+        .filter(GameRating.user_id == user_id, GameRating.game_id == game_id)
+        .first()
+    )
+    if rating:
+        rating.overall = rating_value
+    elif rating_value is not None:
+        db.add(GameRating(user_id=user_id, game_id=game_id, overall=rating_value))
+
+
+def _direct_similarity(entry: LibraryEntry, taste_profile: list[float] | None) -> float | None:
+    if not taste_profile or not entry.game or not entry.game.feature_vector:
+        return None
+    dot = sum(float(a) * float(b) for a, b in zip(entry.game.feature_vector, taste_profile))
+    return max(0.0, min(1.0, dot))
 
 
 def get_user_library(db: Session, user_id: int) -> list[LibraryEntry]:
@@ -36,6 +57,8 @@ def add_game(db: Session, user_id: int, entry_in: LibraryEntryCreate) -> Library
 
     entry = LibraryEntry(user_id=user_id, **entry_in.model_dump())
     db.add(entry)
+    if entry_in.rating is not None:
+        _sync_overall_rating(db, user_id, entry_in.game_id, entry_in.rating)
     db.commit()
     db.refresh(entry)
     # Re-fetch with game relationship loaded for the response
@@ -51,12 +74,17 @@ def update_entry(db: Session, user_id: int, entry_id: int, updates: LibraryEntry
     if not entry:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Library entry not found")
 
-    becoming_completed = (
-        updates.status == LibraryStatus.COMPLETED and entry.status != LibraryStatus.COMPLETED
-    )
-
-    for field, value in updates.model_dump(exclude_unset=True).items():
+    changed_fields = updates.model_dump(exclude_unset=True)
+    for field, value in changed_fields.items():
         setattr(entry, field, value)
+    if "rating" in changed_fields:
+        _sync_overall_rating(db, user_id, entry.game_id, updates.rating)
+
+    queue_result = {"queue_removed": False, "next_game_candidate": None}
+    if updates.status is not None and updates.status not in QUEUEABLE_LIBRARY_STATUSES:
+        from app.services.play_queue_service import remove_entry_from_queue
+        queue_result = remove_entry_from_queue(db, user_id, entry_id)
+
     db.commit()
     db.refresh(entry)
 
@@ -64,16 +92,13 @@ def update_entry(db: Session, user_id: int, entry_id: int, updates: LibraryEntry
         db.query(LibraryEntry).filter(LibraryEntry.id == entry.id).options(joinedload(LibraryEntry.game)).first()
     )
 
-    if becoming_completed:
-        from app.services.play_queue_service import advance_queue_after_completion
-        advance_result = advance_queue_after_completion(db, user_id, entry_id)
-        return {
-            "entry": updated_entry,
-            "queue_advanced": advance_result["queue_advanced"],
-            "next_game": advance_result["next_game"],
-        }
-
-    return {"entry": updated_entry, "queue_advanced": False, "next_game": None}
+    return {
+        "entry": updated_entry,
+        "queue_removed": queue_result["queue_removed"],
+        "next_game_candidate": queue_result["next_game_candidate"],
+        "queue_advanced": False,
+        "next_game": None,
+    }
 
 
 def get_stats(db: Session, user_id: int) -> dict:
@@ -137,21 +162,13 @@ def get_prioritized_backlog(
 
     entries = query.all()
 
-    # Load taste scores from the user's latest recommendation batch.
-    latest_rec = (
-        db.query(Recommendation)
-        .filter(Recommendation.user_id == user_id)
-        .order_by(Recommendation.generated_at.desc())
-        .first()
-    )
-    taste_scores: dict[int, float] = {}
-    if latest_rec:
-        items = (
-            db.query(RecommendationItem)
-            .filter(RecommendationItem.recommendation_id == latest_rec.id)
-            .all()
-        )
-        taste_scores = {item.game_id: item.score for item in items}
+    taste_profile: list[float] | None = None
+    try:
+        from app.services.recommendation_service import build_user_taste_profile
+
+        taste_profile = build_user_taste_profile(user_id, db).tolist()
+    except ValueError:
+        taste_profile = None
 
     now = datetime.now(timezone.utc)
 
@@ -167,7 +184,7 @@ def get_prioritized_backlog(
         return None
 
     def _priority(entry: LibraryEntry) -> float:
-        taste = taste_scores.get(entry.game_id, 0.5)
+        taste = _direct_similarity(entry, taste_profile) or 0.5
         stale = min(1.0, _stale_months(entry.updated_at) / 6)
         hours = _playtime_hours(entry.game)
         playtime = (1 - min(1.0, hours / 100)) if hours is not None else 0.5
@@ -178,7 +195,7 @@ def get_prioritized_backlog(
             "entry_id":      e.id,
             "game":          e.game,
             "playtime_hours": _playtime_hours(e.game),
-            "taste_score":   taste_scores.get(e.game_id),
+            "taste_score":   _direct_similarity(e, taste_profile),
             "priority_score": _priority(e),
             "stale_months":  _stale_months(e.updated_at),
             "_added_at":     e.added_at,  # used for sort only, not in response

@@ -9,7 +9,7 @@ from fastapi import HTTPException
 
 from app.models.library import LibraryEntry, LibraryStatus
 from app.schemas.library import LibraryEntryCreate
-from app.services.library_service import add_game, get_stats, remove_game
+from app.services.library_service import _sync_overall_rating, add_game, get_stats, remove_game
 
 
 def _mock_game(id=1, genres=None):
@@ -104,16 +104,43 @@ def test_get_stats_counts_by_status():
     entries = [
         _mock_entry(status=LibraryStatus.COMPLETED),
         _mock_entry(status=LibraryStatus.PLAYING),
+        _mock_entry(status=LibraryStatus.REPLAYING),
+        _mock_entry(status=LibraryStatus.WISHLIST),
         _mock_entry(status=LibraryStatus.BACKLOG),
         _mock_entry(status=LibraryStatus.BACKLOG),
     ]
     with patch("app.services.library_service.get_user_library", return_value=entries):
         result = get_stats(MagicMock(), user_id=1)
 
-    assert result["total_games"] == 4
+    assert result["total_games"] == 6
     assert result["by_status"]["completed"] == 1
     assert result["by_status"]["playing"] == 1
+    assert result["by_status"]["replaying"] == 1
+    assert result["by_status"]["wishlist"] == 1
     assert result["by_status"]["backlog"] == 2
+
+
+def test_sync_overall_rating_creates_game_rating_when_missing():
+    db = MagicMock()
+    db.query.return_value.filter.return_value.first.return_value = None
+
+    _sync_overall_rating(db, user_id=1, game_id=2, rating_value=4.5)
+
+    created = db.add.call_args.args[0]
+    assert created.user_id == 1
+    assert created.game_id == 2
+    assert created.overall == 4.5
+
+
+def test_sync_overall_rating_updates_existing_game_rating():
+    db = MagicMock()
+    existing = MagicMock()
+    db.query.return_value.filter.return_value.first.return_value = existing
+
+    _sync_overall_rating(db, user_id=1, game_id=2, rating_value=3.0)
+
+    assert existing.overall == 3.0
+    db.add.assert_not_called()
 
 
 def test_get_stats_calculates_average_rating():

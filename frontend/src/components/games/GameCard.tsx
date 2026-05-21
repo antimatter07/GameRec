@@ -1,11 +1,9 @@
-import type { KeyboardEvent, MouseEvent } from 'react';
-import { isAxiosError } from 'axios';
-import { Button, Card, Group, Image, Rating, Stack, Text } from '@mantine/core';
-import { notifications } from '@mantine/notifications';
-import { IconBookmark, IconTrash } from '@tabler/icons-react';
+import type { KeyboardEvent } from 'react';
+import { Card, Group, Image, Rating, Stack, Text } from '@mantine/core';
 import { useNavigate } from 'react-router';
-import { useAddToLibrary, useLibrary, useRemoveFromLibrary } from '../../hooks/useLibrary';
+import { useLibrary } from '../../hooks/useLibrary';
 import type { GameListItem } from '../../types/game';
+import { SaveToLibraryButton } from './SaveToLibraryButton';
 import classes from './GameCard.module.css';
 
 interface GameCardProps {
@@ -16,8 +14,6 @@ interface GameCardProps {
 
 export function GameCard({ game, showAdd = false }: GameCardProps) {
   const { data: library } = useLibrary();
-  const addToLibrary = useAddToLibrary();
-  const removeFromLibrary = useRemoveFromLibrary();
   const navigate = useNavigate();
 
   const libraryEntry = library?.find((entry) => entry.game.id === game.id) ?? null;
@@ -25,39 +21,6 @@ export function GameCard({ game, showAdd = false }: GameCardProps) {
   const releaseYear = game.released ? new Date(game.released).getFullYear() : null;
 
   const openGame = () => navigate(`/games/${game.id}`);
-
-  const handleAdd = async (e: MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    try {
-      await addToLibrary.mutateAsync({ game_id: game.id });
-      notifications.show({ color: 'green', message: `${game.name} added to library` });
-    } catch (err: unknown) {
-      if (isAxiosError(err)) {
-        const detail = err.response?.data?.detail as string | undefined;
-        if (err.response?.status === 409) {
-          notifications.show({ color: 'yellow', message: 'Already in your library' });
-        } else {
-          notifications.show({ color: 'red', message: detail ?? 'Failed to add to library' });
-        }
-      } else {
-        notifications.show({ color: 'red', message: 'Failed to add to library' });
-      }
-    }
-  };
-
-  const handleRemove = async (e: MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!libraryEntry) return;
-
-    try {
-      await removeFromLibrary.mutateAsync(libraryEntry.id);
-      notifications.show({ color: 'red', message: `${game.name} removed from library` });
-    } catch {
-      notifications.show({ color: 'red', message: 'Failed to remove from library' });
-    }
-  };
 
   return (
     <Card
@@ -103,32 +66,12 @@ export function GameCard({ game, showAdd = false }: GameCardProps) {
 
         {showAdd && (
           <Group gap="xs" mt="auto">
-            {!inLibrary ? (
-              <Button
-                className={classes.actionButton}
-                size="md"
-                variant="filled"
-                color="violet"
-                leftSection={<IconBookmark size={15} />}
-                onClick={handleAdd}
-                loading={addToLibrary.isPending}
-                fullWidth
-              >
-                Add to Library
-              </Button>
-            ) : (
-              <Button
-                className={`${classes.actionButton} ${classes.removeButton}`}
-                size="md"
-                variant="filled"
-                leftSection={<IconTrash size={15} />}
-                onClick={handleRemove}
-                loading={removeFromLibrary.isPending}
-                fullWidth
-              >
-                Remove
-              </Button>
-            )}
+            <SaveToLibraryButton
+              game={game}
+              libraryEntry={libraryEntry}
+              className={`${classes.actionButton} ${inLibrary ? classes.removeButton : ''}`}
+              fullWidth
+            />
           </Group>
         )}
       </Stack>

@@ -22,8 +22,9 @@ from app.services.llm_provider import LLMProviderError, get_default_llm_provider
 _STATUS_WEIGHTS: dict[LibraryStatus, float] = {
     LibraryStatus.COMPLETED: 4.0,
     LibraryStatus.PLAYING: 3.0,
-    LibraryStatus.BACKLOG: 2.0,
-    LibraryStatus.DROPPED: 0.5,
+    LibraryStatus.REPLAYING: 3.0,
+    LibraryStatus.BACKLOG: 1.5,
+    LibraryStatus.WISHLIST: 0.75,
 }
 _CACHE_TTL = timedelta(hours=settings.AI_PICKS_CACHE_HOURS)
 
@@ -235,21 +236,31 @@ def build_compact_taste_summary(user_id: int, db: Session) -> CompactTasteSummar
         weight = _entry_weight(entry)
         release_year = game.released.year if game.released else None
         length_hours = game.hltb_main_hours or (float(game.playtime) if game.playtime else None)
+        is_negative_signal = entry.status == LibraryStatus.DROPPED or (
+            entry.rating is not None and entry.rating <= 2.5
+        )
 
-        for genre in (game.genres or []):
-            genre_weights[genre["name"]] += max(weight, 0.5)
         for tag in (game.tags or []):
             tag_name = tag.get("name")
             if not tag_name or tag.get("language", "eng") not in ("eng", ""):
                 continue
-            if entry.status == LibraryStatus.DROPPED or (entry.rating is not None and entry.rating <= 2.5):
+            if is_negative_signal:
                 avoid_tag_weights[tag_name] += 1.5
             elif weight >= 3.0:
                 tag_weights[tag_name] += weight
+
+        if is_negative_signal:
+            negative_games.append((5.0 if entry.rating is None else 5.0 - entry.rating, game.name))
+            if entry.review:
+                review_snippets.append(_truncate(entry.review))
+            continue
+
+        for genre in (game.genres or []):
+            genre_weights[genre["name"]] += weight
         for platform in (game.platforms or []):
             platform_name = platform.get("name")
             if platform_name:
-                platform_weights[platform_name] += max(weight, 0.5)
+                platform_weights[platform_name] += weight
 
         era = _era_label(release_year)
         if era and weight >= 3.0:
@@ -261,11 +272,6 @@ def build_compact_taste_summary(user_id: int, db: Session) -> CompactTasteSummar
             positive_games.append((entry.rating, game.name))
         elif entry.status == LibraryStatus.COMPLETED:
             positive_games.append((weight, game.name))
-
-        if entry.status == LibraryStatus.DROPPED:
-            negative_games.append((5.0, game.name))
-        elif entry.rating is not None and entry.rating <= 2.5:
-            negative_games.append((5.0 - entry.rating, game.name))
 
         if entry.review:
             review_snippets.append(_truncate(entry.review))

@@ -8,7 +8,7 @@ from app.schemas.game import GameListOut
 
 class LibraryEntryCreate(BaseModel):
     game_id: int
-    status:  LibraryStatus        = LibraryStatus.BACKLOG
+    status:  LibraryStatus        = LibraryStatus.WISHLIST
     rating:  float | None         = Field(None, ge=1, le=5)
     review:  str | None           = None
 
@@ -57,5 +57,9 @@ class PrioritizedBacklogOut(BaseModel):
 
 class LibraryEntryUpdateOut(BaseModel):
     entry:         LibraryEntryOut
+    queue_removed: bool               = False
+    next_game_candidate: LibraryEntryOut | None = None
+    # Backwards-compatible fields for older clients during the transition away
+    # from auto-advancing the queue.
     queue_advanced: bool               = False
     next_game:      LibraryEntryOut | None = None

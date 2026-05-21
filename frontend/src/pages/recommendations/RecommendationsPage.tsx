@@ -46,7 +46,7 @@ export default function RecommendationsPage() {
 
       {!data || data.items.length === 0 ? (
         <Text c="dimmed">
-          Add and rate some games in your library to get personalized recommendations.
+          Save wishlist ideas, add backlog games, and rate what you play to get personalized recommendations.
         </Text>
       ) : (
         <Stack gap="md">

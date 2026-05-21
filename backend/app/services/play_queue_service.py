@@ -1,10 +1,12 @@
 from fastapi import HTTPException, status
-from sqlalchemy import text, update
+from sqlalchemy import func, text, update
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.library import LibraryEntry, LibraryStatus
 from app.models.play_queue import PlayQueueEntry
 from app.schemas.play_queue import PlayQueueEnqueue, PlayQueueReorder
+
+QUEUEABLE_STATUSES = {LibraryStatus.BACKLOG, LibraryStatus.REPLAYING}
 
 
 def _load_queue(db: Session, user_id: int) -> list[PlayQueueEntry]:
@@ -35,10 +37,10 @@ def enqueue(db: Session, user_id: int, payload: PlayQueueEnqueue) -> dict:
     )
     if not entry:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Library entry not found")
-    if entry.status == LibraryStatus.PLAYING:
+    if entry.status not in QUEUEABLE_STATUSES:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Currently-playing games cannot be added to the queue",
+            detail="Only backlog and replaying games can be added to the queue",
         )
 
     existing = (
@@ -51,9 +53,10 @@ def enqueue(db: Session, user_id: int, payload: PlayQueueEnqueue) -> dict:
 
     max_pos = (
         db.query(PlayQueueEntry)
+        .with_entities(func.max(PlayQueueEntry.position))
         .filter(PlayQueueEntry.user_id == user_id)
-        .count()
-    )
+        .scalar()
+    ) or 0
     queue_entry = PlayQueueEntry(user_id=user_id, entry_id=payload.entry_id, position=max_pos + 1)
     db.add(queue_entry)
     db.commit()
@@ -84,6 +87,43 @@ def dequeue(db: Session, user_id: int, entry_id: int) -> None:
         .values(position=PlayQueueEntry.position - 1)
     )
     db.commit()
+
+
+def remove_entry_from_queue(db: Session, user_id: int, entry_id: int) -> dict:
+    """
+    Remove a library entry from the queue, if present, and return the new head as
+    a start candidate without mutating that candidate's status.
+    """
+    queue_entry = (
+        db.query(PlayQueueEntry)
+        .filter(PlayQueueEntry.user_id == user_id, PlayQueueEntry.entry_id == entry_id)
+        .first()
+    )
+    if not queue_entry:
+        return {"queue_removed": False, "next_game_candidate": None}
+
+    removed_pos = queue_entry.position
+    db.delete(queue_entry)
+    db.flush()
+
+    db.execute(text("SET CONSTRAINTS uq_queue_user_position DEFERRED"))
+    db.execute(
+        update(PlayQueueEntry)
+        .where(PlayQueueEntry.user_id == user_id, PlayQueueEntry.position > removed_pos)
+        .values(position=PlayQueueEntry.position - 1)
+    )
+    db.flush()
+
+    next_queue_entry = (
+        db.query(PlayQueueEntry)
+        .filter(PlayQueueEntry.user_id == user_id, PlayQueueEntry.position == 1)
+        .options(joinedload(PlayQueueEntry.entry).joinedload(LibraryEntry.game))
+        .first()
+    )
+    return {
+        "queue_removed": True,
+        "next_game_candidate": next_queue_entry.entry if next_queue_entry else None,
+    }
 
 
 def reorder(db: Session, user_id: int, payload: PlayQueueReorder) -> dict:
@@ -125,43 +165,10 @@ def advance_queue_after_completion(db: Session, user_id: int, completed_entry_id
       - Promote the new head to 'playing' only if its status is 'backlog'
     Returns metadata for the API response.
     """
-    queue_entry = (
-        db.query(PlayQueueEntry)
-        .filter(PlayQueueEntry.user_id == user_id, PlayQueueEntry.entry_id == completed_entry_id)
-        .first()
-    )
-    if not queue_entry:
-        return {"queue_advanced": False, "next_game": None}
-
-    removed_pos = queue_entry.position
-    db.delete(queue_entry)
-    db.flush()
-
-    # Same deferral as dequeue — same compact-shift UPDATE, same constraint risk.
-    db.execute(text("SET CONSTRAINTS uq_queue_user_position DEFERRED"))
-    db.execute(
-        update(PlayQueueEntry)
-        .where(PlayQueueEntry.user_id == user_id, PlayQueueEntry.position > removed_pos)
-        .values(position=PlayQueueEntry.position - 1)
-    )
-    db.flush()
-
-    next_queue_entry = (
-        db.query(PlayQueueEntry)
-        .filter(PlayQueueEntry.user_id == user_id, PlayQueueEntry.position == 1)
-        .options(joinedload(PlayQueueEntry.entry).joinedload(LibraryEntry.game))
-        .first()
-    )
-    if not next_queue_entry:
-        db.commit()
-        return {"queue_advanced": False, "next_game": None}
-
-    next_library_entry = next_queue_entry.entry
-    # Only auto-promote backlog games — completed/dropped games in the queue
-    # retain their status rather than being reset to playing.
-    if next_library_entry.status == LibraryStatus.BACKLOG:
-        next_library_entry.status = LibraryStatus.PLAYING
+    result = remove_entry_from_queue(db, user_id, completed_entry_id)
     db.commit()
-    db.refresh(next_library_entry)
-
-    return {"queue_advanced": True, "next_game": next_library_entry}
+    return {
+        "queue_advanced": False,
+        "next_game": None,
+        **result,
+    }

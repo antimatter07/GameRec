@@ -38,14 +38,8 @@ export interface QueueSuggestion {
 export interface QueueSuggestionState {
   suggestion: QueueSuggestion | null;
   is_stale: boolean;
-  is_generating: boolean;
+  is_generating?: boolean;
   can_generate: boolean;
   can_adopt: boolean;
   detail: string | null;
-}
-
-export interface LibraryEntryUpdateOut {
-  entry: LibraryEntry;
-  queue_advanced: boolean;
-  next_game: LibraryEntry | null;
 }

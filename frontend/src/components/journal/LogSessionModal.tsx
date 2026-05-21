@@ -121,7 +121,14 @@ export function LogSessionModal({
 
     createSession.mutate(data, {
       onSuccess: () => {
-        notifications.show({ color: 'green', message: 'Session logged!' });
+        const priorStatus = libraryData?.find((entry) => entry.id === effectiveLibraryEntryId)?.status;
+        if (priorStatus === 'completed') {
+          notifications.show({ color: 'teal', message: 'Session logged. Moved to Replaying.' });
+        } else if (priorStatus === 'wishlist' || priorStatus === 'backlog') {
+          notifications.show({ color: 'teal', message: 'Session logged. Moved to Playing.' });
+        } else {
+          notifications.show({ color: 'green', message: 'Session logged!' });
+        }
         handleClose();
       },
       onError: () => {

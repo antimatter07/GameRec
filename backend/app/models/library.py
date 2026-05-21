@@ -12,6 +12,8 @@ class LibraryStatus(str, enum.Enum):
     COMPLETED = "completed"
     BACKLOG   = "backlog"
     DROPPED   = "dropped"
+    WISHLIST  = "wishlist"
+    REPLAYING = "replaying"
 
 
 class LibraryEntry(Base):

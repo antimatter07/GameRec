@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -49,6 +49,9 @@ class SessionLog(Base):
 
 class GameRating(Base):
     __tablename__ = "game_ratings"
+    __table_args__ = (
+        UniqueConstraint("user_id", "game_id", name="uq_game_ratings_user_game"),
+    )
 
     id:               Mapped[int]         = mapped_column(primary_key=True)
     user_id:          Mapped[int]         = mapped_column(

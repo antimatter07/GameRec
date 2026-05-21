@@ -19,6 +19,7 @@ import { useParams } from 'react-router';
 import { LogSessionModal }         from '../../components/journal/LogSessionModal';
 import { JournalFeedItem }         from '../../components/journal/JournalFeedItem';
 import { MultiAxisRatingWidget }   from '../../components/journal/MultiAxisRatingWidget';
+import { SaveToLibraryButton }     from '../../components/games/SaveToLibraryButton';
 import { useGame }                 from '../../hooks/useGames';
 import { useJournalSessions }      from '../../hooks/useJournal';
 import { useLibrary }              from '../../hooks/useLibrary';
@@ -79,9 +80,8 @@ export default function GameDetailPage() {
           )}
         </Stack>
 
-        {/* TODO: Replace with AddToLibraryButton component */}
         <Group>
-          <Button>Add to Library</Button>
+          <SaveToLibraryButton game={game} libraryEntry={libraryEntry} />
           <Button variant="light" color="violet" onClick={openLog}>
             Log Session
           </Button>

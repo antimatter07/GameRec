@@ -92,11 +92,22 @@ def create_session(db: Session, user_id: int, payload: SessionLogCreate) -> Sess
     if not game:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Game not found")
 
-    is_first = (
-        db.query(SessionLog)
-        .filter(SessionLog.user_id == user_id, SessionLog.game_id == payload.game_id)
-        .count() == 0
-    )
+    linked_entry: LibraryEntry | None = None
+    if payload.library_entry_id is not None:
+        linked_entry = (
+            db.query(LibraryEntry)
+            .filter(
+                LibraryEntry.id == payload.library_entry_id,
+                LibraryEntry.user_id == user_id,
+                LibraryEntry.game_id == payload.game_id,
+            )
+            .first()
+        )
+        if linked_entry is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Library entry does not belong to this user and game",
+            )
 
     data = payload.model_dump()
     data["started_at"] = datetime.now(timezone.utc)
@@ -109,14 +120,17 @@ def create_session(db: Session, user_id: int, payload: SessionLogCreate) -> Sess
     db.commit()
     db.refresh(entry)
 
-    if is_first:
-        lib_entry = (
-            db.query(LibraryEntry)
-            .filter(LibraryEntry.user_id == user_id, LibraryEntry.game_id == payload.game_id)
-            .first()
-        )
-        if lib_entry and lib_entry.status != LibraryStatus.PLAYING:
+    lib_entry = linked_entry or (
+        db.query(LibraryEntry)
+        .filter(LibraryEntry.user_id == user_id, LibraryEntry.game_id == payload.game_id)
+        .first()
+    )
+    if lib_entry:
+        if lib_entry.status in (LibraryStatus.BACKLOG, LibraryStatus.WISHLIST):
             lib_entry.status = LibraryStatus.PLAYING
+            db.commit()
+        elif lib_entry.status == LibraryStatus.COMPLETED:
+            lib_entry.status = LibraryStatus.REPLAYING
             db.commit()
 
     loaded = _fetch_with_game(db, entry.id)
@@ -289,7 +303,7 @@ def get_stats(db: Session, user_id: int) -> JournalStats:
     )
     games_completed  = sum(1 for e in library_entries if e.status == LibraryStatus.COMPLETED)
     games_in_backlog = sum(1 for e in library_entries if e.status == LibraryStatus.BACKLOG)
-    games_playing    = sum(1 for e in library_entries if e.status == LibraryStatus.PLAYING)
+    games_playing    = sum(1 for e in library_entries if e.status in (LibraryStatus.PLAYING, LibraryStatus.REPLAYING))
 
     # Emotion summary fields
     dominant_emotion_this_month: str | None = None
@@ -343,6 +357,15 @@ def upsert_rating(
     else:
         rating = GameRating(user_id=user_id, game_id=game_id, **payload.model_dump())
         db.add(rating)
+
+    if "overall" in payload.model_dump(exclude_unset=True):
+        lib_entry = (
+            db.query(LibraryEntry)
+            .filter(LibraryEntry.user_id == user_id, LibraryEntry.game_id == game_id)
+            .first()
+        )
+        if lib_entry:
+            lib_entry.rating = payload.overall
 
     db.commit()
     db.refresh(rating)

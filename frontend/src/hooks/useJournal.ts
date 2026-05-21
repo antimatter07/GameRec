@@ -150,6 +150,8 @@ export function useUpsertRating() {
     onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: journalKeys.ratingDetail(variables.gameId) });
       qc.invalidateQueries({ queryKey: journalKeys.allRatings() });
+      qc.invalidateQueries({ queryKey: ['library'] });
+      qc.invalidateQueries({ queryKey: ['library-stats'] });
     },
   });
 }

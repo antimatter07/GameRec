@@ -1,6 +1,5 @@
 import apiClient from './client';
-import type { LibraryEntry, LibraryEntryCreate, LibraryEntryUpdate, LibraryStats } from '../types/library';
-import type { LibraryEntryUpdateOut } from '../types/playQueue';
+import type { LibraryEntry, LibraryEntryCreate, LibraryEntryUpdate, LibraryStats, LibraryEntryUpdateOut } from '../types/library';
 import type { GameListItem } from '../types/game';
 
 export interface BacklogFiltersParams {

@@ -16,7 +16,7 @@ export function useQueueSuggestion() {
     queryFn: playQueueApi.getSuggestion,
     refetchOnWindowFocus: false,
     refetchInterval: (query) => {
-      return query.state.data?.is_generating ? 3000 : false;
+      return query.state.data?.suggestion?.status === 'pending' ? 3000 : false;
     },
   });
 }

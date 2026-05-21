@@ -9,8 +9,9 @@ from app.models.user import User
 _STATUS_WEIGHTS: dict[LibraryStatus, float] = {
     LibraryStatus.COMPLETED: 4.0,
     LibraryStatus.PLAYING:   3.0,
-    LibraryStatus.BACKLOG:   2.0,
-    LibraryStatus.DROPPED:   1.0,
+    LibraryStatus.REPLAYING: 3.0,
+    LibraryStatus.BACKLOG:   1.5,
+    LibraryStatus.WISHLIST:  0.75,
 }
 
 
@@ -46,7 +47,14 @@ def generate_game_dna(user: User, db: Session) -> dict:
     for entry in entries:
         if not entry.game:
             continue
-        weight = float(entry.rating) if entry.rating is not None else _STATUS_WEIGHTS.get(entry.status, 2.0)
+        if entry.rating is not None:
+            if entry.rating <= 2.5:
+                continue
+            weight = float(entry.rating)
+        else:
+            if entry.status == LibraryStatus.DROPPED:
+                continue
+            weight = _STATUS_WEIGHTS.get(entry.status, 1.5)
         total_weight += weight
 
         for genre in (entry.game.genres or []):

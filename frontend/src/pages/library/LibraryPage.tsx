@@ -30,6 +30,8 @@ import {
   IconTrash,
   IconTrophy,
   IconX,
+  IconHeart,
+  IconRepeat,
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import { GameCard } from '../../components/games/GameCard';
@@ -51,8 +53,10 @@ const dateFormatter = new Intl.DateTimeFormat('en-US', {
 const STATUS_TABS: { value: LibraryStatus | 'all'; label: string; icon: ReactNode }[] = [
   { value: 'all',       label: 'All',       icon: <IconLayoutGrid size={14} /> },
   { value: 'playing',   label: 'Playing',   icon: <IconPlayerPlay size={14} /> },
+  { value: 'replaying', label: 'Replaying', icon: <IconRepeat size={14} /> },
   { value: 'completed', label: 'Completed', icon: <IconCheck size={14} /> },
   { value: 'backlog',   label: 'Backlog',   icon: <IconBookmark size={14} /> },
+  { value: 'wishlist',  label: 'Wishlist',  icon: <IconHeart size={14} /> },
   { value: 'dropped',   label: 'Dropped',   icon: <IconX size={14} /> },
 ];
 
@@ -61,6 +65,8 @@ const STATUS_LABELS: Record<LibraryStatus, string> = {
   completed: 'Completed',
   backlog: 'Backlog',
   dropped: 'Dropped',
+  wishlist: 'Wishlist',
+  replaying: 'Replaying',
 };
 
 const STATUS_COLORS: Record<LibraryStatus, string> = {
@@ -68,21 +74,27 @@ const STATUS_COLORS: Record<LibraryStatus, string> = {
   completed: 'teal',
   backlog: 'blue',
   dropped: 'grape',
+  wishlist: 'pink',
+  replaying: 'orange',
 };
 
 const PANEL_COPY: Record<LibraryStatus | 'all', string> = {
   all: 'Every title you have saved, with quick editing and status tracking.',
   playing: 'Your active games, ready to pick back up without digging.',
+  replaying: 'Games you finished before and are actively revisiting.',
   completed: 'Finished runs, neatly archived with ratings close at hand.',
   backlog: 'Games waiting for their turn, with a shortcut into Play Next.',
+  wishlist: 'Games you are curious about before committing them to the backlog.',
   dropped: 'Titles you set aside, kept visible without cluttering the rest.',
 };
 
 const EMPTY_COPY: Record<LibraryStatus | 'all', string> = {
   all: 'Your library is empty. Browse the catalog to start saving games.',
   playing: 'Nothing is marked as playing right now.',
+  replaying: 'No replays in motion right now.',
   completed: 'No completed games yet.',
   backlog: 'Your backlog is clear right now.',
+  wishlist: 'No wishlist games yet.',
   dropped: 'No dropped games here.',
 };
 
@@ -103,9 +115,10 @@ export default function LibraryPage() {
   const [editStatus, setEditStatus] = useState<LibraryStatus>('backlog');
   const [editRating, setEditRating] = useState<number>(0);
   const [removingEntryId, setRemovingEntryId] = useState<number | null>(null);
+  const [nextCandidate, setNextCandidate] = useState<LibraryEntry | null>(null);
   const [editOpened, { open: openEdit, close: closeEdit }] = useDisclosure(false);
 
-  const libraryEntries = entries ?? [];
+  const libraryEntries = useMemo(() => entries ?? [], [entries]);
   const ratedEntries = useMemo(
     () => libraryEntries.filter((entry) => entry.rating !== null),
     [libraryEntries],
@@ -115,9 +128,11 @@ export default function LibraryPage() {
     if (stats) {
       return {
         all: stats.total_games,
-        playing: stats.by_status.playing,
+        playing: stats.by_status.playing ?? 0,
+        replaying: stats.by_status.replaying ?? 0,
         completed: stats.by_status.completed,
         backlog: stats.by_status.backlog,
+        wishlist: stats.by_status.wishlist ?? 0,
         dropped: stats.by_status.dropped,
       };
     }
@@ -128,7 +143,7 @@ export default function LibraryPage() {
         acc[entry.status] += 1;
         return acc;
       },
-      { all: 0, playing: 0, completed: 0, backlog: 0, dropped: 0 },
+      { all: 0, playing: 0, replaying: 0, completed: 0, backlog: 0, wishlist: 0, dropped: 0 },
     );
   }, [libraryEntries, stats]);
 
@@ -148,13 +163,14 @@ export default function LibraryPage() {
     if (!editingEntry) return;
 
     try {
-      await updateEntry.mutateAsync({
+      const result = await updateEntry.mutateAsync({
         id: editingEntry.id,
         updates: {
           status: editStatus,
           rating: editRating > 0 ? editRating : undefined,
         },
       });
+      setNextCandidate(result.next_game_candidate);
       closeEdit();
       notifications.show({ color: 'green', message: 'Library entry updated' });
     } catch {
@@ -239,7 +255,7 @@ export default function LibraryPage() {
           </div>
           <div className={classes.metricLabel}>Playing now</div>
           <div className={classes.metricValue} style={{ color: 'var(--mantine-color-blue-4)' }}>
-            {statusCounts.playing}
+            {statusCounts.playing + statusCounts.replaying}
           </div>
           <div className={classes.metricSub}>
             {statusCounts.backlog > 0
@@ -276,6 +292,39 @@ export default function LibraryPage() {
           </div>
         </Paper>
       </div>
+
+      {nextCandidate && (
+        <Paper p="md" radius="md" withBorder>
+          <Group justify="space-between" align="center" gap="sm">
+            <div>
+              <Text size="sm" fw={600}>Ready to start next?</Text>
+              <Text size="xs" c="dimmed">
+                {nextCandidate.game.name} is now at the front of your queue.
+              </Text>
+            </div>
+            <Group gap="xs">
+              <Button variant="default" size="xs" onClick={() => setNextCandidate(null)}>
+                Not now
+              </Button>
+              <Button
+                color="violet"
+                size="xs"
+                loading={updateEntry.isPending}
+                onClick={async () => {
+                  await updateEntry.mutateAsync({
+                    id: nextCandidate.id,
+                    updates: { status: 'playing' },
+                  });
+                  notifications.show({ color: 'teal', message: `Now playing: ${nextCandidate.game.name}` });
+                  setNextCandidate(null);
+                }}
+              >
+                Start next
+              </Button>
+            </Group>
+          </Group>
+        </Paper>
+      )}
 
       <div className={classes.overviewGrid}>
         <Paper p="md" radius="md" withBorder>
@@ -475,8 +524,10 @@ export default function LibraryPage() {
             onChange={(value) => value && setEditStatus(value as LibraryStatus)}
             data={[
               { value: 'playing', label: 'Playing' },
+              { value: 'replaying', label: 'Replaying' },
               { value: 'completed', label: 'Completed' },
               { value: 'backlog', label: 'Backlog' },
+              { value: 'wishlist', label: 'Wishlist' },
               { value: 'dropped', label: 'Dropped' },
             ]}
           />

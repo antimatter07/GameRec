@@ -49,7 +49,7 @@ import type { LibraryEntry } from '../types/library';
 import type { PlayQueueEntry } from '../types/playQueue';
 import classes from './QueuePage.module.css';
 
-const POOL_STATUSES = new Set(['backlog', 'completed', 'dropped']);
+const POOL_STATUSES = new Set(['backlog', 'replaying']);
 
 // Prefer pointer-within detection so empty containers are valid drop targets,
 // fall back to closestCenter for precise reordering within a populated container.
@@ -105,7 +105,7 @@ export default function QueuePage() {
     .filter((entry) => !queuedEntryIds.has(entry.id) && POOL_STATUSES.has(entry.status))
     .sort((a, b) => new Date(b.added_at).getTime() - new Date(a.added_at).getTime());
 
-  const queueItems = queue?.entries ?? [];
+  const queueItems = useMemo(() => queue?.entries ?? [], [queue?.entries]);
   const aiSuggestion = suggestionState?.suggestion ?? null;
   const queueSortableIds = queueItems.map((entry) => entry.entry_id);
   const poolSortableIds = poolEntries.map((entry) => `pool-${entry.id}`);
@@ -493,7 +493,7 @@ export default function QueuePage() {
                       <Text size="xs" c="dimmed" mt={4}>
                         {entries && entries.length === 0
                           ? 'Your library is empty. Add games from the catalog to queue them.'
-                          : 'Every eligible library game is already queued.'}
+                          : 'Every backlog or replaying game is already queued. Move wishlist games to backlog when you are ready to play them.'}
                       </Text>
                     </div>
                   </div>

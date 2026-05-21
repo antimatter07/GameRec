@@ -72,7 +72,7 @@ export default function AIPicksPage() {
 
   const recommendation = data?.recommendation ?? null;
   const status = recommendation?.status ?? null;
-  const items = recommendation?.items ?? [];
+  const items = useMemo(() => recommendation?.items ?? [], [recommendation?.items]);
   const hasItems = items.length > 0;
   const readyRecommendation = status === 'ready' ? recommendation : null;
 
@@ -160,7 +160,7 @@ export default function AIPicksPage() {
             AI <span className={classes.headerAccent}>Picks</span>
           </Text>
           <Text size="xs" c="dimmed" className={classes.headerSubtitle}>
-            Grounded recommendations shaped by your library, ratings, and play history — in a tighter, easier-to-scan list.
+            Grounded recommendations shaped by your library, ratings, wishlist interest, and play history — in a tighter, easier-to-scan list.
           </Text>
         </div>
 

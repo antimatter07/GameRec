@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.models.library import LibraryEntry, LibraryStatus
 from app.models.game import Game
-from app.models.recommendation import Recommendation, RecommendationItem, RecommendationKind, RecommendationStatus
+from app.models.recommendation import Recommendation, RecommendationFeedback, RecommendationItem, RecommendationKind, RecommendationStatus
 from app.models.user import User
 
 # Weight assigned to a library entry based on its status when no explicit
@@ -13,8 +13,9 @@ from app.models.user import User
 _STATUS_WEIGHTS: dict[LibraryStatus, float] = {
     LibraryStatus.COMPLETED: 4.0,
     LibraryStatus.PLAYING:   3.0,
-    LibraryStatus.BACKLOG:   2.0,
-    LibraryStatus.DROPPED:   1.0,
+    LibraryStatus.REPLAYING: 3.0,
+    LibraryStatus.BACKLOG:   1.5,
+    LibraryStatus.WISHLIST:  0.75,
 }
 
 _DEFAULT_WEIGHT = 2.0
@@ -57,8 +58,12 @@ def build_user_taste_profile(user_id: int, db: Session) -> np.ndarray:
 
     for entry in valid:
         if entry.rating is not None:
+            if entry.rating <= 2.5:
+                continue
             weight = float(entry.rating)
         else:
+            if entry.status == LibraryStatus.DROPPED:
+                continue
             weight = _STATUS_WEIGHTS.get(entry.status, _DEFAULT_WEIGHT)
 
         vec = np.array(entry.game.feature_vector, dtype=np.float64)
@@ -88,6 +93,52 @@ def build_user_taste_profile(user_id: int, db: Session) -> np.ndarray:
         pass  # Redis unavailable — proceed without caching
 
     return profile_f32
+
+
+def _feedback_adjustments(user_id: int, db: Session) -> tuple[set[int], dict[str, float], dict[str, float]]:
+    """Build exact suppressions and lightweight metadata boosts/penalties."""
+    feedback_rows = (
+        db.query(RecommendationFeedback)
+        .join(RecommendationFeedback.item)
+        .join(RecommendationItem.recommendation)
+        .options(joinedload(RecommendationFeedback.item).joinedload(RecommendationItem.game))
+        .filter(Recommendation.user_id == user_id)
+        .all()
+    )
+    suppressed_game_ids: set[int] = set()
+    genre_adjustments: dict[str, float] = {}
+    tag_adjustments: dict[str, float] = {}
+
+    def bump(target: dict[str, float], name: str | None, delta: float) -> None:
+        if name:
+            target[name.lower()] = target.get(name.lower(), 0.0) + delta
+
+    for feedback in feedback_rows:
+        game = feedback.item.game if feedback.item else None
+        if not game:
+            continue
+        if feedback.is_helpful:
+            genre_delta, tag_delta = 0.02, 0.01
+        else:
+            suppressed_game_ids.add(game.id)
+            genre_delta, tag_delta = -0.03, -0.015
+        for genre in (game.genres or []):
+            bump(genre_adjustments, genre.get("name"), genre_delta)
+        for tag in (game.tags or []):
+            if tag.get("language", "eng") in ("eng", ""):
+                bump(tag_adjustments, tag.get("name"), tag_delta)
+
+    return suppressed_game_ids, genre_adjustments, tag_adjustments
+
+
+def _apply_feedback_score(game: Game, base_score: float, genre_adjustments: dict[str, float], tag_adjustments: dict[str, float]) -> float:
+    score = base_score
+    for genre in (game.genres or []):
+        score += genre_adjustments.get((genre.get("name") or "").lower(), 0.0)
+    for tag in (game.tags or []):
+        if tag.get("language", "eng") in ("eng", ""):
+            score += tag_adjustments.get((tag.get("name") or "").lower(), 0.0)
+    return max(0.0, score)
 
 
 def compute_recommendations(user_id: int, db: Session) -> Recommendation:
@@ -121,7 +172,12 @@ def compute_recommendations(user_id: int, db: Session) -> Recommendation:
     )
 
     # Filter out library games
-    candidates = [g for g in candidate_games if g.rawg_id not in library_rawg_ids]
+    suppressed_game_ids, genre_adjustments, tag_adjustments = _feedback_adjustments(user_id, db)
+    candidates = [
+        g
+        for g in candidate_games
+        if g.rawg_id not in library_rawg_ids and g.id not in suppressed_game_ids
+    ]
 
     if not candidates:
         raise ValueError(
@@ -132,9 +188,16 @@ def compute_recommendations(user_id: int, db: Session) -> Recommendation:
     # Compute cosine similarities via vectorised dot product
     matrix = np.array([g.feature_vector for g in candidates], dtype=np.float32)
     scores: np.ndarray = matrix.dot(taste_vec)  # shape (N,)
+    adjusted_scores = np.array(
+        [
+            _apply_feedback_score(game, float(score), genre_adjustments, tag_adjustments)
+            for game, score in zip(candidates, scores)
+        ],
+        dtype=np.float32,
+    )
 
     # Sort descending and take top _TOP_N
-    top_indices = np.argsort(scores)[::-1][:_TOP_N]
+    top_indices = np.argsort(adjusted_scores)[::-1][:_TOP_N]
 
     # Persist recommendation batch
     recommendation = Recommendation(
@@ -152,7 +215,7 @@ def compute_recommendations(user_id: int, db: Session) -> Recommendation:
             recommendation_id=recommendation.id,
             game_id=game.id,
             rank=rank,
-            score=float(scores[int(idx)]),
+            score=float(adjusted_scores[int(idx)]),
         )
         db.add(item)
 

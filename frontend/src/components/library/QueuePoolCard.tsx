@@ -15,6 +15,8 @@ const STATUS_COLORS: Record<LibraryStatus, string> = {
   completed: 'blue',
   backlog:   'teal',
   dropped:   'grape',
+  wishlist:  'pink',
+  replaying: 'orange',
 };
 
 export function QueuePoolCard({ entry, onPlusClick }: QueuePoolCardProps) {
