@@ -1,7 +1,7 @@
 import enum
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Enum, Float, ForeignKey, Integer, Text, UniqueConstraint
+from sqlalchemy import DateTime, Enum, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -28,6 +28,13 @@ class LibraryEntry(Base):
     status:     Mapped[LibraryStatus] = mapped_column(Enum(LibraryStatus), default=LibraryStatus.BACKLOG)
     rating:     Mapped[float]         = mapped_column(Float, nullable=True)   # 1–5 stars
     review:     Mapped[str]           = mapped_column(Text,  nullable=True)
+    steam_app_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    steam_playtime_forever_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    steam_playtime_2weeks_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    steam_last_played_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    steam_imported_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    steam_import_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    steam_match_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
     added_at:   Mapped[datetime]      = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime]      = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc)

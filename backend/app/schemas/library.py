@@ -63,3 +63,25 @@ class LibraryEntryUpdateOut(BaseModel):
     # from auto-advancing the queue.
     queue_advanced: bool               = False
     next_game:      LibraryEntryOut | None = None
+
+
+class SteamImportRequest(BaseModel):
+    steam_profile: str = Field(..., min_length=1, max_length=255)
+
+
+class SteamImportGameResult(BaseModel):
+    steam_app_id: int
+    steam_name: str
+    game: GameListOut | None = None
+    library_entry_id: int | None = None
+    match_confidence: float | None = None
+    reason: str | None = None
+
+
+class SteamImportResponse(BaseModel):
+    steam_id: str
+    profile_name: str | None = None
+    added: list[SteamImportGameResult]
+    already_in_library: list[SteamImportGameResult]
+    skipped_low_confidence: list[SteamImportGameResult]
+    unmatched: list[SteamImportGameResult]

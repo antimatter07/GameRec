@@ -6,6 +6,7 @@ import type {
   LibraryEntryUpdate,
   LibraryStats,
   LibraryEntryUpdateOut,
+  SteamImportResponse,
 } from '../types/library';
 import type { GameListItem } from '../types/game';
 
@@ -46,6 +47,11 @@ export const libraryApi = {
 
   remove: (entryId: number) =>
     apiClient.delete(`/library/${entryId}`),
+
+  importSteam: (steamProfile: string) =>
+    apiClient
+      .post<SteamImportResponse>('/library/import/steam', { steam_profile: steamProfile })
+      .then((r) => r.data),
 
   getPrioritizedBacklog: (filters: BacklogFiltersParams = {}) =>
     apiClient

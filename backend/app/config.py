@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     RAWG_DISCOVERY_BUDGET_RATIO: float = 0.9
     RAWG_REJECT_RECHECK_DAYS: int = 90
 
+    # Steam Web API — get your key at steamcommunity.com/dev/apikey
+    STEAM_API_KEY: str = ""
+    STEAM_API_BASE_URL: str = "https://api.steampowered.com"
+
     # LLM for premium AI features (Anthropic Claude)
     ANTHROPIC_API_KEY: str = ""
     GEMINI_API_KEY: str = ""

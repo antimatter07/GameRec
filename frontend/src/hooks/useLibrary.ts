@@ -56,6 +56,18 @@ export function useUpdateLibraryEntry() {
   });
 }
 
+export function useImportSteamLibrary() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (steamProfile: string) => libraryApi.importSteam(steamProfile),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['library'] });
+      queryClient.invalidateQueries({ queryKey: ['library-stats'] });
+    },
+  });
+}
+
 export function useLibraryStats() {
   return useQuery({
     queryKey: ['library-stats'],

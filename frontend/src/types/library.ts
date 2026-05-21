@@ -47,3 +47,21 @@ export interface LibraryEntryUpdateOut {
   queue_advanced: boolean;
   next_game: LibraryEntry | null;
 }
+
+export interface SteamImportGameResult {
+  steam_app_id: number;
+  steam_name: string;
+  game: GameListItem | null;
+  library_entry_id: number | null;
+  match_confidence: number | null;
+  reason: string | null;
+}
+
+export interface SteamImportResponse {
+  steam_id: string;
+  profile_name: string | null;
+  added: SteamImportGameResult[];
+  already_in_library: SteamImportGameResult[];
+  skipped_low_confidence: SteamImportGameResult[];
+  unmatched: SteamImportGameResult[];
+}

@@ -47,6 +47,7 @@ class Game(Base):
     # Relationships
     library_entries  = relationship("LibraryEntry",       back_populates="game")
     recommendation_items = relationship("RecommendationItem", back_populates="game")
+    external_ids = relationship("GameExternalId", back_populates="game", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<Game id={self.id} name={self.name!r}>"

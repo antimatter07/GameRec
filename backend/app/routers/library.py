@@ -13,8 +13,11 @@ from app.schemas.library import (
     LibraryEntryUpdateOut,
     LibraryStats,
     PrioritizedBacklogOut,
+    SteamImportRequest,
+    SteamImportResponse,
 )
 from app.services import library_service
+from app.services import steam_import_service
 
 router = APIRouter()
 
@@ -57,6 +60,20 @@ def add_to_library(entry: LibraryEntryCreate, db: DBDep, current_user: CurrentUs
         precompute_for_user.delay(current_user.id)
     except Exception:
         pass  # Celery unavailable — recommendations will recompute on next request
+    return result
+
+
+@router.post("/import/steam", response_model=SteamImportResponse)
+def import_steam_library(payload: SteamImportRequest, db: DBDep, current_user: CurrentUserDep):
+    result = steam_import_service.import_steam_library(db, current_user.id, payload.steam_profile)
+    if result["added"] or result["already_in_library"]:
+        try:
+            from app.workers.tasks.recommendation import precompute_for_user
+            from app.services.ai_picks_service import invalidate_ai_picks_cache
+            invalidate_ai_picks_cache(current_user.id)
+            precompute_for_user.delay(current_user.id)
+        except Exception:
+            pass
     return result
 
 

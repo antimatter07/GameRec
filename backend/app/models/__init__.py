@@ -2,6 +2,7 @@
 from app.models.user import User, UserRole
 from app.models.auth_identity import AuthIdentity
 from app.models.game import Game
+from app.models.game_external_id import GameExternalId
 from app.models.library import LibraryEntry, LibraryStatus
 from app.models.recommendation import Recommendation, RecommendationItem, RecommendationFeedback
 from app.models.play_queue import PlayQueueEntry
@@ -14,6 +15,7 @@ __all__ = [
     "UserRole",
     "AuthIdentity",
     "Game",
+    "GameExternalId",
     "LibraryEntry",
     "LibraryStatus",
     "Recommendation",
