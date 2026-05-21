@@ -26,6 +26,7 @@ import {
   IconGhost,
   IconMoodEmpty,
   IconSearch,
+  IconBookmark,
 } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useCreateSession } from '../../hooks/useJournal';
@@ -76,6 +77,7 @@ export function LogSessionModal({
   const [isMilestone,     setIsMilestone]     = useState(false);
   const [milestoneLabel,  setMilestoneLabel]  = useState('');
   const [selectedEmotions, setSelectedEmotions] = useState<string[]>([]);
+  const [followUpNoteTitle, setFollowUpNoteTitle] = useState('');
 
   const createSession = useCreateSession();
 
@@ -96,6 +98,7 @@ export function LogSessionModal({
     setIsMilestone(false);
     setMilestoneLabel('');
     setSelectedEmotions([]);
+    setFollowUpNoteTitle('');
   };
 
   const handleClose = () => {
@@ -117,6 +120,7 @@ export function LogSessionModal({
       is_milestone:     isMilestone,
       milestone_label:  isMilestone ? milestoneLabel.trim() || null : null,
       emotions:         selectedEmotions.length > 0 ? (selectedEmotions as EmotionType[]) : null,
+      follow_up_note_title: followUpNoteTitle.trim() || null,
     };
 
     createSession.mutate(data, {
@@ -199,6 +203,14 @@ export function LogSessionModal({
           minRows={3}
           autosize
           maxRows={6}
+        />
+
+        <TextInput
+          label="Reminder for next time"
+          placeholder="First do the side quest in Mallenia and find Blaidd"
+          value={followUpNoteTitle}
+          onChange={(e) => setFollowUpNoteTitle(e.currentTarget.value)}
+          leftSection={<IconBookmark size={16} />}
         />
 
         <Group>

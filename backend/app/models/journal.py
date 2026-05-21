@@ -47,6 +47,45 @@ class SessionLog(Base):
         return f"<SessionLog id={self.id} user={self.user_id} game={self.game_id}>"
 
 
+class PlaythroughNote(Base):
+    __tablename__ = "playthrough_notes"
+
+    id:               Mapped[int]             = mapped_column(primary_key=True)
+    user_id:          Mapped[int]             = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    game_id:          Mapped[int]             = mapped_column(
+        Integer, ForeignKey("games.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    library_entry_id: Mapped[int | None]      = mapped_column(
+        Integer, ForeignKey("library_entries.id", ondelete="SET NULL"), nullable=True
+    )
+    session_log_id:   Mapped[int | None]      = mapped_column(Integer, nullable=True, index=True)
+    kind:             Mapped[str]             = mapped_column(String(32), nullable=False, default="note")
+    title:            Mapped[str]             = mapped_column(String(255), nullable=False)
+    body:             Mapped[str | None]      = mapped_column(Text, nullable=True)
+    status:           Mapped[str]             = mapped_column(String(32), nullable=False, default="open", index=True)
+    pinned:           Mapped[bool]            = mapped_column(Boolean, default=False, nullable=False)
+    remind_next_session: Mapped[bool]         = mapped_column(Boolean, default=False, nullable=False, index=True)
+    completed_at:     Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at:       Mapped[datetime]        = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+    updated_at:       Mapped[datetime]        = mapped_column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+    user          = relationship("User")
+    game          = relationship("Game")
+    library_entry = relationship("LibraryEntry")
+
+    def __repr__(self) -> str:
+        return f"<PlaythroughNote id={self.id} user={self.user_id} game={self.game_id} kind={self.kind}>"
+
+
 class GameRating(Base):
     __tablename__ = "game_ratings"
     __table_args__ = (

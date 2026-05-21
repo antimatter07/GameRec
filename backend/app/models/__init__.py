@@ -7,7 +7,7 @@ from app.models.library import LibraryEntry, LibraryStatus
 from app.models.recommendation import Recommendation, RecommendationItem, RecommendationFeedback
 from app.models.play_queue import PlayQueueEntry
 from app.models.queue_suggestion import QueueSuggestion, QueueSuggestionItem
-from app.models.journal import SessionLog
+from app.models.journal import PlaythroughNote, SessionLog
 from app.models.rawg_sync_state import RawgSeenGame, RawgSyncState
 
 __all__ = [
@@ -25,6 +25,7 @@ __all__ = [
     "QueueSuggestion",
     "QueueSuggestionItem",
     "SessionLog",
+    "PlaythroughNote",
     "RawgSyncState",
     "RawgSeenGame",
 ]

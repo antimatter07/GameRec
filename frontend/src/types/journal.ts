@@ -30,6 +30,25 @@ export const EMOTION_CONFIG: Record<EmotionType, { label: string; icon: string; 
 export const POSITIVE_EMOTIONS: EmotionType[] = ['happy', 'proud', 'relaxed'];
 export const NEGATIVE_EMOTIONS: EmotionType[] = ['frustrated', 'angry', 'bored', 'disappointed', 'sad', 'creeped_out'];
 
+export const PlaythroughNoteKind = {
+  GOAL: 'goal',
+  NOTE: 'note',
+  RECIPE: 'recipe',
+  LOCATION: 'location',
+  BUILD: 'build',
+  QUEST: 'quest',
+} as const;
+
+export type PlaythroughNoteKind = typeof PlaythroughNoteKind[keyof typeof PlaythroughNoteKind];
+
+export const PlaythroughNoteStatus = {
+  OPEN: 'open',
+  DONE: 'done',
+  ARCHIVED: 'archived',
+} as const;
+
+export type PlaythroughNoteStatus = typeof PlaythroughNoteStatus[keyof typeof PlaythroughNoteStatus];
+
 // ─── Session Logs ─────────────────────────────────────────────────────────────
 
 export interface SessionLogCreate {
@@ -41,6 +60,7 @@ export interface SessionLogCreate {
   is_milestone?:     boolean;
   milestone_label?:  string | null;
   emotions?:         EmotionType[] | null;
+  follow_up_note_title?: string | null;
 }
 
 export interface SessionLogUpdate {
@@ -69,6 +89,48 @@ export interface SessionLog {
   game_title?:      string;
   game_cover_url?:  string | null;
   game_genres?:     string[];
+}
+
+// ─── Scratchpad Notes ────────────────────────────────────────────────────────
+
+export interface PlaythroughNoteCreate {
+  game_id:             number;
+  library_entry_id?:   number | null;
+  session_log_id?:     number | null;
+  kind?:               PlaythroughNoteKind;
+  title:               string;
+  body?:               string | null;
+  status?:             PlaythroughNoteStatus;
+  pinned?:             boolean;
+  remind_next_session?: boolean;
+}
+
+export interface PlaythroughNoteUpdate {
+  kind?:               PlaythroughNoteKind | null;
+  title?:              string | null;
+  body?:               string | null;
+  status?:             PlaythroughNoteStatus | null;
+  pinned?:             boolean | null;
+  remind_next_session?: boolean | null;
+}
+
+export interface PlaythroughNote {
+  id:                  number;
+  user_id:             number;
+  game_id:             number;
+  library_entry_id:    number | null;
+  session_log_id:      number | null;
+  kind:                PlaythroughNoteKind;
+  title:               string;
+  body:                string | null;
+  status:              PlaythroughNoteStatus;
+  pinned:              boolean;
+  remind_next_session: boolean;
+  completed_at:        string | null;
+  created_at:          string;
+  updated_at:          string;
+  game_title?:         string | null;
+  game_cover_url?:     string | null;
 }
 
 // ─── Multi-Axis Ratings ───────────────────────────────────────────────────────

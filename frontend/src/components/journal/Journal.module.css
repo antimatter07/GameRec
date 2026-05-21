@@ -484,3 +484,43 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ─── Scratchpad ───────────────────────────────────────────────────────────── */
+
+.scratchpadEmpty {
+  background: var(--mantine-color-dark-6);
+}
+
+.noteCard {
+  display: flex;
+  gap: 12px;
+  background: var(--mantine-color-dark-6);
+}
+
+.noteCardMedia {
+  width: 44px;
+  height: 58px;
+  border-radius: 6px;
+  background: var(--mantine-color-dark-5);
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.noteCardMedia img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.noteCardBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.noteTitleBlock {
+  flex: 1;
+  min-width: 0;
+}

@@ -12,12 +12,15 @@ import {
   SimpleGrid,
   Pagination,
 } from '@mantine/core';
-import { IconPlus, IconTimeline, IconChartBar, IconMoodSmile } from '@tabler/icons-react';
+import { IconNote, IconNotes, IconPlus, IconTimeline, IconChartBar, IconMoodSmile } from '@tabler/icons-react';
 import {
   useJournalStats,
   useJournalFeed,
   useAllRatings,
   useEmotionStats,
+  useDeletePlaythroughNote,
+  usePlaythroughNotes,
+  useUpdatePlaythroughNote,
 } from '../../hooks/useJournal';
 import {
   MetricCards,
@@ -28,9 +31,12 @@ import {
   JournalFeedItem,
   LogSessionModal,
   MultiAxisRatingBars,
+  PlaythroughNoteModal,
+  ScratchpadPanel,
 } from '../../components/journal';
 import classes from '../../components/journal/Journal.module.css';
 import { EMOTION_CONFIG } from '../../types/journal';
+import type { PlaythroughNote } from '../../types/journal';
 
 const RATING_COLORS = [
   'var(--mantine-color-violet-5)',
@@ -56,14 +62,19 @@ const EMOTION_CSS_COLORS: Record<string, string> = {
 export default function JournalPage() {
   const [activeTab,    setActiveTab]    = useState<string | null>('overview');
   const [logModalOpen, setLogModalOpen] = useState(false);
+  const [noteModalOpen, setNoteModalOpen] = useState(false);
+  const [editingNote, setEditingNote] = useState<PlaythroughNote | null>(null);
   const [feedPage,     setFeedPage]     = useState(1);
 
   const { data: stats,        isLoading: statsLoading    } = useJournalStats();
   const { data: feedData,     isLoading: feedLoading     } = useJournalFeed(feedPage);
   const { data: ratings,      isLoading: ratingsLoading  } = useAllRatings();
   const { data: emotionStats, isLoading: emotionsLoading } = useEmotionStats({ period: '30d' });
+  const { data: notesData,    isLoading: notesLoading    } = usePlaythroughNotes({ per_page: 100 });
+  const updateNote = useUpdatePlaythroughNote();
+  const deleteNote = useDeletePlaythroughNote();
 
-  const isLoading = statsLoading || feedLoading || ratingsLoading || emotionsLoading;
+  const isLoading = statsLoading || feedLoading || ratingsLoading || emotionsLoading || notesLoading;
 
   if (isLoading && !stats) {
     return (
@@ -90,9 +101,21 @@ export default function JournalPage() {
             Your play sessions, moods, and progress — all in one place
           </Text>
         </div>
-        <Button leftSection={<IconPlus size={16} />} color="violet" onClick={() => setLogModalOpen(true)}>
-          Log session
-        </Button>
+        <Group gap="xs">
+          <Button
+            variant="light"
+            leftSection={<IconNotes size={16} />}
+            onClick={() => {
+              setEditingNote(null);
+              setNoteModalOpen(true);
+            }}
+          >
+            New note
+          </Button>
+          <Button leftSection={<IconPlus size={16} />} color="violet" onClick={() => setLogModalOpen(true)}>
+            Log session
+          </Button>
+        </Group>
       </div>
 
       {/* ─── Tabs ────────────────────────────────────────────────────────────── */}
@@ -100,6 +123,7 @@ export default function JournalPage() {
         <Tabs.List>
           <Tabs.Tab value="overview" leftSection={<IconChartBar size={14} />}>Overview</Tabs.Tab>
           <Tabs.Tab value="feed"     leftSection={<IconTimeline size={14} />}>Feed</Tabs.Tab>
+          <Tabs.Tab value="scratchpad" leftSection={<IconNote size={14} />}>Scratchpad</Tabs.Tab>
           <Tabs.Tab value="mood"     leftSection={<IconMoodSmile size={14} />}>Mood profile</Tabs.Tab>
         </Tabs.List>
 
@@ -229,6 +253,34 @@ export default function JournalPage() {
           )}
         </Tabs.Panel>
 
+        <Tabs.Panel value="scratchpad" pt="lg">
+          <ScratchpadPanel
+            notes={notesData?.items ?? []}
+            emptyMessage="No scratchpad notes yet. Save a quest reminder, recipe, or clue for future-you."
+            onCreate={() => {
+              setEditingNote(null);
+              setNoteModalOpen(true);
+            }}
+            onEdit={(note) => {
+              setEditingNote(note);
+              setNoteModalOpen(true);
+            }}
+            onToggleStatus={(note) => {
+              updateNote.mutate({
+                noteId: note.id,
+                data: { status: note.status === 'done' ? 'open' : 'done' },
+              });
+            }}
+            onTogglePinned={(note) => {
+              updateNote.mutate({
+                noteId: note.id,
+                data: { pinned: !note.pinned },
+              });
+            }}
+            onDelete={(note) => deleteNote.mutate(note.id)}
+          />
+        </Tabs.Panel>
+
         {/* ════ MOOD PROFILE ════════════════════════════════════════════════ */}
         <Tabs.Panel value="mood" pt="lg">
           <Paper p="md" radius="md" withBorder mb="md">
@@ -306,6 +358,16 @@ export default function JournalPage() {
         onClose={() => setLogModalOpen(false)}
         gameId={0}
       />
+      {noteModalOpen && (
+        <PlaythroughNoteModal
+          opened={noteModalOpen}
+          onClose={() => {
+            setNoteModalOpen(false);
+            setEditingNote(null);
+          }}
+          note={editingNote}
+        />
+      )}
     </div>
   );
 }

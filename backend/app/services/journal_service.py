@@ -5,7 +5,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.game import Game
-from app.models.journal import GameRating, SessionLog
+from app.models.journal import GameRating, PlaythroughNote, SessionLog
 from app.models.library import LibraryEntry, LibraryStatus
 from app.schemas.journal import (
     DailyHoursItem,
@@ -17,6 +17,10 @@ from app.schemas.journal import (
     JournalStats,
     MultiAxisRatingOut,
     MultiAxisRatingUpsert,
+    PaginatedPlaythroughNotesOut,
+    PlaythroughNoteCreate,
+    PlaythroughNoteOut,
+    PlaythroughNoteUpdate,
     SessionLogCreate,
     SessionLogOut,
     SessionLogUpdate,
@@ -25,6 +29,8 @@ from app.schemas.journal import (
 
 _POSITIVE_EMOTIONS = {'happy', 'proud', 'relaxed'}
 _NEGATIVE_EMOTIONS = {'frustrated', 'angry', 'bored', 'disappointed', 'sad', 'creeped_out'}
+_NOTE_KINDS = {"goal", "note", "recipe", "location", "build", "quest"}
+_NOTE_STATUSES = {"open", "done", "archived"}
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -58,11 +64,42 @@ def _session_to_out(s: SessionLog) -> SessionLogOut:
     )
 
 
+def _note_to_out(note: PlaythroughNote) -> PlaythroughNoteOut:
+    game = note.game
+    return PlaythroughNoteOut(
+        id=note.id,
+        user_id=note.user_id,
+        game_id=note.game_id,
+        library_entry_id=note.library_entry_id,
+        session_log_id=note.session_log_id,
+        kind=note.kind,
+        title=note.title,
+        body=note.body,
+        status=note.status,
+        pinned=note.pinned,
+        remind_next_session=note.remind_next_session,
+        completed_at=note.completed_at,
+        created_at=note.created_at,
+        updated_at=note.updated_at,
+        game_title=game.name if game else None,
+        game_cover_url=game.background_image if game else None,
+    )
+
+
 def _fetch_with_game(db: Session, session_id: int) -> SessionLog:
     return (
         db.query(SessionLog)
         .filter(SessionLog.id == session_id)
         .options(joinedload(SessionLog.game))
+        .first()
+    )
+
+
+def _fetch_note_with_game(db: Session, note_id: int) -> PlaythroughNote | None:
+    return (
+        db.query(PlaythroughNote)
+        .filter(PlaythroughNote.id == note_id)
+        .options(joinedload(PlaythroughNote.game))
         .first()
     )
 
@@ -85,6 +122,81 @@ def _rating_to_out(r: GameRating, game: Game | None) -> MultiAxisRatingOut:
     )
 
 
+def _validate_note_kind(kind: str) -> str:
+    if kind not in _NOTE_KINDS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid note kind: {kind}",
+        )
+    return kind
+
+
+def _validate_note_status(status_value: str) -> str:
+    if status_value not in _NOTE_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid note status: {status_value}",
+        )
+    return status_value
+
+
+def _resolve_library_entry(
+    db: Session,
+    *,
+    user_id: int,
+    game_id: int,
+    library_entry_id: int | None,
+) -> LibraryEntry | None:
+    if library_entry_id is None:
+        return None
+    linked_entry = (
+        db.query(LibraryEntry)
+        .filter(
+            LibraryEntry.id == library_entry_id,
+            LibraryEntry.user_id == user_id,
+            LibraryEntry.game_id == game_id,
+        )
+        .first()
+    )
+    if linked_entry is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Library entry does not belong to this user and game",
+        )
+    return linked_entry
+
+
+def _create_follow_up_note(
+    db: Session,
+    *,
+    user_id: int,
+    game_id: int,
+    library_entry_id: int | None,
+    session_log_id: int,
+    title: str | None,
+) -> PlaythroughNote | None:
+    if not title:
+        return None
+
+    trimmed = title.strip()
+    if not trimmed:
+        return None
+
+    note = PlaythroughNote(
+        user_id=user_id,
+        game_id=game_id,
+        library_entry_id=library_entry_id,
+        session_log_id=session_log_id,
+        kind="goal",
+        title=trimmed,
+        status="open",
+        pinned=True,
+        remind_next_session=True,
+    )
+    db.add(note)
+    return note
+
+
 # ─── Session CRUD ─────────────────────────────────────────────────────────────
 
 def create_session(db: Session, user_id: int, payload: SessionLogCreate) -> SessionLogOut:
@@ -92,24 +204,14 @@ def create_session(db: Session, user_id: int, payload: SessionLogCreate) -> Sess
     if not game:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Game not found")
 
-    linked_entry: LibraryEntry | None = None
-    if payload.library_entry_id is not None:
-        linked_entry = (
-            db.query(LibraryEntry)
-            .filter(
-                LibraryEntry.id == payload.library_entry_id,
-                LibraryEntry.user_id == user_id,
-                LibraryEntry.game_id == payload.game_id,
-            )
-            .first()
-        )
-        if linked_entry is None:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Library entry does not belong to this user and game",
-            )
+    linked_entry = _resolve_library_entry(
+        db,
+        user_id=user_id,
+        game_id=payload.game_id,
+        library_entry_id=payload.library_entry_id,
+    )
 
-    data = payload.model_dump()
+    data = payload.model_dump(exclude={"follow_up_note_title"})
     data["started_at"] = datetime.now(timezone.utc)
     # Validate emotions: keep only non-empty list, otherwise store None
     if data.get("emotions") is not None and len(data["emotions"]) == 0:
@@ -117,6 +219,17 @@ def create_session(db: Session, user_id: int, payload: SessionLogCreate) -> Sess
 
     entry = SessionLog(user_id=user_id, **data)
     db.add(entry)
+    db.flush()
+
+    _create_follow_up_note(
+        db,
+        user_id=user_id,
+        game_id=payload.game_id,
+        library_entry_id=payload.library_entry_id,
+        session_log_id=entry.id,
+        title=payload.follow_up_note_title,
+    )
+
     db.commit()
     db.refresh(entry)
 
@@ -162,6 +275,143 @@ def list_sessions(
         "per_page": per_page,
         "has_next": (page * per_page) < total,
     }
+
+
+# ─── Scratchpad CRUD ──────────────────────────────────────────────────────────
+
+def create_note(db: Session, user_id: int, payload: PlaythroughNoteCreate) -> PlaythroughNoteOut:
+    game = db.query(Game).filter(Game.id == payload.game_id).first()
+    if not game:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Game not found")
+
+    linked_entry = _resolve_library_entry(
+        db,
+        user_id=user_id,
+        game_id=payload.game_id,
+        library_entry_id=payload.library_entry_id,
+    )
+    kind = _validate_note_kind(payload.kind)
+    note_status = _validate_note_status(payload.status)
+    title = payload.title.strip()
+    body = payload.body.strip() if payload.body else None
+
+    note = PlaythroughNote(
+        user_id=user_id,
+        game_id=payload.game_id,
+        library_entry_id=linked_entry.id if linked_entry else None,
+        session_log_id=payload.session_log_id,
+        kind=kind,
+        title=title,
+        body=body or None,
+        status=note_status,
+        pinned=payload.pinned,
+        remind_next_session=payload.remind_next_session,
+        completed_at=datetime.now(timezone.utc) if note_status == "done" else None,
+    )
+    db.add(note)
+    db.commit()
+    db.refresh(note)
+
+    loaded = _fetch_note_with_game(db, note.id)
+    if not loaded:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Note could not be loaded")
+    return _note_to_out(loaded)
+
+
+def list_notes(
+    db: Session,
+    user_id: int,
+    game_id: int | None = None,
+    status_value: str | None = None,
+    kind: str | None = None,
+    pinned: bool | None = None,
+    remind_next_session: bool | None = None,
+    page: int = 1,
+    per_page: int = 50,
+) -> PaginatedPlaythroughNotesOut:
+    if status_value is not None:
+        _validate_note_status(status_value)
+    if kind is not None:
+        _validate_note_kind(kind)
+
+    query = (
+        db.query(PlaythroughNote)
+        .filter(PlaythroughNote.user_id == user_id)
+        .options(joinedload(PlaythroughNote.game))
+        .order_by(
+            PlaythroughNote.pinned.desc(),
+            PlaythroughNote.remind_next_session.desc(),
+            PlaythroughNote.updated_at.desc(),
+        )
+    )
+    if game_id is not None:
+        query = query.filter(PlaythroughNote.game_id == game_id)
+    if status_value is not None:
+        query = query.filter(PlaythroughNote.status == status_value)
+    if kind is not None:
+        query = query.filter(PlaythroughNote.kind == kind)
+    if pinned is not None:
+        query = query.filter(PlaythroughNote.pinned == pinned)
+    if remind_next_session is not None:
+        query = query.filter(PlaythroughNote.remind_next_session == remind_next_session)
+
+    total = query.count()
+    results = query.offset((page - 1) * per_page).limit(per_page).all()
+    return PaginatedPlaythroughNotesOut(
+        items=[_note_to_out(note) for note in results],
+        total=total,
+        page=page,
+        per_page=per_page,
+        has_next=(page * per_page) < total,
+    )
+
+
+def update_note(
+    db: Session,
+    user_id: int,
+    note_id: int,
+    payload: PlaythroughNoteUpdate,
+) -> PlaythroughNoteOut:
+    note = db.query(PlaythroughNote).filter(PlaythroughNote.id == note_id).first()
+    if not note:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Note not found")
+    if note.user_id != user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your note")
+
+    updates = payload.model_dump(exclude_unset=True)
+    if "kind" in updates and updates["kind"] is not None:
+        updates["kind"] = _validate_note_kind(updates["kind"])
+    if "status" in updates and updates["status"] is not None:
+        updates["status"] = _validate_note_status(updates["status"])
+    if "title" in updates and updates["title"] is not None:
+        updates["title"] = updates["title"].strip()
+    if "body" in updates:
+        updates["body"] = updates["body"].strip() if updates["body"] else None
+
+    for field, value in updates.items():
+        setattr(note, field, value)
+
+    if "status" in updates:
+        if updates["status"] == "done":
+            note.completed_at = note.completed_at or datetime.now(timezone.utc)
+        else:
+            note.completed_at = None
+
+    db.commit()
+    loaded = _fetch_note_with_game(db, note.id)
+    if not loaded:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Note could not be loaded")
+    return _note_to_out(loaded)
+
+
+def delete_note(db: Session, user_id: int, note_id: int) -> None:
+    note = db.query(PlaythroughNote).filter(PlaythroughNote.id == note_id).first()
+    if not note:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Note not found")
+    if note.user_id != user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your note")
+    db.delete(note)
+    db.commit()
 
 
 def update_session(

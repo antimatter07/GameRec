@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Badge,
   Button,
@@ -14,15 +15,23 @@ import {
   Title,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconClock } from '@tabler/icons-react';
+import { IconClock, IconNotes } from '@tabler/icons-react';
 import { useParams } from 'react-router';
 import { LogSessionModal }         from '../../components/journal/LogSessionModal';
 import { JournalFeedItem }         from '../../components/journal/JournalFeedItem';
 import { MultiAxisRatingWidget }   from '../../components/journal/MultiAxisRatingWidget';
+import { PlaythroughNoteModal }    from '../../components/journal/PlaythroughNoteModal';
+import { ScratchpadPanel }         from '../../components/journal/ScratchpadPanel';
 import { SaveToLibraryButton }     from '../../components/games/SaveToLibraryButton';
 import { useGame }                 from '../../hooks/useGames';
-import { useJournalSessions }      from '../../hooks/useJournal';
+import {
+  useDeletePlaythroughNote,
+  useJournalSessions,
+  usePlaythroughNotes,
+  useUpdatePlaythroughNote,
+} from '../../hooks/useJournal';
 import { useLibrary }              from '../../hooks/useLibrary';
+import type { PlaythroughNote }    from '../../types/journal';
 
 export default function GameDetailPage() {
   const { gameId } = useParams<{ gameId: string }>();
@@ -30,8 +39,13 @@ export default function GameDetailPage() {
 
   const { data: game,           isLoading, isError } = useGame(id);
   const { data: recentSessions }                     = useJournalSessions({ game_id: id, per_page: 3 });
+  const { data: notesData }                          = usePlaythroughNotes({ game_id: id, per_page: 100 });
   const { data: library }                            = useLibrary();
   const [logOpened, { open: openLog, close: closeLog }] = useDisclosure(false);
+  const [noteOpened, { open: openNote, close: closeNote }] = useDisclosure(false);
+  const [editingNote, setEditingNote] = useState<PlaythroughNote | null>(null);
+  const updateNote = useUpdatePlaythroughNote();
+  const deleteNote = useDeletePlaythroughNote();
 
   if (isLoading) return <Center h={400}><Loader /></Center>;
   if (isError || !game) return <Text c="red">Game not found.</Text>;
@@ -82,6 +96,17 @@ export default function GameDetailPage() {
 
         <Group>
           <SaveToLibraryButton game={game} libraryEntry={libraryEntry} />
+          <Button
+            variant="light"
+            color="violet"
+            leftSection={<IconNotes size={16} />}
+            onClick={() => {
+              setEditingNote(null);
+              openNote();
+            }}
+          >
+            New Note
+          </Button>
           <Button variant="light" color="violet" onClick={openLog}>
             Log Session
           </Button>
@@ -95,6 +120,19 @@ export default function GameDetailPage() {
         opened={logOpened}
         onClose={closeLog}
       />
+      {noteOpened && (
+        <PlaythroughNoteModal
+          gameId={id}
+          gameTitle={game.name}
+          libraryEntryId={libraryEntry?.id}
+          opened={noteOpened}
+          onClose={() => {
+            closeNote();
+            setEditingNote(null);
+          }}
+          note={editingNote}
+        />
+      )}
 
       {/* ── Multi-axis ratings ────────────────────────────────────────────── */}
       {libraryEntry && (
@@ -103,6 +141,36 @@ export default function GameDetailPage() {
           <MultiAxisRatingWidget gameId={id} />
         </Paper>
       )}
+
+      <Paper p="md" radius="md" withBorder>
+        <ScratchpadPanel
+          title={`${game.name} scratchpad`}
+          actionLabel="New note"
+          notes={notesData?.items ?? []}
+          emptyMessage="No notes for this game yet. Save a quest reminder, route, recipe, or clue."
+          onCreate={() => {
+            setEditingNote(null);
+            openNote();
+          }}
+          onEdit={(note) => {
+            setEditingNote(note);
+            openNote();
+          }}
+          onToggleStatus={(note) => {
+            updateNote.mutate({
+              noteId: note.id,
+              data: { status: note.status === 'done' ? 'open' : 'done' },
+            });
+          }}
+          onTogglePinned={(note) => {
+            updateNote.mutate({
+              noteId: note.id,
+              data: { pinned: !note.pinned },
+            });
+          }}
+          onDelete={(note) => deleteNote.mutate(note.id)}
+        />
+      </Paper>
 
       {/* ── How Long to Beat ─────────────────────────────────────────────── */}
       {(game.hltb_main_hours != null ||

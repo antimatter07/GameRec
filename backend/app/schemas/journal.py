@@ -2,6 +2,9 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+JournalNoteKind = str
+JournalNoteStatus = str
+
 
 # ─── Session Logs ─────────────────────────────────────────────────────────────
 
@@ -14,6 +17,7 @@ class SessionLogCreate(BaseModel):
     is_milestone:     bool             = False
     milestone_label:  str | None       = None
     emotions:         list[str] | None = None
+    follow_up_note_title: str | None   = Field(None, min_length=1, max_length=255)
 
 
 class SessionLogUpdate(BaseModel):
@@ -48,6 +52,58 @@ class SessionLogOut(BaseModel):
 
 class PaginatedSessionsOut(BaseModel):
     items:    list[SessionLogOut]
+    total:    int
+    page:     int
+    per_page: int
+    has_next: bool
+
+
+# ─── Scratchpad Notes ─────────────────────────────────────────────────────────
+
+class PlaythroughNoteCreate(BaseModel):
+    game_id:             int
+    library_entry_id:    int | None = None
+    session_log_id:      int | None = None
+    kind:                JournalNoteKind = "note"
+    title:               str = Field(..., min_length=1, max_length=255)
+    body:                str | None = None
+    status:              JournalNoteStatus = "open"
+    pinned:              bool = False
+    remind_next_session: bool = False
+
+
+class PlaythroughNoteUpdate(BaseModel):
+    kind:                JournalNoteKind | None = None
+    title:               str | None = Field(None, min_length=1, max_length=255)
+    body:                str | None = None
+    status:              JournalNoteStatus | None = None
+    pinned:              bool | None = None
+    remind_next_session: bool | None = None
+
+
+class PlaythroughNoteOut(BaseModel):
+    id:                  int
+    user_id:             int
+    game_id:             int
+    library_entry_id:    int | None
+    session_log_id:      int | None
+    kind:                JournalNoteKind
+    title:               str
+    body:                str | None
+    status:              JournalNoteStatus
+    pinned:              bool
+    remind_next_session: bool
+    completed_at:        datetime | None
+    created_at:          datetime
+    updated_at:          datetime
+    game_title:          str | None
+    game_cover_url:      str | None
+
+    model_config = {"from_attributes": False}
+
+
+class PaginatedPlaythroughNotesOut(BaseModel):
+    items:    list[PlaythroughNoteOut]
     total:    int
     page:     int
     per_page: int

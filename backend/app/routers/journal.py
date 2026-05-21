@@ -11,7 +11,11 @@ from app.schemas.journal import (
     JournalStats,
     MultiAxisRatingOut,
     MultiAxisRatingUpsert,
+    PaginatedPlaythroughNotesOut,
     PaginatedSessionsOut,
+    PlaythroughNoteCreate,
+    PlaythroughNoteOut,
+    PlaythroughNoteUpdate,
     SessionLogCreate,
     SessionLogOut,
     SessionLogUpdate,
@@ -77,6 +81,53 @@ def get_feed(
     per_page: int = Query(20, ge=1, le=100),
 ):
     return journal_service.get_feed(db, current_user.id, page, per_page)
+
+
+# ─── Scratchpad Notes ─────────────────────────────────────────────────────────
+
+@router.post("/notes", response_model=PlaythroughNoteOut, status_code=status.HTTP_201_CREATED)
+def create_note(payload: PlaythroughNoteCreate, db: DBDep, current_user: CurrentUserDep):
+    return journal_service.create_note(db, current_user.id, payload)
+
+
+@router.get("/notes", response_model=PaginatedPlaythroughNotesOut)
+def list_notes(
+    db: DBDep,
+    current_user: CurrentUserDep,
+    game_id: int | None = Query(None),
+    status_value: str | None = Query(None, alias="status"),
+    kind: str | None = Query(None),
+    pinned: bool | None = Query(None),
+    remind_next_session: bool | None = Query(None),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=100),
+):
+    return journal_service.list_notes(
+        db,
+        current_user.id,
+        game_id,
+        status_value,
+        kind,
+        pinned,
+        remind_next_session,
+        page,
+        per_page,
+    )
+
+
+@router.patch("/notes/{note_id}", response_model=PlaythroughNoteOut)
+def update_note(
+    note_id: int,
+    payload: PlaythroughNoteUpdate,
+    db: DBDep,
+    current_user: CurrentUserDep,
+):
+    return journal_service.update_note(db, current_user.id, note_id, payload)
+
+
+@router.delete("/notes/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_note(note_id: int, db: DBDep, current_user: CurrentUserDep):
+    journal_service.delete_note(db, current_user.id, note_id)
 
 
 # ─── Multi-Axis Ratings ───────────────────────────────────────────────────────

@@ -8,6 +8,8 @@ import type {
   SessionLogCreate,
   SessionLogUpdate,
   EmotionStatsPeriod,
+  PlaythroughNoteCreate,
+  PlaythroughNoteUpdate,
 } from '../types/journal';
 
 // ─── Query Keys ───────────────────────────────────────────────────────────────
@@ -17,6 +19,9 @@ export const journalKeys = {
   sessions:     () => [...journalKeys.all, 'sessions'] as const,
   sessionList:  (filters?: Record<string, unknown>) =>
     [...journalKeys.sessions(), 'list', filters] as const,
+  notes:        () => [...journalKeys.all, 'notes'] as const,
+  noteList:     (filters?: Record<string, unknown>) =>
+    [...journalKeys.notes(), 'list', filters] as const,
   stats:        () => [...journalKeys.all, 'stats'] as const,
   ratings:      () => [...journalKeys.all, 'ratings'] as const,
   ratingDetail: (gameId: number) => [...journalKeys.ratings(), gameId] as const,
@@ -46,6 +51,21 @@ export function useJournalStats() {
     queryKey: journalKeys.stats(),
     queryFn:  journalApi.getStats,
     staleTime: 1000 * 60 * 5, // 5 min
+  });
+}
+
+export function usePlaythroughNotes(params?: {
+  page?:                number;
+  per_page?:            number;
+  game_id?:             number;
+  status?:              string;
+  kind?:                string;
+  pinned?:              boolean;
+  remind_next_session?: boolean;
+}) {
+  return useQuery({
+    queryKey: journalKeys.noteList(params),
+    queryFn:  () => journalApi.getNotes(params),
   });
 }
 
@@ -95,6 +115,7 @@ export function useCreateSession() {
     mutationFn: (data: SessionLogCreate) => journalApi.createSession(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: journalKeys.sessions() });
+      qc.invalidateQueries({ queryKey: journalKeys.notes() });
       qc.invalidateQueries({ queryKey: journalKeys.stats() });
       qc.invalidateQueries({ queryKey: journalKeys.feed() });
       qc.invalidateQueries({ queryKey: journalKeys.emotionStats() });
@@ -111,6 +132,7 @@ export function useUpdateSession() {
       journalApi.updateSession(sessionId, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: journalKeys.sessions() });
+      qc.invalidateQueries({ queryKey: journalKeys.notes() });
       qc.invalidateQueries({ queryKey: journalKeys.stats() });
       qc.invalidateQueries({ queryKey: journalKeys.feed() });
       qc.invalidateQueries({ queryKey: journalKeys.emotionStats() });
@@ -124,9 +146,41 @@ export function useDeleteSession() {
     mutationFn: (sessionId: number) => journalApi.deleteSession(sessionId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: journalKeys.sessions() });
+      qc.invalidateQueries({ queryKey: journalKeys.notes() });
       qc.invalidateQueries({ queryKey: journalKeys.stats() });
       qc.invalidateQueries({ queryKey: journalKeys.feed() });
       qc.invalidateQueries({ queryKey: journalKeys.emotionStats() });
+    },
+  });
+}
+
+export function useCreatePlaythroughNote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: PlaythroughNoteCreate) => journalApi.createNote(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: journalKeys.notes() });
+    },
+  });
+}
+
+export function useUpdatePlaythroughNote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ noteId, data }: { noteId: number; data: PlaythroughNoteUpdate }) =>
+      journalApi.updateNote(noteId, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: journalKeys.notes() });
+    },
+  });
+}
+
+export function useDeletePlaythroughNote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (noteId: number) => journalApi.deleteNote(noteId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: journalKeys.notes() });
     },
   });
 }

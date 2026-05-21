@@ -10,6 +10,9 @@ import type {
   EmotionStats,
   EmotionStatsPeriod,
   JournalFeedItem,
+  PlaythroughNote,
+  PlaythroughNoteCreate,
+  PlaythroughNoteUpdate,
   PaginatedResponse,
 } from '../types/journal';
 
@@ -62,6 +65,35 @@ export const journalApi = {
 
   deleteSession: async (sessionId: number): Promise<void> => {
     await apiClient.delete(`/journal/sessions/${sessionId}`);
+  },
+
+  // ── Scratchpad ──────────────────────────────────────────────────────────────
+
+  createNote: async (data: PlaythroughNoteCreate): Promise<PlaythroughNote> => {
+    const res = await apiClient.post<PlaythroughNote>('/journal/notes', data);
+    return res.data;
+  },
+
+  getNotes: async (params?: {
+    page?:                 number;
+    per_page?:             number;
+    game_id?:              number;
+    status?:               string;
+    kind?:                 string;
+    pinned?:               boolean;
+    remind_next_session?:  boolean;
+  }): Promise<PaginatedResponse<PlaythroughNote>> => {
+    const res = await apiClient.get<PaginatedResponse<PlaythroughNote>>('/journal/notes', { params });
+    return res.data;
+  },
+
+  updateNote: async (noteId: number, data: PlaythroughNoteUpdate): Promise<PlaythroughNote> => {
+    const res = await apiClient.patch<PlaythroughNote>(`/journal/notes/${noteId}`, data);
+    return res.data;
+  },
+
+  deleteNote: async (noteId: number): Promise<void> => {
+    await apiClient.delete(`/journal/notes/${noteId}`);
   },
 
   // ── Stats ────────────────────────────────────────────────────────────────────
