@@ -25,20 +25,12 @@ _TOP_N = 20
 
 def build_user_taste_profile(user_id: int, db: Session) -> np.ndarray:
     """
-    Aggregate the user's rated/tracked library entries into a taste-profile
-    vector.
+    Aggregate the user's library into a normalized taste-profile vector.
 
-    1. Load all LibraryEntry rows for the user, eagerly loading game.feature_vector.
-    2. Filter out entries whose game has no feature_vector.
-    3. Assign a weight per entry:
-       - If a numeric rating (1–5) is present: weight = rating
-       - Otherwise: weight derived from status (see _STATUS_WEIGHTS)
-    4. Compute a weighted average of the game feature vectors.
-    5. L2-normalise the result.
-    6. Attempt to cache the serialised vector in Redis (key "taste:{user_id}",
-       TTL 3600 s).  Redis errors are silently swallowed so the service keeps
-       working when Redis is unavailable.
-    7. Return the profile as a 1-D numpy float32 array.
+    Rated games contribute more strongly than un-rated games, and tracked
+    status still provides signal when a rating is absent. The resulting vector
+    is used by the cosine-similarity recommender and is cached best-effort in
+    Redis for repeat requests.
 
     Raises ValueError when the user has no library entries that have been
     vectorised yet (i.e., build_vectors.py has not been run, or the user has
@@ -100,15 +92,12 @@ def build_user_taste_profile(user_id: int, db: Session) -> np.ndarray:
 
 def compute_recommendations(user_id: int, db: Session) -> Recommendation:
     """
-    Content-based filtering via cosine similarity.
+    Generate and persist the core cosine-similarity recommendation batch.
 
-    1. Build the user's taste profile vector.
-    2. Load all Game rows that have a feature_vector.
-    3. Exclude games already present in the user's library.
-    4. Compute dot-product similarity (both vectors are L2-normalised, so
-       this equals cosine similarity).
-    5. Sort descending and take the top _TOP_N results.
-    6. Persist a Recommendation + RecommendationItem rows and return.
+    This is the non-LLM recommendation path for games: it compares the user's
+    taste vector to every vectorised game, filters out owned titles, keeps the
+    strongest matches, and stores the batch for later display and AI-enhanced
+    follow-up tasks.
     """
     taste_vec = build_user_taste_profile(user_id, db)
 
@@ -173,10 +162,10 @@ def compute_recommendations(user_id: int, db: Session) -> Recommendation:
 
 
 def get_or_generate(user_id: int, db: Session) -> Recommendation:
-    """Return a recent cached recommendation or generate a fresh one.
+    """Return a cached recommendation batch or generate a fresh one.
 
-    If a Recommendation for this user was generated within the last hour it is
-    returned as-is.  Otherwise a new one is computed and returned.
+    The recommendation feed is cached for a short window so repeated requests
+    reuse the same batch unless the cache has aged out.
     """
     cutoff = datetime.now(timezone.utc) - _RECOMMENDATION_TTL
 

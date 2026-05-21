@@ -10,6 +10,38 @@ export function usePlayQueue() {
   });
 }
 
+export function useQueueSuggestion() {
+  return useQuery({
+    queryKey: ['queue-suggestion'],
+    queryFn: playQueueApi.getSuggestion,
+    refetchOnWindowFocus: false,
+    refetchInterval: (query) => {
+      return query.state.data?.is_generating ? 3000 : false;
+    },
+  });
+}
+
+export function useEnsureQueueSuggestion() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (triggerSource: string) => playQueueApi.ensureSuggestion(triggerSource),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['queue-suggestion'] });
+    },
+  });
+}
+
+export function useAdoptQueueSuggestion() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: playQueueApi.adoptSuggestion,
+    onSuccess: (data) => {
+      queryClient.setQueryData(['play-queue'], data);
+      queryClient.invalidateQueries({ queryKey: ['queue-suggestion'] });
+    },
+  });
+}
+
 export function useEnqueueGame() {
   const queryClient = useQueryClient();
 
@@ -17,6 +49,7 @@ export function useEnqueueGame() {
     mutationFn: (entryId: number) => playQueueApi.enqueue(entryId),
     onSuccess: (data) => {
       queryClient.setQueryData(['play-queue'], data);
+      queryClient.invalidateQueries({ queryKey: ['queue-suggestion'] });
     },
   });
 }
@@ -44,6 +77,7 @@ export function useDequeueGame() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['play-queue'] });
+      queryClient.invalidateQueries({ queryKey: ['queue-suggestion'] });
     },
   });
 }
@@ -75,6 +109,7 @@ export function useReorderQueue() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['play-queue'] });
+      queryClient.invalidateQueries({ queryKey: ['queue-suggestion'] });
     },
   });
 }

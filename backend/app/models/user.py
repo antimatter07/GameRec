@@ -34,6 +34,7 @@ class User(Base):
     library_entries    = relationship("LibraryEntry",    back_populates="user", cascade="all, delete-orphan")
     recommendations    = relationship("Recommendation",  back_populates="user", cascade="all, delete-orphan")
     play_queue_entries = relationship("PlayQueueEntry",  back_populates="user", cascade="all, delete-orphan")
+    queue_suggestions  = relationship("QueueSuggestion", back_populates="user", cascade="all, delete-orphan")
     session_logs       = relationship("SessionLog",      back_populates="user", cascade="all, delete-orphan")
 
     # TODO: Add relationship to PremiumRequest model once created (3.2 feature)

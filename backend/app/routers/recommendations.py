@@ -21,6 +21,7 @@ def get_recommendations(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_basic),
 ):
+    """Return the user's cosine-similarity game recommendations."""
     try:
         recommendation = recommendation_service.get_or_generate(current_user.id, db)
     except ValueError as exc:
@@ -60,6 +61,7 @@ def get_recommendation_history(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_basic),
 ):
+    """Return prior cosine-similarity recommendation batches for the user."""
     offset = (page - 1) * page_size
     recommendations = (
         db.query(Recommendation)
@@ -81,6 +83,7 @@ def get_ai_picks(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_ai_picks),
 ):
+    """Return the current state of the LLM-native AI Picks feed."""
     return get_ai_picks_state(current_user.id, db)
 
 
@@ -89,6 +92,7 @@ def refresh_ai_picks(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_ai_picks),
 ):
+    """Request a fresh AI Picks batch and enqueue generation when needed."""
     try:
         recommendation, should_enqueue = request_ai_picks_refresh(current_user.id, db)
     except ValueError as exc:
@@ -109,6 +113,7 @@ def get_game_dna(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_premium),
 ):
+    """Return the premium Game DNA summary, using Redis as a short cache."""
     # Check Redis cache first
     cache_key = f"game_dna:{current_user.id}"
     try:

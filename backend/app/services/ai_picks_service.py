@@ -85,18 +85,22 @@ class AIPicksSelection(BaseModel):
 
 
 def _redis_client():
+    """Create a Redis client for AI Picks cache and dirtiness checks."""
     return redis_lib.from_url(settings.REDIS_URL)
 
 
 def _dossier_cache_key(user_id: int) -> str:
+    """Build the Redis cache key for a user's generated taste dossier."""
     return f"ai_picks:dossier:{user_id}"
 
 
 def _dirty_cache_key(user_id: int) -> str:
+    """Build the Redis key used to mark a dossier as stale."""
     return f"ai_picks:dirty:{user_id}"
 
 
 def _truncate(text: str | None, limit: int = 120) -> str:
+    """Trim long user-provided text snippets for compact LLM prompts."""
     if not text:
         return ""
     trimmed = " ".join(text.split())
@@ -106,18 +110,21 @@ def _truncate(text: str | None, limit: int = 120) -> str:
 
 
 def _entry_weight(entry: LibraryEntry) -> float:
+    """Return the weight a library entry should contribute to taste analysis."""
     if entry.rating is not None:
         return float(entry.rating)
     return _STATUS_WEIGHTS.get(entry.status, 2.0)
 
 
 def _era_label(year: int | None) -> str | None:
+    """Convert a release year into a decade label for taste clustering."""
     if not year:
         return None
     return f"{(year // 10) * 10}s"
 
 
 def _length_bucket(hours: float | None) -> str:
+    """Bucket a game length into a coarse label the LLM can reason about."""
     if hours is None:
         return "medium"
     if hours < 10:
@@ -130,6 +137,7 @@ def _length_bucket(hours: float | None) -> str:
 
 
 def invalidate_ai_picks_cache(user_id: int) -> None:
+    """Mark AI Picks as stale after library, rating, or journal changes."""
     try:
         r = _redis_client()
         ttl_seconds = max(int(_CACHE_TTL.total_seconds()), 60)
@@ -140,6 +148,7 @@ def invalidate_ai_picks_cache(user_id: int) -> None:
 
 
 def _clear_dirty_flag(user_id: int) -> None:
+    """Clear the stale marker after a fresh AI Picks batch is generated."""
     try:
         _redis_client().delete(_dirty_cache_key(user_id))
     except Exception:
@@ -147,6 +156,7 @@ def _clear_dirty_flag(user_id: int) -> None:
 
 
 def _is_dirty(user_id: int) -> bool:
+    """Return whether the user's cached taste dossier should be regenerated."""
     try:
         return bool(_redis_client().get(_dirty_cache_key(user_id)))
     except Exception:
@@ -154,6 +164,7 @@ def _is_dirty(user_id: int) -> bool:
 
 
 def _load_cached_dossier(user_id: int) -> TasteDossier | None:
+    """Load a previously generated taste dossier from Redis, if available."""
     try:
         payload = _redis_client().get(_dossier_cache_key(user_id))
         if not payload:
@@ -164,6 +175,7 @@ def _load_cached_dossier(user_id: int) -> TasteDossier | None:
 
 
 def _store_cached_dossier(user_id: int, dossier: TasteDossier) -> None:
+    """Persist a generated taste dossier to Redis for reuse within the TTL."""
     try:
         _redis_client().setex(
             _dossier_cache_key(user_id),
@@ -175,6 +187,13 @@ def _store_cached_dossier(user_id: int, dossier: TasteDossier) -> None:
 
 
 def build_compact_taste_summary(user_id: int, db: Session) -> CompactTasteSummary:
+    """
+    Summarize all explicit player signals before the LLM turn.
+
+    The compact summary blends library status, ratings, journal notes, and
+    review text into a small structured object that is cheap to cache and safe
+    to hand to the downstream Gemini dossier generator.
+    """
     entries: list[LibraryEntry] = (
         db.query(LibraryEntry)
         .options(joinedload(LibraryEntry.game))
@@ -318,6 +337,13 @@ def build_compact_taste_summary(user_id: int, db: Session) -> CompactTasteSummar
 
 
 def build_taste_dossier(user_id: int, db: Session, *, force_refresh: bool = False) -> tuple[CompactTasteSummary, TasteDossier]:
+    """
+    Turn the compact player summary into the richer AI Picks dossier.
+
+    The compact summary is always computed first so the service can validate
+    the user's available taste signal, then the LLM expands that summary into a
+    more expressive dossier used for candidate scoring and pick generation.
+    """
     compact_summary = build_compact_taste_summary(user_id, db)
     if not force_refresh:
         cached = _load_cached_dossier(user_id)
@@ -341,6 +367,7 @@ def build_taste_dossier(user_id: int, db: Session, *, force_refresh: bool = Fals
 
 
 def _score_candidate(game: Game, dossier: TasteDossier) -> float:
+    """Score a catalog game against the generated taste dossier."""
     genre_names = {genre.get("name", "").lower() for genre in (game.genres or []) if genre.get("name")}
     tag_names = {
         tag.get("name", "").lower()
@@ -382,6 +409,12 @@ def _score_candidate(game: Game, dossier: TasteDossier) -> float:
 
 
 def build_candidate_shortlist(user_id: int, dossier: TasteDossier, db: Session) -> list[CandidateRecord]:
+    """
+    Build the allowed catalog slice that the LLM may choose from.
+
+    This pre-filters owned games and removes weak matches so the structured
+    model call stays focused on plausible recommendations.
+    """
     owned_game_ids = {
         entry.game_id
         for entry in db.query(LibraryEntry).filter(LibraryEntry.user_id == user_id).all()
@@ -425,6 +458,7 @@ def build_candidate_shortlist(user_id: int, dossier: TasteDossier, db: Session) 
 
 
 def _selection_prompt(dossier: TasteDossier, candidates: list[CandidateRecord]) -> str:
+    """Format the dossier and candidate shortlist into the LLM selection prompt."""
     candidate_lines = [
         (
             f"{candidate.game_id} | {candidate.name} | "
@@ -452,6 +486,7 @@ def _validate_selection(
     candidate_ids: set[int],
     owned_game_ids: set[int],
 ) -> AIPicksSelection:
+    """Reject malformed or unsafe AI Picks responses before they are stored."""
     if not selection.taste_summary.strip():
         raise ValueError("Missing taste summary from AI Picks response.")
     if not selection.picks:
@@ -475,6 +510,7 @@ def _validate_selection(
 
 
 def _generate_selection_once(dossier: TasteDossier, candidates: list[CandidateRecord], *, stricter: bool = False) -> AIPicksSelection:
+    """Ask Gemini for a structured AI Picks response using the current shortlist."""
     provider = get_default_llm_provider()
     user_prompt = _selection_prompt(dossier, candidates)
     if stricter:
@@ -492,6 +528,13 @@ def _generate_selection_once(dossier: TasteDossier, candidates: list[CandidateRe
 
 
 def generate_ai_picks_for_recommendation(recommendation_id: int, user_id: int, db: Session) -> Recommendation:
+    """
+    Populate a pending AI Picks recommendation with LLM-selected games.
+
+    This is the production path for the LLM-native recommendations surface: it
+    gathers the user's taste dossier, scores the catalog, gets a structured
+    response from Gemini, stores the result, and clears the stale marker.
+    """
     recommendation = (
         db.query(Recommendation)
         .filter(
@@ -548,6 +591,7 @@ def generate_ai_picks_for_recommendation(recommendation_id: int, user_id: int, d
 
 
 def _latest_ai_picks_query(user_id: int, db: Session):
+    """Return the newest AI Picks recommendation query for a user."""
     return (
         db.query(Recommendation)
         .options(joinedload(Recommendation.items).joinedload(RecommendationItem.game))
@@ -560,6 +604,7 @@ def _latest_ai_picks_query(user_id: int, db: Session):
 
 
 def _is_stale(recommendation: Recommendation | None, user_id: int) -> bool:
+    """Decide whether the current AI Picks recommendation should be refreshed."""
     if recommendation is None:
         return True
     if recommendation.status != RecommendationStatus.READY:
@@ -573,6 +618,12 @@ def _is_stale(recommendation: Recommendation | None, user_id: int) -> bool:
 
 
 def get_ai_picks_state(user_id: int, db: Session) -> dict[str, Any]:
+    """
+    Return the current AI Picks state for the UI.
+
+    The payload includes the latest recommendation, whether it is stale, and
+    whether the user can request a refresh.
+    """
     recommendation = _latest_ai_picks_query(user_id, db).first()
     stale = _is_stale(recommendation, user_id)
 
@@ -603,6 +654,13 @@ def get_ai_picks_state(user_id: int, db: Session) -> dict[str, Any]:
 
 
 def request_ai_picks_refresh(user_id: int, db: Session) -> tuple[Recommendation, bool]:
+    """
+    Create a pending AI Picks recommendation and signal whether to enqueue it.
+
+    The API layer uses the boolean return value to decide whether a Celery job
+    should be dispatched immediately or whether an existing batch already
+    satisfies the request.
+    """
     if not settings.GEMINI_API_KEY:
         raise ValueError("AI Picks is not configured yet. Add GEMINI_API_KEY to enable it.")
 

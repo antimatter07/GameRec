@@ -16,10 +16,11 @@ _STATUS_WEIGHTS: dict[LibraryStatus, float] = {
 
 def generate_game_dna(user: User, db: Session) -> dict:
     """
-    Derive a taste profile analysis from the user's library.
+    Build the premium Game DNA summary from the user's library history.
 
-    Computes weighted genre/tag frequencies and preferred era from library
-    entries (rating or status as weight).  Returns a dict matching GameDNAOut.
+    This powers the premium game-taste feature by turning a user's tracked and
+    rated games into weighted genre, tag, and era signals, then shaping those
+    signals into a human-readable summary plus a confidence estimate.
     """
     entries: list[LibraryEntry] = (
         db.query(LibraryEntry)
@@ -108,8 +109,11 @@ def generate_game_dna(user: User, db: Session) -> dict:
 
 def generate_explanations(user: User, items: list[RecommendationItem], db: Session) -> list[str]:
     """
-    Generate LLM explanations for why each recommended game matches the user's taste.
-    Returns one explanation string per item, in the same order.
+    Generate premium LLM explanations for a recommendation batch.
+
+    Each returned string explains why the matching game fits the user's taste
+    profile, and the result order always matches the incoming recommendation
+    items.
 
     Requires ANTHROPIC_API_KEY to be set in settings.  Returns empty strings
     for all items when the key is absent so callers can safely ignore the result.

@@ -1,7 +1,7 @@
 from fastapi import Cookie, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.core.permissions import can_access_ai_picks
+from app.core.permissions import can_access_ai_picks, can_access_queue_suggestions
 from app.database import get_db
 from app.models.user import User, UserRole
 from app.services import auth_service
@@ -46,9 +46,20 @@ require_admin   = require_role(UserRole.ADMIN)
 
 
 def require_ai_picks(current_user: User = Depends(require_basic)) -> User:
+    """Allow access to the AI Picks surface only when the feature gate passes."""
     if not can_access_ai_picks(current_user):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="AI Picks is not available for your account",
+        )
+    return current_user
+
+
+def require_queue_suggestions(current_user: User = Depends(require_basic)) -> User:
+    """Allow access to the AI suggested play-order surface when enabled."""
+    if not can_access_queue_suggestions(current_user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="AI queue suggestions are not available for your account",
         )
     return current_user

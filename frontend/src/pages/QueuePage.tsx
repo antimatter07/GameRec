@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
+  Alert,
   Box,
   Button,
   Center,
@@ -27,16 +28,21 @@ import {
   IconClock,
   IconLayoutGrid,
   IconPlayerPlay,
+  IconSparkles,
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import { PlayQueueItem } from '../components/library/PlayQueueItem';
 import { QueuePoolCard } from '../components/library/QueuePoolCard';
 import { AddToQueueModal } from '../components/library/AddToQueueModal';
+import { SuggestedQueueItem } from '../components/library/SuggestedQueueItem';
 import {
+  useAdoptQueueSuggestion,
   useDequeueGame,
   useEnqueueGame,
+  useEnsureQueueSuggestion,
   usePlayQueue,
   useReorderQueue,
+  useQueueSuggestion,
 } from '../hooks/usePlayQueue';
 import { useLibrary } from '../hooks/useLibrary';
 import type { LibraryEntry } from '../types/library';
@@ -81,7 +87,10 @@ function sumQueueHours(entries: PlayQueueEntry[]) {
 
 export default function QueuePage() {
   const { data: queue, isLoading: queueLoading } = usePlayQueue();
+  const { data: suggestionState, isLoading: suggestionLoading } = useQueueSuggestion();
   const { data: entries, isLoading: libraryLoading } = useLibrary();
+  const ensureSuggestion = useEnsureQueueSuggestion();
+  const adoptSuggestion = useAdoptQueueSuggestion();
   const enqueue = useEnqueueGame();
   const dequeue = useDequeueGame();
   const reorder = useReorderQueue();
@@ -97,6 +106,7 @@ export default function QueuePage() {
     .sort((a, b) => new Date(b.added_at).getTime() - new Date(a.added_at).getTime());
 
   const queueItems = queue?.entries ?? [];
+  const aiSuggestion = suggestionState?.suggestion ?? null;
   const queueSortableIds = queueItems.map((entry) => entry.entry_id);
   const poolSortableIds = poolEntries.map((entry) => `pool-${entry.id}`);
 
@@ -367,6 +377,98 @@ export default function QueuePage() {
                 )}
               </SortableContext>
             </DroppableZone>
+          </Stack>
+        </Paper>
+
+        <Paper withBorder radius="md" p="md">
+          <Stack gap="sm">
+            <Group justify="space-between" align="flex-start" gap="sm" className={classes.panelHeader}>
+              <div>
+                <Text size="sm" fw={600}>AI Suggested Play Order</Text>
+                <Text size="xs" c="dimmed">
+                  Same queue layout, but Gemini&apos;s suggested sequencing. This board is read-only until you adopt it.
+                </Text>
+              </div>
+              <Group gap="xs">
+                {aiSuggestion?.model_name && (
+                  <Text size="xs" c="dimmed" className={classes.panelMeta}>
+                    {aiSuggestion.model_name}
+                  </Text>
+                )}
+                <Button
+                  size="xs"
+                  variant="light"
+                  color="teal"
+                  leftSection={<IconSparkles size={14} />}
+                  onClick={() => ensureSuggestion.mutate('queue_tab')}
+                  loading={ensureSuggestion.isPending}
+                  disabled={suggestionState ? !suggestionState.can_generate : false}
+                >
+                  {aiSuggestion ? 'Regenerate' : 'Generate AI Order'}
+                </Button>
+                <Button
+                  size="xs"
+                  color="violet"
+                  onClick={() => adoptSuggestion.mutate()}
+                  loading={adoptSuggestion.isPending}
+                  disabled={suggestionState ? !suggestionState.can_adopt : true}
+                >
+                  Adopt AI Order
+                </Button>
+              </Group>
+            </Group>
+
+            {suggestionLoading && (
+              <div className={classes.aiLoadingState}>
+                <Loader size="sm" color="teal" />
+                <Text size="sm" c="dimmed">Checking for a suggested play order…</Text>
+              </div>
+            )}
+
+            {suggestionState?.detail && (
+              <Alert
+                color={aiSuggestion?.status === 'failed' ? 'red' : suggestionState.is_stale ? 'yellow' : 'blue'}
+                icon={<IconSparkles size={16} />}
+              >
+                {suggestionState.detail}
+              </Alert>
+            )}
+
+            {aiSuggestion?.overall_explanation && (
+              <Paper className={classes.aiExplanationCard} p="md" radius="md" withBorder>
+                <Text size="sm" fw={600} mb={6}>Why AI suggested this order</Text>
+                <Text size="sm" c="dimmed">{aiSuggestion.overall_explanation}</Text>
+              </Paper>
+            )}
+
+            {aiSuggestion?.status === 'pending' ? (
+              <div className={classes.emptyState}>
+                <div>
+                  <Text size="sm" fw={600}>Generating suggested order</Text>
+                  <Text size="xs" c="dimmed" mt={4}>
+                    Your queue stays fully interactive while the AI order is prepared in the background.
+                  </Text>
+                </div>
+              </div>
+            ) : aiSuggestion?.status === 'ready' && aiSuggestion.items.length > 0 ? (
+              <Box className={classes.cardGrid}>
+                {aiSuggestion.items
+                  .slice()
+                  .sort((a, b) => a.suggested_position - b.suggested_position)
+                  .map((item) => (
+                    <SuggestedQueueItem key={item.id} item={item} />
+                  ))}
+              </Box>
+            ) : !suggestionLoading ? (
+              <div className={classes.emptyState}>
+                <div>
+                  <Text size="sm" fw={600}>No suggested order yet</Text>
+                  <Text size="xs" c="dimmed" mt={4}>
+                    Generate an AI suggested play order whenever you want a fresh sequencing recommendation.
+                  </Text>
+                </div>
+              </div>
+            ) : null}
           </Stack>
         </Paper>
 

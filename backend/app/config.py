@@ -38,6 +38,8 @@ class Settings(BaseSettings):
     AI_PICKS_CACHE_HOURS: int = 24
     AI_PICKS_MAX_CANDIDATES: int = 24
     AI_PICKS_MAX_RESULTS: int = 6
+    QUEUE_SUGGESTION_MODEL: str = "gemini-2.5-flash-lite"
+    QUEUE_SUGGESTION_REQUIRE_PREMIUM: bool = False
 
     # SlowAPI rate limits (requests per minute)
     RATE_LIMIT_BASIC: str = "30/minute"

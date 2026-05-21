@@ -96,6 +96,17 @@
   font-variant-numeric: tabular-nums;
 }
 
+.aiLoadingState {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0;
+}
+
+.aiExplanationCard {
+  background: rgba(21, 28, 42, 0.7);
+}
+
 .nextUpCard {
   display: flex;
   align-items: flex-start;

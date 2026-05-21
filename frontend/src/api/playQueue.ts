@@ -1,5 +1,5 @@
 import apiClient from './client';
-import type { PlayQueue } from '../types/playQueue';
+import type { PlayQueue, QueueSuggestionState } from '../types/playQueue';
 
 export const playQueueApi = {
   getQueue: () =>
@@ -15,4 +15,15 @@ export const playQueueApi = {
     apiClient
       .put<PlayQueue>('/library/queue/order', { ordered_entry_ids: orderedEntryIds })
       .then((r) => r.data),
+
+  getSuggestion: () =>
+    apiClient.get<QueueSuggestionState>('/library/queue/suggestion').then((r) => r.data),
+
+  ensureSuggestion: (triggerSource = 'queue_tab') =>
+    apiClient
+      .post<QueueSuggestionState>('/library/queue/suggestion/ensure', { trigger_source: triggerSource })
+      .then((r) => r.data),
+
+  adoptSuggestion: () =>
+    apiClient.post<PlayQueue>('/library/queue/suggestion/adopt').then((r) => r.data),
 };

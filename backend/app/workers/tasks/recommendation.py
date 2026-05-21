@@ -8,8 +8,10 @@ logger = logging.getLogger(__name__)
 @celery_app.task(name="recommendation.precompute_for_user")
 def precompute_for_user(user_id: int) -> None:
     """
-    Asynchronously recompute recommendations for a user after their library changes.
-    Dispatched by library endpoints (add / update / remove).
+    Recompute the cosine-similarity recommendation batch after library changes.
+
+    This keeps the standard game recommendation feed warm in the background so
+    the next request can usually return a ready batch immediately.
     """
     from app.database import SessionLocal
     from app.services import recommendation_service
@@ -45,7 +47,7 @@ def precompute_for_user(user_id: int) -> None:
 @celery_app.task(name="recommendation.generate_ai_picks")
 def generate_ai_picks(recommendation_id: int, user_id: int) -> None:
     """
-    Build an LLM-native AI Picks batch for the given user and recommendation row.
+    Generate the LLM-native AI Picks batch for a pending recommendation row.
     """
     from app.database import SessionLocal
     from app.models.recommendation import Recommendation, RecommendationKind, RecommendationStatus
@@ -79,11 +81,46 @@ def generate_ai_picks(recommendation_id: int, user_id: int) -> None:
         db.close()
 
 
+@celery_app.task(name="queue.generate_suggestion")
+def generate_queue_suggestion(suggestion_id: int, user_id: int) -> None:
+    """
+    Generate the LLM-based suggested play order for a pending queue request.
+    """
+    from app.database import SessionLocal
+    from app.models.queue_suggestion import QueueSuggestion
+    from app.services.queue_suggestion_service import generate_queue_suggestion_for_user
+
+    db = SessionLocal()
+    try:
+        generate_queue_suggestion_for_user(suggestion_id, user_id, db)
+        logger.info("Generated queue suggestion %s for user %s", suggestion_id, user_id)
+    except Exception as exc:
+        db.rollback()
+        logger.exception("Failed to generate queue suggestion %s for user %s", suggestion_id, user_id)
+        try:
+            suggestion = (
+                db.query(QueueSuggestion)
+                .filter(QueueSuggestion.id == suggestion_id, QueueSuggestion.user_id == user_id)
+                .first()
+            )
+            if suggestion is not None:
+                suggestion.status = "failed"
+                suggestion.error_detail = str(exc)[:500]
+                db.commit()
+        except Exception:
+            db.rollback()
+        raise
+    finally:
+        db.close()
+
+
 @celery_app.task(name="recommendation.generate_ai_explanations")
 def generate_ai_explanations(recommendation_id: int) -> None:
     """
-    Populate LLM explanations for an existing Recommendation (premium users).
-    Dispatched after compute_recommendations() so the HTTP response is not blocked.
+    Populate premium LLM explanations for an existing recommendation batch.
+
+    The task runs after the cosine-similarity batch is already stored so the
+    API response is not blocked while the explanations are generated.
     """
     from sqlalchemy.orm import joinedload
 
