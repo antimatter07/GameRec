@@ -91,8 +91,54 @@
   align-items: flex-start;
 }
 
+.panelControls {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .panelMeta {
   font-variant-numeric: tabular-nums;
+}
+
+.inlineLoading {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.searchInput {
+  min-width: 240px;
+}
+
+.sortSelect {
+  min-width: 180px;
+}
+
+.searchInput :global(.mantine-Input-input),
+.sortSelect :global(.mantine-Input-input) {
+  border-color: var(--mantine-color-dark-4);
+  background: var(--mantine-color-dark-6);
+  color: var(--mantine-color-gray-0);
+  box-shadow: none;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease;
+}
+
+.searchInput :global(.mantine-Input-input)::placeholder,
+.sortSelect :global(.mantine-Input-input)::placeholder {
+  color: var(--mantine-color-gray-5);
+}
+
+.searchInput :global(.mantine-Input-input:focus),
+.sortSelect :global(.mantine-Input-input:focus) {
+  border-color: var(--mantine-color-violet-6);
+}
+
+.searchInput :global(.mantine-Input-section),
+.sortSelect :global(.mantine-Input-section) {
+  color: var(--mantine-color-gray-5);
 }
 
 .statusRow {
@@ -236,6 +282,12 @@
 
   .overviewGrid {
     grid-template-columns: 1fr;
+  }
+
+  .panelControls,
+  .searchInput,
+  .sortSelect {
+    width: 100%;
   }
 }
 

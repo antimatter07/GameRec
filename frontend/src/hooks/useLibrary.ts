@@ -1,13 +1,14 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { notifications } from '@mantine/notifications';
 import { libraryApi } from '../api/library';
 import type { BacklogFiltersParams } from '../api/library';
-import type { LibraryEntryCreate, LibraryEntryUpdate } from '../types/library';
+import type { LibraryEntryCreate, LibraryEntryUpdate, LibraryQueryParams } from '../types/library';
 
-export function useLibrary() {
+export function useLibrary(params: LibraryQueryParams = {}) {
   return useQuery({
-    queryKey: ['library'],
-    queryFn: libraryApi.getAll,
+    queryKey: ['library', params],
+    queryFn: () => libraryApi.getAll(params),
+    placeholderData: keepPreviousData,
     staleTime: 2 * 60 * 1000,
   });
 }

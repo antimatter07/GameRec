@@ -1,6 +1,8 @@
 import type { GameListItem } from './game';
 
 export type LibraryStatus = 'playing' | 'completed' | 'backlog' | 'dropped' | 'wishlist' | 'replaying';
+export type LibraryStatusFilter = LibraryStatus | 'all';
+export type LibrarySort = 'added_at_desc' | 'added_at_asc' | 'status';
 
 export interface LibraryEntry {
   id: number;
@@ -23,6 +25,12 @@ export interface LibraryEntryUpdate {
   status?: LibraryStatus;
   rating?: number;
   review?: string;
+}
+
+export interface LibraryQueryParams {
+  status?: LibraryStatusFilter;
+  search?: string;
+  sort?: LibrarySort;
 }
 
 export interface LibraryStats {

@@ -1,5 +1,12 @@
 import apiClient from './client';
-import type { LibraryEntry, LibraryEntryCreate, LibraryEntryUpdate, LibraryStats, LibraryEntryUpdateOut } from '../types/library';
+import type {
+  LibraryEntry,
+  LibraryEntryCreate,
+  LibraryQueryParams,
+  LibraryEntryUpdate,
+  LibraryStats,
+  LibraryEntryUpdateOut,
+} from '../types/library';
 import type { GameListItem } from '../types/game';
 
 export interface BacklogFiltersParams {
@@ -25,8 +32,8 @@ export interface PrioritizedBacklogOut {
 }
 
 export const libraryApi = {
-  getAll: () =>
-    apiClient.get<LibraryEntry[]>('/library').then((r) => r.data),
+  getAll: (params: LibraryQueryParams = {}) =>
+    apiClient.get<LibraryEntry[]>('/library', { params }).then((r) => r.data),
 
   getStats: () =>
     apiClient.get<LibraryStats>('/library/stats').then((r) => r.data),

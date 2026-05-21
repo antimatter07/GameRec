@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActionIcon,
   Badge,
@@ -15,6 +15,7 @@ import {
   Stack,
   Tabs,
   Text,
+  TextInput,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
@@ -32,6 +33,7 @@ import {
   IconX,
   IconHeart,
   IconRepeat,
+  IconSearch,
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import { GameCard } from '../../components/games/GameCard';
@@ -41,7 +43,7 @@ import {
   useRemoveFromLibrary,
   useUpdateLibraryEntry,
 } from '../../hooks/useLibrary';
-import type { LibraryEntry, LibraryStatus } from '../../types/library';
+import type { LibraryEntry, LibrarySort, LibraryStatus, LibraryStatusFilter } from '../../types/library';
 import classes from './LibraryPage.module.css';
 
 const dateFormatter = new Intl.DateTimeFormat('en-US', {
@@ -98,25 +100,42 @@ const EMPTY_COPY: Record<LibraryStatus | 'all', string> = {
   dropped: 'No dropped games here.',
 };
 
+const SORT_OPTIONS: Array<{ value: LibrarySort; label: string }> = [
+  { value: 'added_at_desc', label: 'Recently added' },
+  { value: 'added_at_asc', label: 'Oldest added' },
+  { value: 'status', label: 'Status' },
+];
+
 function formatGenres(entry: LibraryEntry) {
   const genreNames = entry.game.genres.slice(0, 3).map((genre) => genre.name);
   return genreNames.length > 0 ? genreNames.join(' • ') : 'No genres yet';
 }
 
 export default function LibraryPage() {
-  const { data: entries, isLoading, isError } = useLibrary();
-  const { data: stats } = useLibraryStats();
-  const removeEntry = useRemoveFromLibrary();
-  const updateEntry = useUpdateLibraryEntry();
-  const navigate = useNavigate();
-
-  const [activeTab, setActiveTab] = useState<string | null>('all');
+  const [activeTab, setActiveTab] = useState<LibraryStatusFilter>('all');
+  const [sort, setSort] = useState<LibrarySort>('added_at_desc');
+  const [searchInput, setSearchInput] = useState('');
+  const [appliedSearch, setAppliedSearch] = useState<string | undefined>(undefined);
   const [editingEntry, setEditingEntry] = useState<LibraryEntry | null>(null);
   const [editStatus, setEditStatus] = useState<LibraryStatus>('backlog');
   const [editRating, setEditRating] = useState<number>(0);
   const [removingEntryId, setRemovingEntryId] = useState<number | null>(null);
   const [nextCandidate, setNextCandidate] = useState<LibraryEntry | null>(null);
   const [editOpened, { open: openEdit, close: closeEdit }] = useDisclosure(false);
+  const navigate = useNavigate();
+
+  const libraryQuery = useMemo(
+    () => ({
+      status: activeTab,
+      sort,
+      search: appliedSearch,
+    }),
+    [activeTab, appliedSearch, sort],
+  );
+  const { data: entries, isLoading, isError, isFetching } = useLibrary(libraryQuery);
+  const { data: stats } = useLibraryStats();
+  const removeEntry = useRemoveFromLibrary();
+  const updateEntry = useUpdateLibraryEntry();
 
   const libraryEntries = useMemo(() => entries ?? [], [entries]);
   const ratedEntries = useMemo(
@@ -151,6 +170,19 @@ export default function LibraryPage() {
   const completionRate = statusCounts.all > 0
     ? Math.round((statusCounts.completed / statusCounts.all) * 100)
     : 0;
+
+  const applySearch = (value: string) => {
+    const normalizedSearch = value.trim() || undefined;
+    setAppliedSearch((current) => (current === normalizedSearch ? current : normalizedSearch));
+  };
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      applySearch(searchInput);
+    }, 3000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [searchInput]);
 
   const handleOpenEdit = (entry: LibraryEntry) => {
     setEditingEntry(entry);
@@ -400,7 +432,14 @@ export default function LibraryPage() {
         </Paper>
       </div>
 
-      <Tabs value={activeTab} onChange={setActiveTab} variant="pills" color="violet">
+      <Tabs
+        value={activeTab}
+        onChange={(value) => {
+          if (value) setActiveTab(value as LibraryStatusFilter);
+        }}
+        variant="pills"
+        color="violet"
+      >
         <Tabs.List className={classes.tabsList}>
           {STATUS_TABS.map((tab) => (
             <Tabs.Tab key={tab.value} value={tab.value} leftSection={tab.icon}>
@@ -413,9 +452,8 @@ export default function LibraryPage() {
         </Tabs.List>
 
         {STATUS_TABS.map((tab) => {
-          const filteredEntries = libraryEntries.filter(
-            (entry) => tab.value === 'all' || entry.status === tab.value,
-          );
+          const isActivePanel = activeTab === tab.value;
+          const panelEntries = isActivePanel ? libraryEntries : [];
 
           return (
             <Tabs.Panel key={tab.value} value={tab.value} pt="lg">
@@ -425,36 +463,85 @@ export default function LibraryPage() {
                     <Text size="sm" fw={600}>
                       {tab.value === 'all' ? 'All library titles' : `${tab.label} games`}
                     </Text>
-                    <Text size="xs" c="dimmed">
-                      {PANEL_COPY[tab.value]}
-                    </Text>
+                    <Group gap="xs" align="center" wrap="nowrap">
+                      <Text size="xs" c="dimmed">
+                        {PANEL_COPY[tab.value]}
+                      </Text>
+                      {isActivePanel && isFetching && (
+                        <span className={classes.inlineLoading}>
+                          <Loader size="xs" color="violet" />
+                        </span>
+                      )}
+                    </Group>
                   </div>
 
-                  {tab.value === 'backlog' && filteredEntries.length > 0 && (
-                    <Button
-                      size="xs"
-                      variant="light"
-                      color="violet"
-                      rightSection={<IconArrowRight size={14} />}
-                      onClick={() => navigate('/library/backlog')}
-                    >
-                      Open Play Next
-                    </Button>
+                  {isActivePanel && (
+                    <Group gap="sm" align="flex-end" className={classes.panelControls}>
+                      <TextInput
+                        className={classes.searchInput}
+                        placeholder="Search library titles..."
+                        value={searchInput}
+                        onChange={(event) => setSearchInput(event.currentTarget.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') {
+                            applySearch(searchInput);
+                          }
+                        }}
+                        rightSection={
+                          <ActionIcon
+                            variant="subtle"
+                            color="gray"
+                            onClick={() => applySearch(searchInput)}
+                            aria-label="Search library"
+                          >
+                            <IconSearch size={16} stroke={1.8} />
+                          </ActionIcon>
+                        }
+                        rightSectionPointerEvents="all"
+                        size="sm"
+                        radius="md"
+                      />
+
+                      <Select
+                        className={classes.sortSelect}
+                        aria-label="Sort library entries"
+                        value={sort}
+                        onChange={(value) => value && setSort(value as LibrarySort)}
+                        data={SORT_OPTIONS}
+                        size="sm"
+                        radius="md"
+                        allowDeselect={false}
+                      />
+
+                      {tab.value === 'backlog' && panelEntries.length > 0 && (
+                        <Button
+                          size="xs"
+                          variant="light"
+                          color="violet"
+                          rightSection={<IconArrowRight size={14} />}
+                          onClick={() => navigate('/library/backlog')}
+                        >
+                          Open Play Next
+                        </Button>
+                      )}
+                    </Group>
                   )}
                 </Group>
 
-                {filteredEntries.length === 0 ? (
+                {panelEntries.length === 0 ? (
                   <div className={classes.emptyState}>
                     <div>
                       <Text size="sm" fw={600}>Nothing here yet</Text>
                       <Text size="xs" c="dimmed" mt={4}>
-                        {EMPTY_COPY[tab.value]}
+                        {appliedSearch
+                          ? `No ${tab.value === 'all' ? 'library titles' : tab.label.toLowerCase()} matched "${appliedSearch}".`
+                          : EMPTY_COPY[tab.value]}
                       </Text>
                     </div>
                   </div>
                 ) : (
                   <Box className={classes.grid}>
-                    {filteredEntries.map((entry) => (
+                    {panelEntries.map((entry) => (
                       <Box key={entry.id} className={classes.libraryItem}>
                         <GameCard game={entry.game} />
 

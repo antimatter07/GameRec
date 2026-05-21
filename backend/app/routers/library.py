@@ -23,8 +23,23 @@ CurrentUserDep = Annotated[User, Depends(require_basic)]
 
 
 @router.get("/", response_model=list[LibraryEntryOut])
-def get_library(db: DBDep, current_user: CurrentUserDep):
-    return library_service.get_user_library(db, current_user.id)
+def get_library(
+    db: DBDep,
+    current_user: CurrentUserDep,
+    status_filter: Literal["all", "playing", "replaying", "completed", "backlog", "wishlist", "dropped"] = Query(
+        "all",
+        alias="status",
+    ),
+    search: str | None = Query(None),
+    sort: Literal["added_at_desc", "added_at_asc", "status"] = Query("added_at_desc"),
+):
+    return library_service.get_user_library(
+        db,
+        current_user.id,
+        status_filter=status_filter,
+        search=search,
+        sort=sort,
+    )
 
 
 @router.get("/stats", response_model=LibraryStats)

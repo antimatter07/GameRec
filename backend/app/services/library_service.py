@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import Literal
 
 from fastapi import HTTPException, status
-from sqlalchemy import Text, cast, func
+from sqlalchemy import Text, case, cast, func
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.game import Game
@@ -12,6 +12,16 @@ from app.models.library import LibraryEntry, LibraryStatus
 from app.schemas.library import LibraryEntryCreate, LibraryEntryUpdate
 
 QUEUEABLE_LIBRARY_STATUSES = {LibraryStatus.BACKLOG, LibraryStatus.REPLAYING}
+LIBRARY_QUERY_STATUS = Literal["all", "playing", "replaying", "completed", "backlog", "wishlist", "dropped"]
+LIBRARY_QUERY_SORT = Literal["added_at_desc", "added_at_asc", "status"]
+STATUS_SORT_ORDER: dict[LibraryStatus, int] = {
+    LibraryStatus.PLAYING: 0,
+    LibraryStatus.REPLAYING: 1,
+    LibraryStatus.BACKLOG: 2,
+    LibraryStatus.WISHLIST: 3,
+    LibraryStatus.COMPLETED: 4,
+    LibraryStatus.DROPPED: 5,
+}
 
 
 def _sync_overall_rating(db: Session, user_id: int, game_id: int, rating_value: float | None) -> None:
@@ -33,13 +43,41 @@ def _direct_similarity(entry: LibraryEntry, taste_profile: list[float] | None) -
     return max(0.0, min(1.0, dot))
 
 
-def get_user_library(db: Session, user_id: int) -> list[LibraryEntry]:
-    return (
+def get_user_library(
+    db: Session,
+    user_id: int,
+    status_filter: LIBRARY_QUERY_STATUS = "all",
+    search: str | None = None,
+    sort: LIBRARY_QUERY_SORT = "added_at_desc",
+) -> list[LibraryEntry]:
+    query = (
         db.query(LibraryEntry)
+        .join(LibraryEntry.game)
         .filter(LibraryEntry.user_id == user_id)
         .options(joinedload(LibraryEntry.game))
-        .all()
     )
+
+    if status_filter != "all":
+        query = query.filter(LibraryEntry.status == LibraryStatus(status_filter))
+
+    normalized_search = search.strip() if search else None
+    if normalized_search:
+        query = query.filter(Game.name.ilike(f"%{normalized_search}%"))
+
+    if sort == "added_at_asc":
+        query = query.order_by(LibraryEntry.added_at.asc())
+    elif sort == "status":
+        query = query.order_by(
+            case(
+                *[(LibraryEntry.status == status, order) for status, order in STATUS_SORT_ORDER.items()],
+                else_=len(STATUS_SORT_ORDER),
+            ),
+            LibraryEntry.added_at.desc(),
+        )
+    else:
+        query = query.order_by(LibraryEntry.added_at.desc())
+
+    return query.all()
 
 
 def add_game(db: Session, user_id: int, entry_in: LibraryEntryCreate) -> LibraryEntry:
