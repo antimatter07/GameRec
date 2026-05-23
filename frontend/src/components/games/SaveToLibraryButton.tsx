@@ -2,7 +2,7 @@ import { Button, Menu } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconBookmark, IconChevronDown, IconTrash } from '@tabler/icons-react';
 import { isAxiosError } from 'axios';
-import type { MouseEvent } from 'react';
+import type { KeyboardEvent, MouseEvent } from 'react';
 import { useAddToLibrary, useRemoveFromLibrary } from '../../hooks/useLibrary';
 import type { GameListItem } from '../../types/game';
 import type { LibraryEntry, LibraryStatus } from '../../types/library';
@@ -37,6 +37,9 @@ export function SaveToLibraryButton({
 
   const stopCardClick = (event: MouseEvent) => {
     event.preventDefault();
+    event.stopPropagation();
+  };
+  const stopCardKeyDown = (event: KeyboardEvent) => {
     event.stopPropagation();
   };
 
@@ -77,6 +80,7 @@ export function SaveToLibraryButton({
         variant={variant}
         leftSection={<IconTrash size={15} />}
         onClick={handleRemove}
+        onKeyDown={stopCardKeyDown}
         loading={removeFromLibrary.isPending}
         fullWidth={fullWidth}
       >
@@ -92,10 +96,10 @@ export function SaveToLibraryButton({
           className={className}
           size={size}
           variant={variant}
-          color="violet"
           leftSection={<IconBookmark size={15} />}
           rightSection={<IconChevronDown size={14} />}
           onClick={stopCardClick}
+          onKeyDown={stopCardKeyDown}
           loading={addToLibrary.isPending}
           fullWidth={fullWidth}
         >

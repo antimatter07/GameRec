@@ -59,22 +59,23 @@ For Journal-like UI, prefer:
 
 Base UI:
 
-- main accent: `violet`
+- main accent: Burnished Ember (`#d4674d`)
 - base surfaces: `dark-7`, `dark-6`, `dark-5`
 - borders: subtle dark border colors, never harsh outlines
 - dimmed text is heavily used for metadata and labels
 
 Functional accents:
 
-- `violet`: primary actions, active state, key highlights
-- `teal`: positive progress and completion
-- `yellow`: streaks, trophies, achievement-like emphasis
-- `blue`: neutral metrics and alternate highlights
-- `orange`, `pink`, `grape`, `green`: chart differentiation only
+- Burnished Ember (`#d4674d`): primary actions, active state, key highlights, recommendation intelligence
+- Sea-Glass Teal (`#2fb8a6`): positive progress and completion
+- Marquee Gold (`#e0b957`): ratings, streaks, trophies, achievement-like emphasis
+- Archive Blue (`#5b8def`): neutral metrics and alternate highlights
+- orange, pink, green, red, and gray: journal emotion and chart differentiation only
 
 Rules:
 
-- violet is the anchor, not the whole palette
+- ember is the anchor, not the whole palette
+- avoid violet or purple as the default accent for new UI
 - avoid bright pure red unless the action is genuinely destructive
 - avoid large flat color fields when a dark surface plus colored detail will do
 - keep background contrast soft and layered
@@ -172,7 +173,7 @@ Rules:
 
 - button radius: `sm`
 - icons around `14px` to `16px`
-- primary button color: `violet`
+- primary button color: Burnished Ember (`#d4674d`)
 - quiet secondary actions use `subtle` or `light`
 
 Rules:
@@ -257,7 +258,7 @@ Rules:
 When building new UI in this style:
 
 1. Start with `Paper` sections and dark layered surfaces.
-2. Use `violet` as the default primary color.
+2. Use Burnished Ember (`#d4674d`) as the default primary color.
 3. Keep text mostly in `xs`, `sm`, and modest heading sizes.
 4. Use responsive grids early; do not design only for wide desktop.
 5. Prefer inline data visuals over large chart libraries unless the view truly needs one.
@@ -291,11 +292,11 @@ If a new screen should feel like the Journal page, it should usually have:
 
 - a restrained dark surface
 - `Paper` sections with borders
-- violet primary actions
+- ember primary actions
 - compact tab or filter controls
 - small semibold section titles
 - dimmed metadata everywhere it helps scanning
-- one or two accent colors beyond violet, not ten
+- one or two accent colors beyond ember, not ten
 - lightweight data visuals instead of heavy chart scaffolding
 
 ## How to use this file

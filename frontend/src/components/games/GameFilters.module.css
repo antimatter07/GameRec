@@ -44,13 +44,24 @@
 .searchInput :global(.mantine-Input-input:focus),
 .filterSelect :global(.mantine-Input-input:focus),
 .yearSelect :global(.mantine-Input-input:focus) {
-  border-color: var(--mantine-color-violet-6);
+  border-color: #b9543e;
 }
 
 .resetButton {
   align-self: stretch;
   min-height: 42px;
   padding-inline: 0;
+  color: #e97d61;
+}
+
+.resetButton:hover {
+  background: rgba(212, 103, 77, 0.1);
+  color: #fff1ec;
+}
+
+.resetButton:focus-visible {
+  outline: 2px solid #b9543e;
+  outline-offset: 2px;
 }
 
 @media (max-width: 900px) {
@@ -63,5 +74,13 @@
 
   .resetButton {
     align-self: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .searchInput :global(.mantine-Input-input),
+  .filterSelect :global(.mantine-Input-input),
+  .yearSelect :global(.mantine-Input-input) {
+    transition: none;
   }
 }

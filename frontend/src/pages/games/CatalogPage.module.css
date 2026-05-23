@@ -18,7 +18,7 @@
 }
 
 .headerAccent {
-  color: var(--mantine-color-violet-5);
+  color: #d4674d;
 }
 
 .headerSubtitle {
@@ -28,6 +28,7 @@
 
 .filterPanel {
   background: var(--mantine-color-dark-7);
+  border-color: var(--mantine-color-dark-4);
 }
 
 .resultCount {
@@ -60,6 +61,62 @@
   align-items: stretch;
 }
 
+.skeletonCard {
+  min-height: 392px;
+  overflow: hidden;
+  background: var(--mantine-color-dark-7);
+  border-color: var(--mantine-color-dark-4);
+}
+
+.statePanel {
+  background: var(--mantine-color-dark-7);
+  border-color: var(--mantine-color-dark-4);
+}
+
+.stateIcon {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: var(--mantine-radius-sm);
+  color: #e97d61;
+  background: rgba(212, 103, 77, 0.14);
+}
+
+.emptyState {
+  min-height: 180px;
+  flex-direction: column;
+  gap: var(--mantine-spacing-xs);
+}
+
+.pagination :global(.mantine-Pagination-control) {
+  border-color: var(--mantine-color-dark-4);
+  background: var(--mantine-color-dark-6);
+  color: var(--mantine-color-gray-2);
+  transition:
+    border-color 150ms ease,
+    background 150ms ease,
+    color 150ms ease;
+}
+
+.pagination :global(.mantine-Pagination-control:hover) {
+  border-color: var(--mantine-color-dark-3);
+  background: #171b27;
+}
+
+.pagination :global(.mantine-Pagination-control[data-active]) {
+  border-color: #d4674d;
+  background: #d4674d;
+  color: #fff1ec;
+}
+
+.pagination :global(.mantine-Pagination-control:focus-visible) {
+  outline: 2px solid #b9543e;
+  outline-offset: 2px;
+}
+
 @media (max-width: 900px) {
   .page {
     padding: var(--mantine-spacing-md);
@@ -73,5 +130,11 @@
 @media (max-width: 768px) {
   .grid {
     grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pagination :global(.mantine-Pagination-control) {
+    transition: none;
   }
 }

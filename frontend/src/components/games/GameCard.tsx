@@ -1,5 +1,5 @@
 import type { KeyboardEvent } from 'react';
-import { Card, Group, Image, Rating, Stack, Text } from '@mantine/core';
+import { Badge, Card, Group, Image, Rating, Stack, Text } from '@mantine/core';
 import { useNavigate } from 'react-router';
 import { useLibrary } from '../../hooks/useLibrary';
 import type { GameListItem } from '../../types/game';
@@ -19,6 +19,14 @@ export function GameCard({ game, showAdd = false }: GameCardProps) {
   const libraryEntry = library?.find((entry) => entry.game.id === game.id) ?? null;
   const inLibrary = libraryEntry !== null;
   const releaseYear = game.released ? new Date(game.released).getFullYear() : null;
+  const primaryGenre = game.genres[0]?.name;
+  const primaryPlatform = game.platforms[0]?.name;
+  const metaItems = [releaseYear ?? 'TBA', primaryGenre, primaryPlatform].filter(Boolean).join(' / ');
+  const playtimeLabel = game.hltb_main_hours
+    ? `${Math.round(game.hltb_main_hours)}h main`
+    : game.playtime
+      ? `${game.playtime}h avg`
+      : null;
 
   const openGame = () => navigate(`/games/${game.id}`);
 
@@ -46,6 +54,12 @@ export function GameCard({ game, showAdd = false }: GameCardProps) {
           className={classes.image}
           fallbackSrc="https://placehold.co/400x200?text=No+Image"
         />
+        <div className={classes.imageShade} />
+        {playtimeLabel && (
+          <Badge className={classes.playtimeBadge} variant="filled" size="sm">
+            {playtimeLabel}
+          </Badge>
+        )}
       </Card.Section>
 
       <Stack gap={10} mt="sm" className={classes.body}>
@@ -54,11 +68,11 @@ export function GameCard({ game, showAdd = false }: GameCardProps) {
         </Text>
 
         <Text size="sm" c="dimmed" className={classes.meta}>
-          {releaseYear ?? 'TBA'}
+          {metaItems}
         </Text>
 
         <Group gap={8} align="center" className={classes.ratingRow}>
-          <Rating value={(game.rating ?? 0) / 2} fractions={2} readOnly size="sm" color="orange" />
+          <Rating value={(game.rating ?? 0) / 2} fractions={2} readOnly size="sm" color="yellow" />
           <Text size="sm" c="dimmed" className={classes.ratingValue}>
             {game.rating !== null ? game.rating.toFixed(1) : 'NR'}
           </Text>

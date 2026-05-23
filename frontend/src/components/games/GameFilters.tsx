@@ -93,7 +93,6 @@ export function GameFiltersBar({ filters, onChange, onReset, searchInput, onSear
       <Button
         className={classes.resetButton}
         variant="subtle"
-        color="violet"
         leftSection={<IconRefresh size={16} stroke={1.8} />}
         onClick={onReset}
       >

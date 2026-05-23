@@ -1,4 +1,5 @@
-import { Box, Center, Group, Loader, Pagination, Paper, Stack, Text, Title } from '@mantine/core';
+import { Box, Center, Group, Pagination, Paper, Skeleton, Stack, Text, Title } from '@mantine/core';
+import { IconAlertCircle, IconSearchOff } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 import { GameFiltersBar } from '../../components/games/GameFilters';
 import { GameCard } from '../../components/games/GameCard';
@@ -12,7 +13,6 @@ const DEFAULT_FILTERS: GameFilters = {};
  * Paginated, filterable game catalog.
  * TODO: Sync page and filters with URL search params (useSearchParams)
  *       so users can share/bookmark filtered views
- * TODO: Add skeleton cards while loading (Mantine Skeleton)
  */
 export default function CatalogPage() {
   const [page, setPage] = useState(1);
@@ -43,6 +43,7 @@ export default function CatalogPage() {
   }, [searchInput]);
 
   const totalPages = data ? Math.ceil(data.total / data.page_size) : 1;
+  const activeFilterCount = Object.values(filters).filter((value) => value !== undefined && value !== '').length;
 
   return (
     <Stack gap="lg" className={classes.page}>
@@ -70,6 +71,7 @@ export default function CatalogPage() {
           {data && (
             <Text size="xs" c="dimmed" className={classes.resultCount}>
               {data.total.toLocaleString()} games found
+              {activeFilterCount > 0 ? `, ${activeFilterCount} active filter${activeFilterCount === 1 ? '' : 's'}` : ''}
             </Text>
           )}
         </Group>
@@ -87,16 +89,40 @@ export default function CatalogPage() {
       </Paper>
 
       {isLoading && (
-        <Center h={300}>
-          <Loader />
-        </Center>
+        <Box className={classes.grid} aria-label="Loading games">
+          {Array.from({ length: 8 }, (_, index) => (
+            <Paper key={index} withBorder radius="md" className={classes.skeletonCard}>
+              <Skeleton height={220} radius={0} />
+              <Stack gap="xs" p="sm">
+                <Skeleton height={18} width="82%" />
+                <Skeleton height={12} width="34%" />
+                <Skeleton height={16} width="54%" />
+                <Skeleton height={42} mt="auto" />
+              </Stack>
+            </Paper>
+          ))}
+        </Box>
       )}
 
       {isError && (
-        <Text c="red">Failed to load games. Please try again.</Text>
+        <Paper withBorder radius="md" p="md" className={classes.statePanel}>
+          <Group gap="sm" align="flex-start">
+            <div className={classes.stateIcon}>
+              <IconAlertCircle size={18} stroke={1.8} />
+            </div>
+            <div>
+              <Text size="sm" fw={600}>
+                Catalog could not load
+              </Text>
+              <Text size="xs" c="dimmed">
+                Check the API connection, then refresh the page.
+              </Text>
+            </div>
+          </Group>
+        </Paper>
       )}
 
-      {data && (
+      {data && !isLoading && !isError && (
         <>
           <Group justify="space-between" align="center" className={classes.sectionHeader}>
             <Title order={3} className={classes.sectionTitle}>
@@ -107,15 +133,39 @@ export default function CatalogPage() {
             </Text>
           </Group>
 
-          <Box className={classes.grid}>
-            {data.results.map((game) => (
-              <GameCard key={game.id} game={game} showAdd />
-            ))}
-          </Box>
+          {data.results.length > 0 ? (
+            <Box className={classes.grid}>
+              {data.results.map((game) => (
+                <GameCard key={game.id} game={game} showAdd />
+              ))}
+            </Box>
+          ) : (
+            <Paper withBorder radius="md" p="lg" className={classes.statePanel}>
+              <Center className={classes.emptyState}>
+                <div className={classes.stateIcon}>
+                  <IconSearchOff size={18} stroke={1.8} />
+                </div>
+                <Text size="sm" fw={600}>
+                  No games match these filters
+                </Text>
+                <Text size="xs" c="dimmed" ta="center">
+                  Try a broader title search, a different genre, or clear the year filter.
+                </Text>
+              </Center>
+            </Paper>
+          )}
 
-          <Center pt="sm">
-            <Pagination color="violet" total={totalPages} value={page} onChange={setPage} radius="md" />
-          </Center>
+          {totalPages > 1 && (
+            <Center pt="sm">
+              <Pagination
+                total={totalPages}
+                value={page}
+                onChange={setPage}
+                radius="md"
+                className={classes.pagination}
+              />
+            </Center>
+          )}
         </>
       )}
     </Stack>

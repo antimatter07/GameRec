@@ -1,0 +1,232 @@
+.page {
+  gap: 1.25rem;
+  padding: var(--mantine-spacing-lg);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--mantine-spacing-sm);
+  flex-wrap: wrap;
+}
+
+.headerTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--mantine-color-gray-0);
+}
+
+.headerAccent {
+  color: var(--mantine-color-violet-5);
+}
+
+.headerSubtitle {
+  margin-top: 4px;
+  max-width: 680px;
+}
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--mantine-spacing-sm);
+}
+
+.metricCard {
+  position: relative;
+  overflow: hidden;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease;
+}
+
+.metricCard:hover {
+  border-color: var(--mantine-color-dark-4);
+  background: #171b27;
+}
+
+.metricIcon {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--mantine-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.metricLabel {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--mantine-color-dimmed);
+  margin-bottom: 6px;
+}
+
+.metricValue {
+  max-width: calc(100% - 48px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1.6rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  text-transform: capitalize;
+}
+
+.metricSub {
+  margin-top: 6px;
+  font-size: 0.7rem;
+  color: var(--mantine-color-dimmed);
+  min-height: 1.1rem;
+}
+
+.overviewGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+  gap: var(--mantine-spacing-sm);
+}
+
+.panelHeader {
+  align-items: flex-start;
+}
+
+.identityRow {
+  padding: 12px;
+  border-radius: var(--mantine-radius-sm);
+  background: var(--mantine-color-dark-6);
+}
+
+.avatar {
+  flex-shrink: 0;
+  background: var(--mantine-color-dark-5);
+  color: var(--mantine-color-violet-4);
+}
+
+.identityInfo {
+  min-width: 0;
+}
+
+.identityName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--mantine-color-gray-0);
+}
+
+.input :global(.mantine-Input-input),
+.steamInput :global(.mantine-Input-input) {
+  border-color: var(--mantine-color-dark-4);
+  background: var(--mantine-color-dark-6);
+  color: var(--mantine-color-gray-0);
+  box-shadow: none;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease;
+}
+
+.input :global(.mantine-Input-input)::placeholder,
+.steamInput :global(.mantine-Input-input)::placeholder {
+  color: var(--mantine-color-gray-5);
+}
+
+.input :global(.mantine-Input-input:focus),
+.steamInput :global(.mantine-Input-input:focus) {
+  border-color: var(--mantine-color-violet-6);
+}
+
+.input :global(.mantine-Input-label),
+.steamInput :global(.mantine-Input-label) {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.sidePanel,
+.dangerPanel {
+  transition:
+    border-color 150ms ease,
+    background 150ms ease;
+}
+
+.sidePanel:hover,
+.dangerPanel:hover {
+  border-color: var(--mantine-color-dark-4);
+  background: #171b27;
+}
+
+.dangerPanel {
+  border-color: rgba(250, 82, 82, 0.22);
+}
+
+.importRow {
+  flex-wrap: nowrap;
+}
+
+.steamInput {
+  flex: 1;
+  min-width: 260px;
+}
+
+.resultAlert {
+  border-color: rgba(32, 201, 151, 0.22);
+}
+
+.resultStat {
+  padding: 10px 12px;
+  border-radius: var(--mantine-radius-sm);
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.resultValue {
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--mantine-color-teal-4);
+  font-variant-numeric: tabular-nums;
+}
+
+.resultLabel {
+  margin-top: 3px;
+  font-size: 0.68rem;
+  color: var(--mantine-color-dimmed);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.resultAccordion :global(.mantine-Accordion-item) {
+  border-color: var(--mantine-color-dark-4);
+  background: var(--mantine-color-dark-6);
+}
+
+.resultAccordion :global(.mantine-Accordion-control) {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .page {
+    padding: var(--mantine-spacing-md);
+  }
+
+  .metricsGrid,
+  .overviewGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .importRow {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .steamInput {
+    min-width: 0;
+    width: 100%;
+  }
+}
