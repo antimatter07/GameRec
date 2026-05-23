@@ -12,6 +12,7 @@ from app.schemas.library import (
     LibraryEntryUpdate,
     LibraryEntryUpdateOut,
     LibraryStats,
+    PaginatedLibraryEntries,
     PrioritizedBacklogOut,
     SteamImportRequest,
     SteamImportResponse,
@@ -42,6 +43,30 @@ def get_library(
         status_filter=status_filter,
         search=search,
         sort=sort,
+    )
+
+
+@router.get("/paged", response_model=PaginatedLibraryEntries)
+def get_library_page(
+    db: DBDep,
+    current_user: CurrentUserDep,
+    status_filter: Literal["all", "playing", "replaying", "completed", "backlog", "wishlist", "dropped"] = Query(
+        "all",
+        alias="status",
+    ),
+    search: str | None = Query(None),
+    sort: Literal["added_at_desc", "added_at_asc", "status"] = Query("added_at_desc"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(40, ge=1, le=100),
+):
+    return library_service.get_user_library_page(
+        db,
+        current_user.id,
+        status_filter=status_filter,
+        search=search,
+        sort=sort,
+        page=page,
+        page_size=page_size,
     )
 
 

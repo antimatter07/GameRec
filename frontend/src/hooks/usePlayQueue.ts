@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { playQueueApi } from '../api/playQueue';
-import type { PlayQueue } from '../types/playQueue';
+import type { PlayQueue, QueueSuggestionState } from '../types/playQueue';
 
 export function usePlayQueue() {
   return useQuery({
@@ -16,7 +16,8 @@ export function useQueueSuggestion() {
     queryFn: playQueueApi.getSuggestion,
     refetchOnWindowFocus: false,
     refetchInterval: (query) => {
-      return query.state.data?.suggestion?.status === 'pending' ? 3000 : false;
+      const state = query.state.data;
+      return state?.is_generating || state?.suggestion?.status === 'pending' ? 3000 : false;
     },
   });
 }
@@ -25,7 +26,8 @@ export function useEnsureQueueSuggestion() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (triggerSource: string) => playQueueApi.ensureSuggestion(triggerSource),
-    onSuccess: () => {
+    onSuccess: (data: QueueSuggestionState) => {
+      queryClient.setQueryData(['queue-suggestion'], data);
       queryClient.invalidateQueries({ queryKey: ['queue-suggestion'] });
     },
   });

@@ -62,7 +62,7 @@ export function PlaythroughNoteCard({
             </Tooltip>
             <Tooltip label={note.pinned ? 'Unpin' : 'Pin'} withArrow>
               <ActionIcon variant="subtle" color={note.pinned ? 'yellow' : 'gray'} onClick={() => onTogglePinned(note)}>
-                {note.pinned ? <IconPinned size={15} /> : <IconPinnedOff size={15} />}
+                {note.pinned ? <IconPinnedOff size={15} /> : <IconPinned size={15} />}
               </ActionIcon>
             </Tooltip>
             <Tooltip label="Edit" withArrow>

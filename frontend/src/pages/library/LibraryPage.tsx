@@ -38,7 +38,7 @@ import {
 import { useNavigate } from 'react-router';
 import { GameCard } from '../../components/games/GameCard';
 import {
-  useLibrary,
+  useInfiniteLibrary,
   useLibraryStats,
   useRemoveFromLibrary,
   useUpdateLibraryEntry,
@@ -106,6 +106,8 @@ const SORT_OPTIONS: Array<{ value: LibrarySort; label: string }> = [
   { value: 'status', label: 'Status' },
 ];
 
+const LIBRARY_PAGE_SIZE = 40;
+
 function formatGenres(entry: LibraryEntry) {
   const genreNames = entry.game.genres.slice(0, 3).map((genre) => genre.name);
   return genreNames.length > 0 ? genreNames.join(' • ') : 'No genres yet';
@@ -132,12 +134,24 @@ export default function LibraryPage() {
     }),
     [activeTab, appliedSearch, sort],
   );
-  const { data: entries, isLoading, isError, isFetching } = useLibrary(libraryQuery);
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isError,
+    isFetching,
+    isFetchingNextPage,
+    isLoading,
+  } = useInfiniteLibrary(libraryQuery, LIBRARY_PAGE_SIZE);
   const { data: stats } = useLibraryStats();
   const removeEntry = useRemoveFromLibrary();
   const updateEntry = useUpdateLibraryEntry();
 
-  const libraryEntries = useMemo(() => entries ?? [], [entries]);
+  const libraryEntries = useMemo(
+    () => data?.pages.flatMap((page) => page.results) ?? [],
+    [data],
+  );
+  const visibleTotal = data?.pages[0]?.total ?? 0;
   const ratedEntries = useMemo(
     () => libraryEntries.filter((entry) => entry.rating !== null),
     [libraryEntries],
@@ -223,7 +237,7 @@ export default function LibraryPage() {
     }
   };
 
-  if (isLoading && !entries) {
+  if (isLoading && !data) {
     return (
       <Center py={80}>
         <Stack align="center" gap="sm">
@@ -234,7 +248,7 @@ export default function LibraryPage() {
     );
   }
 
-  if (isError && !entries) {
+  if (isError && !data) {
     return (
       <Center py={80}>
         <Paper p="md" radius="md" withBorder>
@@ -467,7 +481,7 @@ export default function LibraryPage() {
                       <Text size="xs" c="dimmed">
                         {PANEL_COPY[tab.value]}
                       </Text>
-                      {isActivePanel && isFetching && (
+                      {isActivePanel && isFetching && !isFetchingNextPage && (
                         <span className={classes.inlineLoading}>
                           <Loader size="xs" color="violet" />
                         </span>
@@ -540,62 +554,83 @@ export default function LibraryPage() {
                     </div>
                   </div>
                 ) : (
-                  <Box className={classes.grid}>
-                    {panelEntries.map((entry) => (
-                      <Box key={entry.id} className={classes.libraryItem}>
-                        <GameCard game={entry.game} />
+                  <>
+                    <Box className={classes.grid}>
+                      {panelEntries.map((entry) => (
+                        <Box key={entry.id} className={classes.libraryItem}>
+                          <GameCard game={entry.game} />
 
-                        <Paper p="sm" radius="md" withBorder className={classes.entryMeta}>
-                          <Group justify="space-between" align="flex-start" gap="sm" wrap="nowrap">
-                            <div className={classes.entryInfo}>
-                              <Group gap={6} wrap="wrap" mb={6}>
-                                <Badge size="xs" color={STATUS_COLORS[entry.status]} variant="light">
-                                  {STATUS_LABELS[entry.status]}
-                                </Badge>
-                                {entry.rating !== null && (
-                                  <Group gap={6} wrap="nowrap">
-                                    <Rating value={entry.rating} fractions={2} readOnly size="xs" color="yellow" />
-                                    <Text size="xs" c="dimmed" className={classes.ratingText}>
-                                      {entry.rating.toFixed(1)}
-                                    </Text>
-                                  </Group>
-                                )}
+                          <Paper p="sm" radius="md" withBorder className={classes.entryMeta}>
+                            <Group justify="space-between" align="flex-start" gap="sm" wrap="nowrap">
+                              <div className={classes.entryInfo}>
+                                <Group gap={6} wrap="wrap" mb={6}>
+                                  <Badge size="xs" color={STATUS_COLORS[entry.status]} variant="light">
+                                    {STATUS_LABELS[entry.status]}
+                                  </Badge>
+                                  {entry.rating !== null && (
+                                    <Group gap={6} wrap="nowrap">
+                                      <Rating value={entry.rating} fractions={2} readOnly size="xs" color="yellow" />
+                                      <Text size="xs" c="dimmed" className={classes.ratingText}>
+                                        {entry.rating.toFixed(1)}
+                                      </Text>
+                                    </Group>
+                                  )}
+                                </Group>
+
+                                <Text className={classes.entryMetaLine}>
+                                  Added {dateFormatter.format(new Date(entry.added_at))}
+                                </Text>
+                                <Text className={`${classes.entryMetaLine} ${classes.entryGenres}`}>
+                                  {formatGenres(entry)}
+                                </Text>
+                              </div>
+
+                              <Group gap={6} className={classes.entryActions} wrap="nowrap">
+                                <ActionIcon
+                                  size="sm"
+                                  variant="subtle"
+                                  color="gray"
+                                  onClick={() => handleOpenEdit(entry)}
+                                  aria-label="Edit entry"
+                                >
+                                  <IconPencil size={14} />
+                                </ActionIcon>
+                                <ActionIcon
+                                  size="sm"
+                                  variant="subtle"
+                                  color="red"
+                                  onClick={() => handleRemove(entry.id, entry.game.name)}
+                                  loading={removingEntryId === entry.id}
+                                  aria-label="Remove from library"
+                                >
+                                  <IconTrash size={14} />
+                                </ActionIcon>
                               </Group>
-
-                              <Text className={classes.entryMetaLine}>
-                                Added {dateFormatter.format(new Date(entry.added_at))}
-                              </Text>
-                              <Text className={`${classes.entryMetaLine} ${classes.entryGenres}`}>
-                                {formatGenres(entry)}
-                              </Text>
-                            </div>
-
-                            <Group gap={6} className={classes.entryActions} wrap="nowrap">
-                              <ActionIcon
-                                size="sm"
-                                variant="subtle"
-                                color="gray"
-                                onClick={() => handleOpenEdit(entry)}
-                                aria-label="Edit entry"
-                              >
-                                <IconPencil size={14} />
-                              </ActionIcon>
-                              <ActionIcon
-                                size="sm"
-                                variant="subtle"
-                                color="red"
-                                onClick={() => handleRemove(entry.id, entry.game.name)}
-                                loading={removingEntryId === entry.id}
-                                aria-label="Remove from library"
-                              >
-                                <IconTrash size={14} />
-                              </ActionIcon>
                             </Group>
-                          </Group>
-                        </Paper>
-                      </Box>
-                    ))}
-                  </Box>
+                          </Paper>
+                        </Box>
+                      ))}
+                    </Box>
+
+                    <div className={classes.loadMoreFooter}>
+                      <Text size="xs" c="dimmed">
+                        Showing {panelEntries.length.toLocaleString()} of {visibleTotal.toLocaleString()}
+                      </Text>
+                      {hasNextPage && (
+                        <Button
+                          size="xs"
+                          variant="light"
+                          color="violet"
+                          loading={isFetchingNextPage}
+                          onClick={() => {
+                            void fetchNextPage();
+                          }}
+                        >
+                          Load more
+                        </Button>
+                      )}
+                    </div>
+                  </>
                 )}
               </Paper>
             </Tabs.Panel>

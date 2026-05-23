@@ -43,18 +43,16 @@ def _direct_similarity(entry: LibraryEntry, taste_profile: list[float] | None) -
     return max(0.0, min(1.0, dot))
 
 
-def get_user_library(
+def _library_query(
     db: Session,
     user_id: int,
     status_filter: LIBRARY_QUERY_STATUS = "all",
     search: str | None = None,
-    sort: LIBRARY_QUERY_SORT = "added_at_desc",
-) -> list[LibraryEntry]:
+):
     query = (
         db.query(LibraryEntry)
         .join(LibraryEntry.game)
         .filter(LibraryEntry.user_id == user_id)
-        .options(joinedload(LibraryEntry.game))
     )
 
     if status_filter != "all":
@@ -64,20 +62,56 @@ def get_user_library(
     if normalized_search:
         query = query.filter(Game.name.ilike(f"%{normalized_search}%"))
 
+    return query
+
+
+def _order_library_query(query, sort: LIBRARY_QUERY_SORT = "added_at_desc"):
     if sort == "added_at_asc":
-        query = query.order_by(LibraryEntry.added_at.asc())
+        return query.order_by(LibraryEntry.added_at.asc())
     elif sort == "status":
-        query = query.order_by(
+        return query.order_by(
             case(
                 *[(LibraryEntry.status == status, order) for status, order in STATUS_SORT_ORDER.items()],
                 else_=len(STATUS_SORT_ORDER),
             ),
             LibraryEntry.added_at.desc(),
         )
-    else:
-        query = query.order_by(LibraryEntry.added_at.desc())
+
+    return query.order_by(LibraryEntry.added_at.desc())
+
+
+def get_user_library(
+    db: Session,
+    user_id: int,
+    status_filter: LIBRARY_QUERY_STATUS = "all",
+    search: str | None = None,
+    sort: LIBRARY_QUERY_SORT = "added_at_desc",
+) -> list[LibraryEntry]:
+    query = _library_query(db, user_id, status_filter, search).options(joinedload(LibraryEntry.game))
+    query = _order_library_query(query, sort)
 
     return query.all()
+
+
+def get_user_library_page(
+    db: Session,
+    user_id: int,
+    status_filter: LIBRARY_QUERY_STATUS = "all",
+    search: str | None = None,
+    sort: LIBRARY_QUERY_SORT = "added_at_desc",
+    page: int = 1,
+    page_size: int = 40,
+) -> dict:
+    base_query = _library_query(db, user_id, status_filter, search)
+    total = base_query.count()
+    entries = (
+        _order_library_query(base_query.options(joinedload(LibraryEntry.game)), sort)
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+
+    return {"total": total, "page": page, "page_size": page_size, "results": entries}
 
 
 def add_game(db: Session, user_id: int, entry_in: LibraryEntryCreate) -> LibraryEntry:

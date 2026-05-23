@@ -271,6 +271,15 @@
   background: var(--mantine-color-dark-6);
 }
 
+.loadMoreFooter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mantine-spacing-sm);
+  padding-top: var(--mantine-spacing-md);
+  flex-wrap: wrap;
+}
+
 @media (max-width: 900px) {
   .page {
     padding: var(--mantine-spacing-md);

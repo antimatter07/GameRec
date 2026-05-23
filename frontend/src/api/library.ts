@@ -6,6 +6,7 @@ import type {
   LibraryEntryUpdate,
   LibraryStats,
   LibraryEntryUpdateOut,
+  PaginatedLibraryEntries,
   SteamImportResponse,
 } from '../types/library';
 import type { GameListItem } from '../types/game';
@@ -35,6 +36,9 @@ export interface PrioritizedBacklogOut {
 export const libraryApi = {
   getAll: (params: LibraryQueryParams = {}) =>
     apiClient.get<LibraryEntry[]>('/library', { params }).then((r) => r.data),
+
+  getPage: (params: LibraryQueryParams = {}) =>
+    apiClient.get<PaginatedLibraryEntries>('/library/paged', { params }).then((r) => r.data),
 
   getStats: () =>
     apiClient.get<LibraryStats>('/library/stats').then((r) => r.data),

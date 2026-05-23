@@ -14,6 +14,13 @@ export interface LibraryEntry {
   updated_at: string;
 }
 
+export interface PaginatedLibraryEntries {
+  total: number;
+  page: number;
+  page_size: number;
+  results: LibraryEntry[];
+}
+
 export interface LibraryEntryCreate {
   game_id: number;
   status?: LibraryStatus;
@@ -31,6 +38,8 @@ export interface LibraryQueryParams {
   status?: LibraryStatusFilter;
   search?: string;
   sort?: LibrarySort;
+  page?: number;
+  page_size?: number;
 }
 
 export interface LibraryStats {

@@ -31,6 +31,13 @@ class LibraryEntryOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class PaginatedLibraryEntries(BaseModel):
+    total:     int
+    page:      int
+    page_size: int
+    results:   list[LibraryEntryOut]
+
+
 class LibraryStats(BaseModel):
     total_games: int
     by_status:   dict[str, int]   # {"playing": 3, "completed": 10, ...}

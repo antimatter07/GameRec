@@ -1,4 +1,4 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { notifications } from '@mantine/notifications';
 import { libraryApi } from '../api/library';
 import type { BacklogFiltersParams } from '../api/library';
@@ -9,6 +9,24 @@ export function useLibrary(params: LibraryQueryParams = {}) {
     queryKey: ['library', params],
     queryFn: () => libraryApi.getAll(params),
     placeholderData: keepPreviousData,
+    staleTime: 2 * 60 * 1000,
+  });
+}
+
+export function useInfiniteLibrary(params: LibraryQueryParams = {}, pageSize = 40) {
+  return useInfiniteQuery({
+    queryKey: ['library', 'paged', params, pageSize],
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) =>
+      libraryApi.getPage({
+        ...params,
+        page: pageParam,
+        page_size: pageSize,
+      }),
+    getNextPageParam: (lastPage) => {
+      const loaded = lastPage.page * lastPage.page_size;
+      return loaded < lastPage.total ? lastPage.page + 1 : undefined;
+    },
     staleTime: 2 * 60 * 1000,
   });
 }
