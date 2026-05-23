@@ -1,5 +1,6 @@
 import json
 from collections import Counter, defaultdict
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -18,6 +19,11 @@ from app.models.recommendation import (
     RecommendationStatus,
 )
 from app.services.llm_provider import LLMProviderError, get_default_llm_provider
+from app.services.steam_import_service import (
+    _best_by_popularity,
+    _score_candidate as _score_title_match,
+    normalize_game_title,
+)
 
 _STATUS_WEIGHTS: dict[LibraryStatus, float] = {
     LibraryStatus.COMPLETED: 4.0,
@@ -27,6 +33,7 @@ _STATUS_WEIGHTS: dict[LibraryStatus, float] = {
     LibraryStatus.WISHLIST: 0.75,
 }
 _CACHE_TTL = timedelta(hours=settings.AI_PICKS_CACHE_HOURS)
+_FUZZY_MATCH_THRESHOLD = 92.0
 
 
 class CompactTasteSummary(BaseModel):
@@ -61,28 +68,33 @@ class TasteDossier(BaseModel):
     taste_summary: str
 
 
-class CandidateRecord(BaseModel):
-    game_id: int
-    name: str
-    genres: list[str]
-    tags: list[str]
-    platforms: list[str]
-    release_year: int | None = None
-    hltb_main_hours: float | None = None
-    rating: float | None = None
-    metacritic: int | None = None
-
-
-class AIPick(BaseModel):
-    game_id: int
+class AIPickCandidate(BaseModel):
+    title: str
+    slug: str | None = None
     explanation: str
     confidence: float = Field(ge=0.0, le=1.0)
     because_you_liked: list[str] = Field(default_factory=list)
 
 
-class AIPicksSelection(BaseModel):
+class AIPicksProposal(BaseModel):
     taste_summary: str
-    picks: list[AIPick]
+    candidates: list[AIPickCandidate]
+
+
+@dataclass(frozen=True)
+class ResolvedAIPick:
+    candidate: AIPickCandidate
+    game: Game
+    match_confidence: float
+    match_reason: str
+
+
+@dataclass(frozen=True)
+class DroppedAIPick:
+    candidate: AIPickCandidate
+    reason: str
+    match_confidence: float | None = None
+    matched_game_id: int | None = None
 
 
 def _redis_client():
@@ -372,174 +384,143 @@ def build_taste_dossier(user_id: int, db: Session, *, force_refresh: bool = Fals
     return compact_summary, dossier
 
 
-def _score_candidate(game: Game, dossier: TasteDossier) -> float:
-    """Score a catalog game against the generated taste dossier."""
-    genre_names = {genre.get("name", "").lower() for genre in (game.genres or []) if genre.get("name")}
-    tag_names = {
-        tag.get("name", "").lower()
-        for tag in (game.tags or [])
-        if tag.get("name") and tag.get("language", "eng") in ("eng", "")
-    }
-    platform_names = {platform.get("name", "").lower() for platform in (game.platforms or []) if platform.get("name")}
-
-    preferred_genres = {name.lower() for name in dossier.preferred_genres}
-    preferred_tags = {name.lower() for name in dossier.preferred_tags}
-    preferred_platforms = {name.lower() for name in dossier.preferred_platforms}
-    avoid_tags = {name.lower() for name in dossier.avoid_tags}
-
-    genre_overlap = len(genre_names & preferred_genres)
-    tag_overlap = len(tag_names & preferred_tags)
-    platform_overlap = len(platform_names & preferred_platforms)
-    total_overlap = genre_overlap + tag_overlap + platform_overlap
-    if total_overlap == 0:
-        return 0.0
-
-    score = 0.0
-    score += genre_overlap * 3.0
-    score += tag_overlap * 2.0
-    score += platform_overlap * 1.25
-    score -= len(tag_names & avoid_tags) * 2.5
-    score += (game.rating or 0.0) / 5.0
-    score += (game.metacritic or 0) / 100.0
-    score += min(game.ratings_count or 0, 5000) / 5000.0
-
-    release_year = game.released.year if game.released else None
-    if _era_label(release_year) and _era_label(release_year) in dossier.preferred_eras:
-        score += 0.75
-
-    game_hours = game.hltb_main_hours or (float(game.playtime) if game.playtime else None)
-    if _length_bucket(game_hours) == dossier.length_preference:
-        score += 0.5
-
-    return score
+def _proposal_prompt(dossier: TasteDossier) -> str:
+    """Format the taste dossier for LLM-native game proposal generation."""
+    return (
+        f"Recommend exactly {settings.AI_PICKS_MAX_CANDIDATES} real, commercially released video games for this player.\n"
+        "Use exact game titles that are likely to exist in a RAWG-backed game catalog.\n"
+        "Do not recommend franchises, DLC, demos, soundtracks, bundles, editions, mods, unreleased games, "
+        "or vague series names. Prefer a mix of obvious strong fits and a few interesting discoveries.\n"
+        "Each explanation should be concise, specific, and grounded in the taste dossier.\n\n"
+        f"Taste dossier:\n{json.dumps(dossier.model_dump(), ensure_ascii=True)}"
+    )
 
 
-def build_candidate_shortlist(user_id: int, dossier: TasteDossier, db: Session) -> list[CandidateRecord]:
+def _validate_proposal(proposal: AIPicksProposal) -> AIPicksProposal:
+    """Reject malformed AI Picks proposal payloads before title resolution."""
+    if not proposal.taste_summary.strip():
+        raise ValueError("Missing taste summary from AI Picks response.")
+    if not proposal.candidates:
+        raise ValueError("AI Picks returned no candidate games.")
+    for candidate in proposal.candidates:
+        if not candidate.title.strip():
+            raise ValueError("AI Picks returned a candidate with an empty title.")
+        if not candidate.explanation.strip():
+            raise ValueError("AI Picks returned a candidate with an empty explanation.")
+    return proposal
+
+
+def _generate_proposal_once(dossier: TasteDossier, *, stricter: bool = False) -> AIPicksProposal:
+    """Ask Gemini for title-first AI Picks proposals."""
+    provider = get_default_llm_provider()
+    user_prompt = _proposal_prompt(dossier)
+    if stricter:
+        user_prompt += (
+            "\n\nRepair mode: return only valid JSON, include exact standalone game titles, "
+            "avoid DLC/editions/franchise names, and include no duplicate titles."
+        )
+    return provider.generate_structured(
+        system_prompt=(
+            "You are an expert game curator. Propose real games from the player's taste evidence. "
+            "Return structured JSON only."
+        ),
+        user_prompt=user_prompt,
+        schema=AIPicksProposal,
+    )
+
+
+def _normalized_slug(value: str | None) -> str:
+    """Normalize an LLM-provided slug enough for exact slug lookup."""
+    if not value:
+        return ""
+    return value.strip().lower()
+
+
+def _resolve_candidate(
+    candidate: AIPickCandidate,
+    games: list[Game],
+    exact_title_index: dict[str, list[Game]],
+    slug_index: dict[str, Game],
+) -> tuple[Game | None, float | None, str]:
+    """Resolve one LLM-proposed title to a strict local Postgres game match."""
+    slug = _normalized_slug(candidate.slug)
+    if slug and slug in slug_index:
+        return slug_index[slug], 100.0, "exact_slug"
+
+    normalized_title = normalize_game_title(candidate.title)
+    exact_matches = exact_title_index.get(normalized_title, [])
+    if exact_matches:
+        return _best_by_popularity(exact_matches), 100.0, "exact_title"
+
+    best_game: Game | None = None
+    best_score = 0.0
+    for game in games:
+        score = _score_title_match(candidate.title, game.name)
+        if score > best_score:
+            best_game = game
+            best_score = score
+
+    if best_game and best_score >= _FUZZY_MATCH_THRESHOLD:
+        return best_game, round(best_score, 2), "fuzzy_title"
+    if best_game:
+        return None, round(best_score, 2), "low_confidence_match"
+    return None, None, "not_found"
+
+
+def resolve_ai_pick_candidates(
+    user_id: int,
+    proposal: AIPicksProposal,
+    db: Session,
+) -> tuple[list[ResolvedAIPick], list[DroppedAIPick]]:
     """
-    Build the allowed catalog slice that the LLM may choose from.
+    Resolve LLM-proposed titles against the local catalog.
 
-    This pre-filters owned games and removes weak matches so the structured
-    model call stays focused on plausible recommendations.
+    Only resolved, unowned, non-duplicate games are eligible for storage. Missing
+    Postgres rows are dropped because the UI needs the local Game metadata.
     """
     owned_game_ids = {
         entry.game_id
         for entry in db.query(LibraryEntry).filter(LibraryEntry.user_id == user_id).all()
     }
+    games = db.query(Game).all()
+    exact_title_index: dict[str, list[Game]] = {}
+    slug_index: dict[str, Game] = {}
+    for game in games:
+        exact_title_index.setdefault(normalize_game_title(game.name), []).append(game)
+        slug_index[game.slug.lower()] = game
 
-    query = db.query(Game).filter(Game.genres.isnot(None))
-    if owned_game_ids:
-        query = query.filter(~Game.id.in_(owned_game_ids))
+    resolved: list[ResolvedAIPick] = []
+    dropped: list[DroppedAIPick] = []
+    seen_game_ids: set[int] = set()
 
-    candidates: list[tuple[float, Game]] = []
-    for game in query.all():
-        score = _score_candidate(game, dossier)
-        if score <= 0:
+    for candidate in proposal.candidates:
+        game, match_confidence, match_reason = _resolve_candidate(candidate, games, exact_title_index, slug_index)
+        if game is None:
+            dropped.append(DroppedAIPick(candidate, match_reason, match_confidence))
             continue
-        candidates.append((score, game))
+        if game.id in owned_game_ids:
+            dropped.append(DroppedAIPick(candidate, "owned", match_confidence, game.id))
+            continue
+        if game.id in seen_game_ids:
+            dropped.append(DroppedAIPick(candidate, "duplicate", match_confidence, game.id))
+            continue
 
-    candidates.sort(key=lambda item: item[0], reverse=True)
-    shortlist = []
-    for _, game in candidates[: settings.AI_PICKS_MAX_CANDIDATES]:
-        shortlist.append(
-            CandidateRecord(
-                game_id=game.id,
-                name=game.name,
-                genres=[genre.get("name", "") for genre in (game.genres or [])[:4] if genre.get("name")],
-                tags=[
-                    tag.get("name", "")
-                    for tag in (game.tags or [])
-                    if tag.get("name") and tag.get("language", "eng") in ("eng", "")
-                ][:5],
-                platforms=[platform.get("name", "") for platform in (game.platforms or [])[:3] if platform.get("name")],
-                release_year=game.released.year if game.released else None,
-                hltb_main_hours=game.hltb_main_hours,
-                rating=game.rating,
-                metacritic=game.metacritic,
-            )
-        )
+        seen_game_ids.add(game.id)
+        resolved.append(ResolvedAIPick(candidate, game, match_confidence or 100.0, match_reason))
+        if len(resolved) >= settings.AI_PICKS_MAX_RESULTS:
+            break
 
-    if not shortlist:
-        raise ValueError("Not enough catalog candidates match this user's taste yet.")
-    return shortlist
-
-
-def _selection_prompt(dossier: TasteDossier, candidates: list[CandidateRecord]) -> str:
-    """Format the dossier and candidate shortlist into the LLM selection prompt."""
-    candidate_lines = [
-        (
-            f"{candidate.game_id} | {candidate.name} | "
-            f"genres={', '.join(candidate.genres) or 'n/a'} | "
-            f"tags={', '.join(candidate.tags) or 'n/a'} | "
-            f"platforms={', '.join(candidate.platforms) or 'n/a'} | "
-            f"year={candidate.release_year or 'n/a'} | "
-            f"hltb={candidate.hltb_main_hours or 'n/a'} | "
-            f"rating={candidate.rating or 'n/a'} | "
-            f"metacritic={candidate.metacritic or 'n/a'}"
-        )
-        for candidate in candidates
-    ]
-    return (
-        "Choose the strongest final recommendations from this allowed catalog only.\n"
-        "Do not invent games, IDs, or unsupported claims. Keep explanations concise and specific.\n\n"
-        f"Taste dossier:\n{json.dumps(dossier.model_dump(), ensure_ascii=True)}\n\n"
-        "Allowed candidates:\n"
-        + "\n".join(candidate_lines)
-    )
-
-
-def _validate_selection(
-    selection: AIPicksSelection,
-    candidate_ids: set[int],
-    owned_game_ids: set[int],
-) -> AIPicksSelection:
-    """Reject malformed or unsafe AI Picks responses before they are stored."""
-    if not selection.taste_summary.strip():
-        raise ValueError("Missing taste summary from AI Picks response.")
-    if not selection.picks:
-        raise ValueError("AI Picks returned no recommendations.")
-    if len(selection.picks) > settings.AI_PICKS_MAX_RESULTS:
-        raise ValueError("AI Picks returned too many recommendations.")
-
-    seen: set[int] = set()
-    for pick in selection.picks:
-        if pick.game_id not in candidate_ids:
-            raise ValueError(f"AI Picks returned unknown game id {pick.game_id}.")
-        if pick.game_id in owned_game_ids:
-            raise ValueError(f"AI Picks returned owned game id {pick.game_id}.")
-        if pick.game_id in seen:
-            raise ValueError("AI Picks returned duplicate games.")
-        if not pick.explanation.strip():
-            raise ValueError("AI Picks returned an empty explanation.")
-        seen.add(pick.game_id)
-
-    return selection
-
-
-def _generate_selection_once(dossier: TasteDossier, candidates: list[CandidateRecord], *, stricter: bool = False) -> AIPicksSelection:
-    """Ask Gemini for a structured AI Picks response using the current shortlist."""
-    provider = get_default_llm_provider()
-    user_prompt = _selection_prompt(dossier, candidates)
-    if stricter:
-        user_prompt += (
-            "\n\nRepair mode: you must only use candidate IDs from the list, no duplicates, "
-            "and no more than the requested number of picks."
-        )
-    return provider.generate_structured(
-        system_prompt=(
-            "You are an expert game curator. Choose only from the provided candidates and return valid JSON."
-        ),
-        user_prompt=user_prompt,
-        schema=AIPicksSelection,
-    )
+    return resolved, dropped
 
 
 def generate_ai_picks_for_recommendation(recommendation_id: int, user_id: int, db: Session) -> Recommendation:
     """
-    Populate a pending AI Picks recommendation with LLM-selected games.
+    Populate a pending AI Picks recommendation with Postgres-resolved LLM proposals.
 
     This is the production path for the LLM-native recommendations surface: it
-    gathers the user's taste dossier, scores the catalog, gets a structured
-    response from Gemini, stores the result, and clears the stale marker.
+    gathers the user's taste dossier, asks the LLM for game titles, resolves
+    them against the local catalog, stores the grounded result, and clears the
+    stale marker.
     """
     recommendation = (
         db.query(Recommendation)
@@ -554,39 +535,65 @@ def generate_ai_picks_for_recommendation(recommendation_id: int, user_id: int, d
         raise ValueError(f"AI Picks batch {recommendation_id} not found.")
 
     compact_summary, dossier = build_taste_dossier(user_id, db)
-    candidates = build_candidate_shortlist(user_id, dossier, db)
-    owned_game_ids = {
-        entry.game_id
-        for entry in db.query(LibraryEntry).filter(LibraryEntry.user_id == user_id).all()
-    }
-    candidate_ids = {candidate.game_id for candidate in candidates}
 
     try:
-        selection = _generate_selection_once(dossier, candidates, stricter=False)
-        selection = _validate_selection(selection, candidate_ids, owned_game_ids)
+        proposal = _validate_proposal(_generate_proposal_once(dossier, stricter=False))
     except (ValueError, LLMProviderError):
-        selection = _generate_selection_once(dossier, candidates, stricter=True)
-        selection = _validate_selection(selection, candidate_ids, owned_game_ids)
+        proposal = _validate_proposal(_generate_proposal_once(dossier, stricter=True))
+
+    resolved, dropped = resolve_ai_pick_candidates(user_id, proposal, db)
+    if not resolved:
+        recommendation.profile_snapshot = {
+            "compact_summary": compact_summary.model_dump(),
+            "taste_dossier": dossier.model_dump(),
+            "raw_candidates": [candidate.model_dump() for candidate in proposal.candidates],
+            "resolved_game_ids": [],
+            "dropped_candidates": [
+                {
+                    "candidate": dropped_pick.candidate.model_dump(),
+                    "reason": dropped_pick.reason,
+                    "match_confidence": dropped_pick.match_confidence,
+                    "matched_game_id": dropped_pick.matched_game_id,
+                }
+                for dropped_pick in dropped
+            ],
+        }
+        recommendation.summary = "AI Picks could not match any suggested games to the local catalog."
+        recommendation.model_name = settings.AI_PICKS_MODEL
+        recommendation.status = RecommendationStatus.FAILED
+        db.commit()
+        raise ValueError("AI Picks could not match any suggested games to the local catalog.")
 
     recommendation.items.clear()
     recommendation.profile_snapshot = {
         "compact_summary": compact_summary.model_dump(),
         "taste_dossier": dossier.model_dump(),
+        "raw_candidates": [candidate.model_dump() for candidate in proposal.candidates],
+        "resolved_game_ids": [pick.game.id for pick in resolved],
+        "dropped_candidates": [
+            {
+                "candidate": dropped_pick.candidate.model_dump(),
+                "reason": dropped_pick.reason,
+                "match_confidence": dropped_pick.match_confidence,
+                "matched_game_id": dropped_pick.matched_game_id,
+            }
+            for dropped_pick in dropped
+        ],
     }
-    recommendation.summary = selection.taste_summary
+    recommendation.summary = proposal.taste_summary
     recommendation.model_name = settings.AI_PICKS_MODEL
     recommendation.status = RecommendationStatus.READY
     recommendation.generated_at = datetime.now(timezone.utc)
 
-    for rank, pick in enumerate(selection.picks, start=1):
+    for rank, pick in enumerate(resolved, start=1):
         recommendation.items.append(
             RecommendationItem(
-                game_id=pick.game_id,
+                game_id=pick.game.id,
                 rank=rank,
-                score=float(pick.confidence),
-                explanation=pick.explanation.strip(),
-                confidence=float(pick.confidence),
-                because_you_liked=pick.because_you_liked or None,
+                score=float(pick.candidate.confidence),
+                explanation=pick.candidate.explanation.strip(),
+                confidence=float(pick.candidate.confidence),
+                because_you_liked=pick.candidate.because_you_liked or None,
             )
         )
 
@@ -664,8 +671,8 @@ def request_ai_picks_refresh(user_id: int, db: Session) -> tuple[Recommendation,
     Create a pending AI Picks recommendation and signal whether to enqueue it.
 
     The API layer uses the boolean return value to decide whether a Celery job
-    should be dispatched immediately or whether an existing batch already
-    satisfies the request.
+    should be dispatched immediately. A user-initiated refresh always creates a
+    new batch unless another refresh is already pending.
     """
     if not settings.GEMINI_API_KEY:
         raise ValueError("AI Picks is not configured yet. Add GEMINI_API_KEY to enable it.")
@@ -673,11 +680,8 @@ def request_ai_picks_refresh(user_id: int, db: Session) -> tuple[Recommendation,
     build_compact_taste_summary(user_id, db)
 
     latest = _latest_ai_picks_query(user_id, db).first()
-    if latest is not None:
-        if latest.status == RecommendationStatus.PENDING:
-            return latest, False
-        if latest.status == RecommendationStatus.READY and not _is_stale(latest, user_id):
-            return latest, False
+    if latest is not None and latest.status == RecommendationStatus.PENDING:
+        return latest, False
 
     recommendation = Recommendation(
         user_id=user_id,

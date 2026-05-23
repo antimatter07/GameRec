@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     AI_PICKS_MODEL: str = "gemini-2.5-flash-lite"
     AI_PICKS_REQUIRE_PREMIUM: bool = False
     AI_PICKS_CACHE_HOURS: int = 24
-    AI_PICKS_MAX_CANDIDATES: int = 24
+    AI_PICKS_MAX_CANDIDATES: int = 30
     AI_PICKS_MAX_RESULTS: int = 6
     QUEUE_SUGGESTION_MODEL: str = "gemini-2.5-flash-lite"
     QUEUE_SUGGESTION_REQUIRE_PREMIUM: bool = False
