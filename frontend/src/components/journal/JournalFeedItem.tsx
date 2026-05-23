@@ -1,5 +1,6 @@
-import { Text, Badge, Tooltip, Image } from '@mantine/core';
-import { IconTrophy } from '@tabler/icons-react';
+import { Badge, Tooltip, Image } from '@mantine/core';
+import { IconDeviceGamepad2, IconTrophy } from '@tabler/icons-react';
+import type { KeyboardEvent } from 'react';
 import { EmotionType, EMOTION_CONFIG } from '../../types/journal';
 import type { SessionLog } from '../../types/journal';
 import classes from './Journal.module.css';
@@ -18,7 +19,7 @@ const EMOTION_CSS_COLORS: Record<EmotionType, string> = {
 };
 
 function formatDuration(minutes: number | null): string {
-  if (!minutes) return '—';
+  if (!minutes) return 'No time';
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   if (h === 0) return `${m}m`;
@@ -49,8 +50,25 @@ interface JournalFeedItemProps {
 }
 
 export function JournalFeedItem({ session, onClick }: JournalFeedItemProps) {
+  const clickableProps = onClick
+    ? {
+        role: 'button',
+        tabIndex: 0,
+        onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            onClick();
+          }
+        },
+      }
+    : {};
+
   return (
-    <div className={classes.sessionItem} onClick={onClick}>
+    <div
+      className={`${classes.sessionItem} ${onClick ? classes.sessionItemClickable : ''}`}
+      onClick={onClick}
+      {...clickableProps}
+    >
       <div className={classes.sessionCover}>
         {session.game_cover_url ? (
           <Image
@@ -61,7 +79,7 @@ export function JournalFeedItem({ session, onClick }: JournalFeedItemProps) {
             fit="cover"
           />
         ) : (
-          <Text size="lg">🎮</Text>
+          <IconDeviceGamepad2 size={18} />
         )}
       </div>
 

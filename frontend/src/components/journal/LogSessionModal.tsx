@@ -33,6 +33,7 @@ import { useCreateSession } from '../../hooks/useJournal';
 import { useLibrary } from '../../hooks/useLibrary';
 import { EmotionType, EMOTION_CONFIG } from '../../types/journal';
 import type { SessionLogCreate } from '../../types/journal';
+import classes from './Journal.module.css';
 
 const EMOTION_ICONS: Record<string, React.ElementType> = {
   IconMoodConfuzed,
@@ -151,16 +152,28 @@ export function LogSessionModal({
 
   const modalTitle = pickerMode
     ? 'Log session'
-    : `Log session — ${effectiveGameTitle}`;
+    : `Log session: ${effectiveGameTitle}`;
 
   return (
-    <Modal opened={opened} onClose={handleClose} title={modalTitle} size="lg" centered>
-      <Stack gap="md">
+    <Modal
+      opened={opened}
+      onClose={handleClose}
+      title={modalTitle}
+      size="lg"
+      centered
+      classNames={{
+        content: classes.modalContent,
+        header: classes.modalHeader,
+        title: classes.modalTitle,
+        body: classes.modalBody,
+      }}
+    >
+      <Stack gap="md" className={classes.journalForm}>
         {/* ── Game picker (only in picker mode) ─────────────────────────── */}
         {pickerMode && (
           <Autocomplete
             label="Game"
-            placeholder="Search your library…"
+            placeholder="Search your library..."
             leftSection={<IconSearch size={16} />}
             value={gameSearch}
             onChange={(val) => {
@@ -233,7 +246,7 @@ export function LogSessionModal({
         {/* ── Emotion picker ─────────────────────────────────────────────── */}
         <div>
           <Text size="sm" c="dimmed" mb="xs">
-            How did this session feel? (optional — pick up to 5)
+            How did this session feel? Optional, pick up to 5.
           </Text>
           <Chip.Group multiple value={selectedEmotions} onChange={handleEmotionChange}>
             <SimpleGrid cols={{ base: 2, sm: 3 }} spacing="xs">
@@ -257,10 +270,11 @@ export function LogSessionModal({
         </div>
 
         <Group justify="flex-end" mt="sm">
-          <Button variant="subtle" onClick={handleClose}>
+          <Button variant="subtle" className={classes.secondaryAction} onClick={handleClose}>
             Cancel
           </Button>
           <Button
+            className={classes.primaryAction}
             onClick={handleSubmit}
             loading={createSession.isPending}
             disabled={pickerMode && !selectedGameId}

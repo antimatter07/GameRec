@@ -3,6 +3,7 @@ import { Stack, Group, Text, Rating, Button, Paper } from '@mantine/core';
 import { IconDeviceFloppy } from '@tabler/icons-react';
 import { useGameRating, useUpsertRating } from '../../hooks/useJournal';
 import type { MultiAxisRating } from '../../types/journal';
+import classes from './Journal.module.css';
 
 const AXES = [
   { key: 'story',     label: 'Story'     },
@@ -53,7 +54,7 @@ export function MultiAxisRatingWidget({
   if (isLoading) {
     return (
       <Paper p="sm" radius="sm" bg="var(--mantine-color-dark-6)">
-        <Text size="xs" c="dimmed">Loading ratings…</Text>
+        <Text size="xs" c="dimmed">Loading ratings...</Text>
       </Paper>
     );
   }
@@ -71,7 +72,7 @@ export function MultiAxisRatingWidget({
             fractions={2}
             readOnly={readOnly}
             size={compact ? 'xs' : 'sm'}
-            color="violet"
+            color="orange"
           />
           {ratings[key] !== null && (
             <Text
@@ -92,7 +93,7 @@ export function MultiAxisRatingWidget({
           <Button
             size="xs"
             variant="light"
-            color="violet"
+            className={classes.secondaryAction}
             leftSection={<IconDeviceFloppy size={14} />}
             onClick={handleSave}
             loading={upsertRating.isPending}
@@ -114,7 +115,7 @@ interface RatingBarsProps {
 
 export function MultiAxisRatingBars({
   rating,
-  color = 'var(--mantine-color-violet-5)',
+  color = '#d4674d',
 }: RatingBarsProps) {
   return (
     <Stack gap={4}>

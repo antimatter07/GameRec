@@ -11,8 +11,17 @@ import {
   Anchor,
   SimpleGrid,
   Pagination,
+  Skeleton,
 } from '@mantine/core';
-import { IconNote, IconNotes, IconPlus, IconTimeline, IconChartBar, IconMoodSmile } from '@tabler/icons-react';
+import {
+  IconChartBar,
+  IconDeviceGamepad2,
+  IconMoodSmile,
+  IconNote,
+  IconNotes,
+  IconPlus,
+  IconTimeline,
+} from '@tabler/icons-react';
 import {
   useJournalStats,
   useJournalFeed,
@@ -39,12 +48,12 @@ import { EMOTION_CONFIG } from '../../types/journal';
 import type { PlaythroughNote } from '../../types/journal';
 
 const RATING_COLORS = [
-  'var(--mantine-color-violet-5)',
+  '#d4674d',
   'var(--mantine-color-teal-5)',
+  '#e0b957',
+  '#5b8def',
   'var(--mantine-color-pink-5)',
-  'var(--mantine-color-blue-5)',
   'var(--mantine-color-orange-5)',
-  'var(--mantine-color-grape-5)',
 ];
 
 const EMOTION_CSS_COLORS: Record<string, string> = {
@@ -78,10 +87,14 @@ export default function JournalPage() {
 
   if (isLoading && !stats) {
     return (
-      <Center py={80}>
-        <Stack align="center" gap="sm">
-          <Loader color="violet" size="md" />
-          <Text size="sm" c="dimmed">Loading your journal…</Text>
+      <Center py={80} className={classes.journalPage}>
+        <Stack className={classes.loadingState} p="lg" align="center" gap="sm">
+          <Loader color="orange" size="md" />
+          <Text size="sm" c="dimmed">Loading your journal...</Text>
+          <Group gap="xs" aria-hidden="true">
+            <Skeleton height={8} width={72} radius="xl" />
+            <Skeleton height={8} width={44} radius="xl" />
+          </Group>
         </Stack>
       </Center>
     );
@@ -98,12 +111,13 @@ export default function JournalPage() {
             Gaming <span className={classes.headerAccent}>Journal</span>
           </Text>
           <Text size="xs" c="dimmed">
-            Your play sessions, moods, and progress — all in one place
+            Your play sessions, moods, and progress in one place
           </Text>
         </div>
         <Group gap="xs">
           <Button
             variant="light"
+            className={classes.secondaryAction}
             leftSection={<IconNotes size={16} />}
             onClick={() => {
               setEditingNote(null);
@@ -112,14 +126,14 @@ export default function JournalPage() {
           >
             New note
           </Button>
-          <Button leftSection={<IconPlus size={16} />} color="violet" onClick={() => setLogModalOpen(true)}>
+          <Button className={classes.primaryAction} leftSection={<IconPlus size={16} />} onClick={() => setLogModalOpen(true)}>
             Log session
           </Button>
         </Group>
       </div>
 
       {/* ─── Tabs ────────────────────────────────────────────────────────────── */}
-      <Tabs value={activeTab} onChange={setActiveTab} variant="pills" color="violet" mb="lg">
+      <Tabs value={activeTab} onChange={setActiveTab} variant="pills" mb="lg" className={classes.journalTabs}>
         <Tabs.List>
           <Tabs.Tab value="overview" leftSection={<IconChartBar size={14} />}>Overview</Tabs.Tab>
           <Tabs.Tab value="feed"     leftSection={<IconTimeline size={14} />}>Feed</Tabs.Tab>
@@ -134,7 +148,7 @@ export default function JournalPage() {
           <div className={classes.twoColMain}>
             <Paper p="md" radius="md" withBorder>
               <Group justify="space-between" mb="sm">
-                <Text size="sm" fw={600}>Hours per genre — {currentMonth}</Text>
+                <Text size="sm" fw={600}>Hours per genre: {currentMonth}</Text>
               </Group>
               {stats && <GenreHoursChart genres={stats.top_genres_this_month} />}
               {stats && stats.top_genres_this_month.length > 0 && (
@@ -196,8 +210,8 @@ export default function JournalPage() {
           <Paper p="md" radius="md" withBorder mb="md">
             <Group justify="space-between" mb="sm">
               <Text size="sm" fw={600}>Recent sessions</Text>
-              <Anchor size="xs" c="violet.4" onClick={() => setActiveTab('feed')}>
-                View all →
+              <Anchor size="xs" c="#e97d61" onClick={() => setActiveTab('feed')}>
+                View all
               </Anchor>
             </Group>
             <Stack gap="xs">
@@ -243,8 +257,8 @@ export default function JournalPage() {
           {feedData && feedData.total > feedData.per_page && (
             <Group justify="center" mt="lg">
               <Pagination
-                color="violet"
                 radius="md"
+                className={classes.journalPagination}
                 total={Math.ceil(feedData.total / feedData.per_page)}
                 value={feedPage}
                 onChange={setFeedPage}
@@ -284,7 +298,7 @@ export default function JournalPage() {
         {/* ════ MOOD PROFILE ════════════════════════════════════════════════ */}
         <Tabs.Panel value="mood" pt="lg">
           <Paper p="md" radius="md" withBorder mb="md">
-            <Text size="sm" fw={600} mb="md">Emotion breakdown — last 30 days</Text>
+            <Text size="sm" fw={600} mb="md">Emotion breakdown: last 30 days</Text>
             <EmotionSummaryCard
               emotionStats={emotionStats ?? null}
               dominantEmotion={stats?.dominant_emotion_this_month ?? null}
@@ -301,10 +315,10 @@ export default function JournalPage() {
                   const config = EMOTION_CONFIG[g.dominant_emotion];
                   return (
                     <Group key={g.game_id} gap="sm" wrap="nowrap">
-                      <div style={{ width: 40, height: 40, borderRadius: 8, background: 'var(--mantine-color-dark-6)', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div className={classes.moodGameMedia}>
                         {g.cover_url
                           ? <img src={g.cover_url} alt={g.game_title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          : <Text size="md">🎮</Text>}
+                          : <IconDeviceGamepad2 size={18} />}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <Text size="xs" fw={600} truncate>{g.game_title}</Text>
@@ -312,7 +326,10 @@ export default function JournalPage() {
                           {config?.label ?? g.dominant_emotion} · {g.session_count} sessions
                         </Text>
                       </div>
-                      <div style={{ width: 10, height: 10, borderRadius: '50%', background: EMOTION_CSS_COLORS[g.dominant_emotion] ?? 'var(--mantine-color-gray-5)', flexShrink: 0 }} />
+                      <div
+                        className={classes.moodDot}
+                        style={{ background: EMOTION_CSS_COLORS[g.dominant_emotion] ?? 'var(--mantine-color-gray-5)' }}
+                      />
                     </Group>
                   );
                 })}
@@ -327,17 +344,14 @@ export default function JournalPage() {
                 {emotionStats.per_genre.map((g) => (
                   <Group key={g.genre} justify="space-between" wrap="nowrap">
                     <Text size="xs" style={{ minWidth: 64, flex: '0 0 auto' }} truncate>{g.genre}</Text>
-                    <div style={{ display: 'flex', flex: 1, gap: 2, marginInline: 8 }}>
+                    <div className={classes.genreEmotionStack}>
                       {g.emotion_breakdown.slice(0, 5).map((e) => (
                         <div
                           key={e.emotion}
+                          className={classes.genreEmotionSegment}
                           style={{
                             flex: e.percentage,
-                            height: 16,
-                            borderRadius: 3,
                             background: EMOTION_CSS_COLORS[e.emotion] ?? 'var(--mantine-color-gray-5)',
-                            opacity: 0.8,
-                            minWidth: 4,
                           }}
                           title={`${EMOTION_CONFIG[e.emotion]?.label}: ${Math.round(e.percentage)}%`}
                         />

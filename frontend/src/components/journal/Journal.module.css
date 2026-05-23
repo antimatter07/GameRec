@@ -1,7 +1,19 @@
 /* ─── Journal Dashboard ────────────────────────────────────────────────────── */
 
 .journalPage {
-  
+  --journal-ember-0: #fff1ec;
+  --journal-ember-3: #f99a7e;
+  --journal-ember-4: #e97d61;
+  --journal-ember-5: #d4674d;
+  --journal-ember-6: #b9543e;
+  --journal-ember-7: #944331;
+  --journal-teal: #2fb8a6;
+  --journal-blue: #5b8def;
+  --journal-gold: #e0b957;
+  --journal-hover: #171b27;
+  --journal-overlay: rgba(10, 12, 18, 0.78);
+  --journal-divider: rgba(255, 255, 255, 0.06);
+
   /*max-width: 1100px;
   margin: 0 auto; */
   padding: var(--mantine-spacing-lg);
@@ -25,7 +37,100 @@
 }
 
 .headerAccent {
-  color: var(--mantine-color-violet-5);
+  color: var(--journal-ember-5);
+}
+
+.primaryAction {
+  background: var(--journal-ember-5);
+  color: var(--journal-ember-0);
+}
+
+.primaryAction:hover {
+  background: var(--journal-ember-6);
+}
+
+.primaryAction:active {
+  background: var(--journal-ember-7);
+}
+
+.primaryAction:focus-visible,
+.secondaryAction:focus-visible,
+.journalTabs :global(.mantine-Tabs-tab:focus-visible),
+.journalPagination :global(.mantine-Pagination-control:focus-visible),
+.sessionItem:focus-visible,
+.noteAction:focus-visible {
+  outline: 2px solid var(--journal-ember-6);
+  outline-offset: 2px;
+}
+
+.secondaryAction {
+  color: var(--journal-ember-4);
+}
+
+.secondaryAction:hover {
+  background: rgba(212, 103, 77, 0.1);
+  color: var(--journal-ember-0);
+}
+
+.journalTabs :global(.mantine-Tabs-list) {
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.journalTabs :global(.mantine-Tabs-tab) {
+  color: var(--mantine-color-dimmed);
+  transition:
+    background 150ms ease,
+    color 150ms ease;
+}
+
+.journalTabs :global(.mantine-Tabs-tab:hover) {
+  background: var(--mantine-color-dark-6);
+  color: var(--mantine-color-gray-1);
+}
+
+.journalTabs :global(.mantine-Tabs-tab[data-active]) {
+  background: rgba(212, 103, 77, 0.14);
+  color: var(--journal-ember-0);
+}
+
+.loadingState,
+.statePanel {
+  background: var(--mantine-color-dark-7);
+  border: 1px solid var(--mantine-color-dark-4);
+  border-radius: var(--mantine-radius-md);
+}
+
+.stateIcon {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--mantine-radius-sm);
+  color: var(--journal-ember-4);
+  background: rgba(212, 103, 77, 0.14);
+}
+
+.journalPagination :global(.mantine-Pagination-control) {
+  border-color: var(--mantine-color-dark-4);
+  background: var(--mantine-color-dark-6);
+  color: var(--mantine-color-gray-2);
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.journalPagination :global(.mantine-Pagination-control:hover) {
+  border-color: var(--mantine-color-dark-3);
+  background: var(--journal-hover);
+}
+
+.journalPagination :global(.mantine-Pagination-control[data-active]) {
+  border-color: var(--journal-ember-5);
+  background: var(--journal-ember-5);
+  color: var(--journal-ember-0);
 }
 
 /* ─── Metric Cards ─────────────────────────────────────────────────────────── */
@@ -52,11 +157,16 @@
 .metricCard {
   position: relative;
   overflow: hidden;
-  transition: border-color 150ms ease;
+  border-color: var(--mantine-color-dark-4);
+  background: var(--mantine-color-dark-7);
+  transition:
+    border-color 150ms ease,
+    background 150ms ease;
 }
 
 .metricCard:hover {
   border-color: var(--mantine-color-dark-4);
+  background: var(--journal-hover);
 }
 
 .metricIcon {
@@ -171,7 +281,10 @@
   gap: 2px;
   font-size: 0.62rem;
   color: var(--mantine-color-dimmed);
-  transition: all 150ms ease;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
 }
 
 .dayCellActive {
@@ -188,7 +301,7 @@
   font-variant-numeric: tabular-nums;
   font-size: 0.7rem;
   font-weight: 700;
-  color: var(--mantine-color-violet-4);
+  color: var(--journal-ember-4);
 }
 
 /* ─── Streak Ring ──────────────────────────────────────────────────────────── */
@@ -217,7 +330,7 @@
   font-size: 1.75rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: var(--mantine-color-violet-4);
+  color: var(--journal-ember-4);
 }
 
 .streakUnit {
@@ -294,13 +407,18 @@
   background: var(--mantine-color-dark-6);
   border-radius: var(--mantine-radius-sm);
   border: 1px solid transparent;
-  transition: all 150ms ease;
-  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease;
 }
 
 .sessionItem:hover {
   border-color: var(--mantine-color-dark-4);
-  background: var(--mantine-color-dark-5);
+  background: var(--journal-hover);
+}
+
+.sessionItemClickable {
+  cursor: pointer;
 }
 
 .sessionCover {
@@ -347,7 +465,7 @@
 .sessionDuration {
   font-variant-numeric: tabular-nums;
   font-size: 0.75rem;
-  color: var(--mantine-color-violet-4);
+  color: var(--journal-ember-4);
   font-weight: 600;
   flex-shrink: 0;
 }
@@ -410,7 +528,7 @@
   border-radius: var(--mantine-radius-sm);
   padding: 12px 14px;
   margin-top: var(--mantine-spacing-sm);
-  border-left: 3px solid var(--mantine-color-violet-6);
+  border: 1px solid rgba(212, 103, 77, 0.18);
   font-size: 0.75rem;
   color: var(--mantine-color-dimmed);
   line-height: 1.5;
@@ -423,6 +541,52 @@
   font-weight: 500;
   color: var(--mantine-color-dimmed);
   margin-bottom: var(--mantine-spacing-xs);
+}
+
+.modalContent,
+.modalHeader {
+  background: var(--mantine-color-dark-7);
+}
+
+.modalBody {
+  background: var(--mantine-color-dark-7);
+}
+
+.modalTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.journalForm :global(.mantine-Input-input),
+.journalForm :global(.mantine-Textarea-input) {
+  border-color: var(--mantine-color-dark-4);
+  background: var(--mantine-color-dark-6);
+  color: var(--mantine-color-gray-0);
+  box-shadow: none;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease;
+}
+
+.journalForm :global(.mantine-Input-input:focus),
+.journalForm :global(.mantine-Textarea-input:focus) {
+  border-color: var(--journal-ember-6);
+}
+
+.journalForm :global(.mantine-Input-section) {
+  color: var(--mantine-color-gray-5);
+}
+
+.emotionChipGrid :global(.mantine-Chip-label),
+.journalForm :global(.mantine-Chip-label) {
+  border-color: var(--mantine-color-dark-4);
+  background: var(--mantine-color-dark-6);
+}
+
+.journalForm :global(.mantine-Chip-input:checked + .mantine-Chip-label) {
+  border-color: var(--journal-ember-5);
+  background: rgba(212, 103, 77, 0.14);
+  color: var(--journal-ember-0);
 }
 
 /* ─── Multi-Axis Rating Widget ─────────────────────────────────────────────── */
@@ -442,6 +606,7 @@
 .ratingGameCard {
   background: var(--mantine-color-dark-6);
   border-radius: var(--mantine-radius-sm);
+  border: 1px solid transparent;
   padding: 12px 14px;
 }
 
@@ -489,12 +654,22 @@
 
 .scratchpadEmpty {
   background: var(--mantine-color-dark-6);
+  border-color: var(--mantine-color-dark-4);
 }
 
 .noteCard {
   display: flex;
   gap: 12px;
   background: var(--mantine-color-dark-6);
+  border-color: var(--mantine-color-dark-4);
+  transition:
+    border-color 150ms ease,
+    background 150ms ease;
+}
+
+.noteCard:hover {
+  border-color: var(--mantine-color-dark-3);
+  background: var(--journal-hover);
 }
 
 .noteCardMedia {
@@ -523,4 +698,89 @@
 .noteTitleBlock {
   flex: 1;
   min-width: 0;
+}
+
+.noteAction {
+  color: var(--mantine-color-gray-4);
+}
+
+.noteAction:hover {
+  background: rgba(212, 103, 77, 0.1);
+  color: var(--journal-ember-0);
+}
+
+.moodGameMedia {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--mantine-radius-sm);
+  background: var(--mantine-color-dark-6);
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.moodGameMedia img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.moodDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.genreEmotionStack {
+  display: flex;
+  flex: 1;
+  gap: 2px;
+  margin-inline: 8px;
+}
+
+.genreEmotionSegment {
+  height: 16px;
+  border-radius: 3px;
+  opacity: 0.82;
+  min-width: 4px;
+}
+
+@media (max-width: 40em) {
+  .journalPage {
+    padding: var(--mantine-spacing-md);
+  }
+
+  .header {
+    margin-bottom: var(--mantine-spacing-lg);
+  }
+
+  .sessionItem,
+  .noteCard {
+    align-items: flex-start;
+  }
+
+  .sessionEmotionDots {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .metricCard,
+  .dayCell,
+  .genreFill,
+  .ratingFill,
+  .backlogBarFill,
+  .sessionItem,
+  .noteCard,
+  .primaryAction,
+  .secondaryAction,
+  .journalTabs :global(.mantine-Tabs-tab),
+  .journalPagination :global(.mantine-Pagination-control),
+  .journalForm :global(.mantine-Input-input),
+  .journalForm :global(.mantine-Textarea-input) {
+    transition: none;
+  }
 }
