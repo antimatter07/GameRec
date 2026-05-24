@@ -33,6 +33,12 @@ celery -A app.workers.celery_app inspect ping
 # Run Celery Beat scheduler (RAWG sync)
 celery -A app.workers.celery_app beat --loglevel=info
 
+# Manually trigger a HLTB task (worker must be running)
+python -c "from app.workers.tasks.hltb_sync import enrich_game_hltb; enrich_game_hltb.delay(<game_id>)"
+
+# Run HLTB enrichment for games that don't have HLTB data
+python -c "from app.workers.tasks.hltb_sync import enrich_all_hltb; enrich_all_hltb.delay()"
+
 # Manually trigger monthly RAWG catalog discovery/enrichment (worker must be running).
 # Use this once per month if you want to spend most of the RAWG monthly quota.
 # Do not run Celery Beat at the same time unless you also want scheduled weekly/daily jobs.
@@ -44,8 +50,6 @@ python -c "from app.workers.tasks.rawg_sync import sync_recent_releases; sync_re
 # Manually enrich already-inserted games with full RAWG details/descriptions
 python -c "from app.workers.tasks.rawg_sync import enrich_known_games; enrich_known_games.delay(500)"
 
-# Manually trigger a HLTB task (worker must be running)
-python -c "from app.workers.tasks.hltb_sync import enrich_game_hltb; enrich_game_hltb.delay(<game_id>)"
 
 # Build game feature vectors (must be run manually after populating the games table,
 # and re-run after each RAWG sync that adds new games)
