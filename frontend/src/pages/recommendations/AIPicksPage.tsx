@@ -17,6 +17,7 @@ import {
   IconBolt,
   IconBrain,
   IconCalendarTime,
+  IconDeviceGamepad2,
   IconGauge,
   IconRefresh,
   IconSparkles,
@@ -106,7 +107,7 @@ export default function AIPicksPage() {
     return (
       <Center py={80}>
         <Stack align="center" gap="sm">
-          <Loader color="violet" size="md" />
+          <Loader color="ember" size="md" />
           <Text size="sm" c="dimmed">Loading AI Picks…</Text>
         </Stack>
       </Center>
@@ -137,7 +138,7 @@ export default function AIPicksPage() {
     : status === 'pending'
       ? {
           label: 'Generating batch',
-          icon: <Loader size={16} color="var(--mantine-color-violet-5)" />,
+          icon: <Loader size={16} color="var(--mantine-color-ember-5)" />,
           background: 'rgba(124, 92, 252, 0.14)',
         }
       : data?.is_stale
@@ -169,7 +170,7 @@ export default function AIPicksPage() {
           onClick={handleRefresh}
           loading={refresh.isPending}
           disabled={data ? !data.can_refresh : false}
-          color="violet"
+          color="ember"
           variant={hasItems ? 'light' : 'filled'}
         >
           {hasItems ? 'Refresh AI Picks' : 'Generate AI Picks'}
@@ -190,7 +191,7 @@ export default function AIPicksPage() {
             </div>
           </Group>
 
-          <Badge size="sm" variant="light" color={data?.is_stale ? 'yellow' : 'violet'}>
+          <Badge size="sm" variant="light" color={data?.is_stale ? 'yellow' : 'ember'}>
             Cache {data?.cache_hours ?? 24}h
           </Badge>
         </Group>
@@ -211,11 +212,11 @@ export default function AIPicksPage() {
         <>
           <div className={classes.metricsGrid}>
             <Paper className={classes.metricCard} p="md" radius="md" withBorder>
-              <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-violet-light)' }}>
-                <IconSparkles size={18} color="var(--mantine-color-violet-5)" />
+              <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-ember-light)' }}>
+                <IconSparkles size={18} color="var(--mantine-color-ember-5)" />
               </div>
               <div className={classes.metricLabel}>Picks in batch</div>
-              <div className={classes.metricValue} style={{ color: 'var(--mantine-color-violet-4)' }}>
+              <div className={classes.metricValue} style={{ color: 'var(--mantine-color-ember-4)' }}>
                 {items.length}
               </div>
               <div className={classes.metricSub}>Current recommendation set</div>
@@ -262,7 +263,7 @@ export default function AIPicksPage() {
                   <Text size="sm" fw={600}>Taste summary</Text>
                   <Text size="xs" c="dimmed">A concise read on what the current batch is optimizing for.</Text>
                 </div>
-                <Badge size="sm" variant="light" color="violet">
+                <Badge size="sm" variant="light" color="ember">
                   {readyRecommendation.model_name ?? 'AI'}
                 </Badge>
               </Group>
@@ -279,7 +280,7 @@ export default function AIPicksPage() {
                   <Text size="xs" c="dimmed">Patterns showing up across the recommendations.</Text>
                 </div>
                 <div className={classes.noteIcon}>
-                  <IconBrain size={16} color="var(--mantine-color-violet-5)" />
+                  <IconBrain size={16} color="var(--mantine-color-ember-5)" />
                 </div>
               </Group>
 
@@ -287,7 +288,7 @@ export default function AIPicksPage() {
                 <Stack gap="sm">
                   <div className={classes.genreCloud}>
                     {pickedGenres.map((genre, index) => (
-                      <Badge key={genre.name} size="sm" variant="light" color={index === 0 ? 'violet' : 'gray'}>
+                      <Badge key={genre.name} size="sm" variant="light" color={index === 0 ? 'ember' : 'gray'}>
                         {genre.name} {genre.count}
                       </Badge>
                     ))}
@@ -328,7 +329,7 @@ export default function AIPicksPage() {
                       {item.game.background_image ? (
                         <img src={item.game.background_image} alt={item.game.name} />
                       ) : (
-                        <Text size="lg">🎮</Text>
+                        <IconDeviceGamepad2 size={24} stroke={1.6} />
                       )}
                     </div>
 
@@ -376,7 +377,7 @@ export default function AIPicksPage() {
                         <Button
                           size="xs"
                           variant="subtle"
-                          color="violet"
+                          color="ember"
                           rightSection={<IconArrowRight size={14} />}
                           onClick={() => navigate(`/games/${item.game.id}`)}
                         >

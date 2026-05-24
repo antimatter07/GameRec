@@ -1,8 +1,9 @@
-import { Badge, Button, Group, Image, Paper, Stack, Text } from '@mantine/core';
-import { IconClock, IconStar } from '@tabler/icons-react';
+import { Badge, Button, Group, Paper, Stack, Text } from '@mantine/core';
+import { IconClock, IconDeviceGamepad2, IconPlayerPlay, IconStar } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import type { PrioritizedBacklogItem } from '../../api/library';
 import { useUpdateLibraryEntry } from '../../hooks/useLibrary';
+import classes from './BacklogTools.module.css';
 
 interface BacklogPriorityCardProps {
   item: PrioritizedBacklogItem;
@@ -18,27 +19,26 @@ export function BacklogPriorityCard({ item }: BacklogPriorityCardProps) {
   };
 
   return (
-    <Paper withBorder radius="md" p="sm">
+    <Paper withBorder radius="md" p="sm" className={classes.priorityCard}>
       <Group gap="sm" align="flex-start" wrap="nowrap">
-        <Image
-          src={game.background_image ?? undefined}
-          w={80}
-          h={60}
-          radius="sm"
-          fallbackSrc="https://placehold.co/80x60?text=?"
-          style={{ flexShrink: 0, objectFit: 'cover' }}
-        />
+        <div className={classes.cover}>
+          {game.background_image ? (
+            <img src={game.background_image} alt="" />
+          ) : (
+            <div className={classes.coverFallback}>
+              <IconDeviceGamepad2 size={24} stroke={1.6} />
+            </div>
+          )}
+        </div>
 
         <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
-          <Text
-            fw={600}
-            size="sm"
-            lineClamp={1}
-            style={{ cursor: 'pointer' }}
+          <button
+            type="button"
+            className={classes.titleButton}
             onClick={() => navigate(`/games/${game.id}`)}
           >
             {game.name}
-          </Text>
+          </button>
 
           <Group gap={4} wrap="wrap">
             {game.genres.slice(0, 2).map((g) => (
@@ -50,14 +50,14 @@ export function BacklogPriorityCard({ item }: BacklogPriorityCardProps) {
             {playtime_hours != null && (
               <Group gap={4}>
                 <IconClock size={12} />
-                <Text size="xs" c="dimmed">~{playtime_hours.toFixed(0)}h to beat</Text>
+                <Text className={classes.metaText}>~{playtime_hours.toFixed(0)}h to beat</Text>
               </Group>
             )}
 
             {taste_score != null && (
               <Group gap={4}>
                 <IconStar size={12} />
-                <Text size="xs" c="dimmed">{Math.round(taste_score * 100)}% match</Text>
+                <Text className={classes.metaText}>{Math.round(taste_score * 100)}% match</Text>
               </Group>
             )}
           </Group>
@@ -71,6 +71,8 @@ export function BacklogPriorityCard({ item }: BacklogPriorityCardProps) {
           <Button
             size="xs"
             variant="light"
+            color="ember"
+            leftSection={<IconPlayerPlay size={14} />}
             onClick={handleStartPlaying}
             loading={updateEntry.isPending}
           >

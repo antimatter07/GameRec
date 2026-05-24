@@ -1,28 +1,31 @@
-import { AppShell } from '@mantine/core';
+import { AppShell, Burger } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import { Outlet } from 'react-router';
 import { AppNavbar } from './AppNavbar';
 import { AppHeader } from './AppHeader';
+import classes from './AppLayout.module.css';
 
-/**
- * Root layout wrapping all authenticated pages.
- * TODO: Handle AppShell navbar collapse on mobile using useDisclosure()
- */
 export function AppLayout() {
+  const [opened, { toggle, close }] = useDisclosure(false);
+
   return (
     <AppShell
+      className={classes.shell}
       header={{ height: 60 }}
-      navbar={{ width: 220, breakpoint: 'sm' }}
-      padding="md"
+      navbar={{ width: 236, breakpoint: 'sm', collapsed: { mobile: !opened } }}
+      padding={0}
     >
-      <AppShell.Header>
-        <AppHeader />
+      <AppShell.Header className={classes.header}>
+        <AppHeader
+          mobileToggle={<Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" aria-label="Toggle navigation" />}
+        />
       </AppShell.Header>
 
-      <AppShell.Navbar>
-        <AppNavbar />
+      <AppShell.Navbar className={classes.navbar}>
+        <AppNavbar onNavigate={close} />
       </AppShell.Navbar>
 
-      <AppShell.Main>
+      <AppShell.Main className={classes.main}>
         <Outlet />
       </AppShell.Main>
     </AppShell>

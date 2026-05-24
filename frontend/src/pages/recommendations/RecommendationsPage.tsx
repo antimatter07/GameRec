@@ -73,8 +73,8 @@ export default function RecommendationsPage() {
     return (
       <Center py={80}>
         <Stack align="center" gap="sm">
-          <Loader color="violet" size="md" />
-          <Text size="sm" c="dimmed">Loading recommendations...</Text>
+          <Loader color="ember" size="md" />
+          <Text size="sm" c="dimmed">Loading recommendations…</Text>
         </Stack>
       </Center>
     );
@@ -109,12 +109,12 @@ export default function RecommendationsPage() {
 
         <Group gap="xs">
           {isPremium && (
-            <Badge size="sm" variant="light" color="violet">
+            <Badge size="sm" variant="light" color="ember">
               Premium explanations
             </Badge>
           )}
           {/* TODO: Add "Refresh" button */}
-          <Button size="xs" variant="light" color="violet" disabled>
+          <Button size="xs" variant="light" color="ember" disabled>
             Refresh
           </Button>
         </Group>
@@ -122,11 +122,11 @@ export default function RecommendationsPage() {
 
       <div className={classes.metricsGrid}>
         <Paper className={classes.metricCard} p="md" radius="md" withBorder>
-          <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-violet-light)' }}>
-            <IconSparkles size={18} color="var(--mantine-color-violet-5)" />
+          <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-ember-light)' }}>
+            <IconSparkles size={18} color="var(--mantine-color-ember-5)" />
           </div>
           <div className={classes.metricLabel}>Matches</div>
-          <div className={classes.metricValue} style={{ color: 'var(--mantine-color-violet-4)' }}>
+          <div className={classes.metricValue} style={{ color: 'var(--mantine-color-ember-4)' }}>
             {items.length}
           </div>
           <div className={classes.metricSub}>Current ranked set</div>
@@ -265,7 +265,7 @@ export default function RecommendationsPage() {
                         <Button
                           size="xs"
                           variant="subtle"
-                          color="violet"
+                          color="ember"
                           rightSection={<IconArrowRight size={14} />}
                           onClick={() => navigate(`/games/${item.game.id}`)}
                         >

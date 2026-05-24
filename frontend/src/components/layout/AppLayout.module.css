@@ -1,0 +1,133 @@
+.shell {
+  background:
+    linear-gradient(180deg, rgba(10, 12, 18, 0.82), rgba(10, 12, 18, 0.96)),
+    var(--mantine-color-dark-8);
+}
+
+.header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(13, 16, 25, 0.94);
+}
+
+.navbar {
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--mantine-color-dark-7);
+}
+
+.main {
+  min-height: 100vh;
+}
+
+.headerInner {
+  height: 100%;
+  padding-inline: var(--mantine-spacing-md);
+}
+
+.brandLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: var(--mantine-color-gray-0);
+}
+
+.brandMark {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border: 1px solid rgba(212, 103, 77, 0.28);
+  border-radius: var(--mantine-radius-sm);
+  background: rgba(212, 103, 77, 0.12);
+  color: var(--mantine-color-ember-4);
+}
+
+.brandText {
+  min-width: 0;
+}
+
+.brandName {
+  color: var(--mantine-color-gray-0);
+  font-size: 0.98rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.1;
+}
+
+.brandSub {
+  color: var(--mantine-color-dimmed);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.userTarget {
+  min-height: 38px;
+  padding: 4px 6px 4px 4px;
+  border-radius: var(--mantine-radius-sm);
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease;
+}
+
+.userTarget:hover {
+  background: var(--mantine-color-dark-6);
+}
+
+.userName {
+  max-width: 180px;
+}
+
+.navbarStack {
+  padding: var(--mantine-spacing-sm);
+}
+
+.navAnchor {
+  display: block;
+  color: inherit;
+}
+
+.navItem {
+  border: 1px solid transparent;
+  border-radius: var(--mantine-radius-sm);
+  color: var(--mantine-color-gray-3);
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.navItem:hover {
+  background: var(--mantine-color-dark-6);
+  color: var(--mantine-color-gray-0);
+}
+
+.navItem[data-active] {
+  border-color: rgba(212, 103, 77, 0.35);
+  background: rgba(212, 103, 77, 0.12);
+  color: var(--mantine-color-ember-1);
+}
+
+.navSection {
+  margin: 10px 8px 2px;
+  color: var(--mantine-color-dimmed);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+@media (max-width: 48em) {
+  .brandSub,
+  .userName {
+    display: none;
+  }
+
+  .headerInner {
+    padding-inline: var(--mantine-spacing-sm);
+  }
+}

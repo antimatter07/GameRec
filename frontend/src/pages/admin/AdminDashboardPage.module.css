@@ -1,0 +1,127 @@
+.page {
+  gap: 1.25rem;
+  padding: var(--mantine-spacing-lg);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--mantine-spacing-sm);
+  flex-wrap: wrap;
+}
+
+.headerTitle {
+  color: var(--mantine-color-gray-0);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.headerAccent {
+  color: var(--mantine-color-ember-5);
+}
+
+.headerSubtitle {
+  max-width: 680px;
+  margin-top: 4px;
+}
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--mantine-spacing-sm);
+}
+
+.metricCard {
+  position: relative;
+  overflow: hidden;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease;
+}
+
+.metricCard:hover {
+  border-color: var(--mantine-color-dark-4);
+  background: #171b27;
+}
+
+.metricLabel {
+  margin-bottom: 6px;
+  color: var(--mantine-color-dimmed);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.metricValue {
+  color: var(--mantine-color-ember-4);
+  font-size: 1.6rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.panelHeader {
+  align-items: flex-start;
+}
+
+.searchInput {
+  max-width: 360px;
+}
+
+.searchInput :global(.mantine-Input-input) {
+  min-height: 42px;
+  border-color: var(--mantine-color-dark-4);
+  background: var(--mantine-color-dark-6);
+  color: var(--mantine-color-gray-0);
+}
+
+.searchInput :global(.mantine-Input-input:focus) {
+  border-color: var(--mantine-color-ember-6);
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.userTable {
+  min-width: 760px;
+}
+
+.userTable :global(th) {
+  color: var(--mantine-color-dimmed);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.activeState {
+  color: var(--mantine-color-teal-4);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.inactiveState {
+  color: var(--mantine-color-red-4);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .page {
+    padding: var(--mantine-spacing-md);
+  }
+
+  .metricsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 30em) {
+  .metricsGrid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -39,7 +39,7 @@ import classes from './ProfilePage.module.css';
 
 const roleColors = {
   admin: 'red',
-  premium: 'violet',
+  premium: 'ember',
   basic: 'gray',
 } as const;
 
@@ -153,18 +153,18 @@ export default function ProfilePage() {
           </Text>
         </div>
 
-        <Button leftSection={<IconPencil size={16} />} color="violet" type="submit" form="profile-form">
+        <Button leftSection={<IconPencil size={16} />} color="ember" type="submit" form="profile-form">
           Save changes
         </Button>
       </div>
 
       <div className={classes.metricsGrid}>
         <Paper className={classes.metricCard} p="md" radius="md" withBorder>
-          <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-violet-light)' }}>
-            <IconUserCircle size={18} color="var(--mantine-color-violet-5)" />
+          <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-ember-light)' }}>
+            <IconUserCircle size={18} color="var(--mantine-color-ember-5)" />
           </div>
           <div className={classes.metricLabel}>Profile</div>
-          <div className={classes.metricValue} style={{ color: 'var(--mantine-color-violet-4)' }}>
+          <div className={classes.metricValue} style={{ color: 'var(--mantine-color-ember-4)' }}>
             {getProfileCompletion(user)}%
           </div>
           <div className={classes.metricSub}>Display name, bio, and avatar</div>
@@ -261,7 +261,7 @@ export default function ProfilePage() {
                   AI explanations, Game DNA analysis, and higher request limits.
                 </Text>
                 <Button
-                  color="violet"
+                  color="ember"
                   variant="light"
                   leftSection={<IconCrown size={15} />}
                   onClick={handleRequestPremium}
@@ -317,7 +317,7 @@ export default function ProfilePage() {
               onChange={(event) => setSteamProfile(event.currentTarget.value)}
             />
             <Button
-              color="violet"
+              color="ember"
               onClick={handleSteamImport}
               loading={importSteam.isPending}
               disabled={steamProfile.trim().length === 0}
@@ -377,14 +377,22 @@ export default function ProfilePage() {
         </Stack>
       </Paper>
 
-      <Modal opened={deleteOpened} onClose={closeDelete} title="Delete account" centered>
+      <Modal opened={deleteOpened} onClose={closeDelete} title="Delete account" centered size="sm">
         <Stack gap="md">
-          <Text size="sm">
-            Are you sure you want to delete your account? Your library, recommendations, and all data will be permanently removed.
-          </Text>
+          <Group gap="sm" align="flex-start" wrap="nowrap" className={classes.deleteWarning}>
+            <span className={classes.deleteModalIcon}>
+              <IconAlertTriangle size={18} />
+            </span>
+            <div>
+              <Text size="sm" fw={600}>This permanently removes your GameRec data.</Text>
+              <Text size="xs" c="dimmed" mt={4}>
+                Your profile, library, queue, recommendations, and saved account data will be deleted.
+              </Text>
+            </div>
+          </Group>
           <Group justify="flex-end">
             <Button variant="default" onClick={closeDelete}>Cancel</Button>
-            <Button color="red" onClick={handleDeleteAccount}>Yes, delete my account</Button>
+            <Button color="red" onClick={handleDeleteAccount}>Delete account</Button>
           </Group>
         </Stack>
       </Modal>

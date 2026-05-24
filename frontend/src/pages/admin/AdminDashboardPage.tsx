@@ -6,18 +6,18 @@ import {
   Group,
   Loader,
   Paper,
-  SimpleGrid,
   Stack,
   Table,
   Text,
   TextInput,
-  Title,
 } from '@mantine/core';
+import { IconRefresh, IconSearch } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '../../api/admin';
 import { useAuthStore } from '../../store/authStore';
 import type { UserRole } from '../../types/user';
+import classes from './AdminDashboardPage.module.css';
 
 const PIPELINE_STATUS_COLORS: Record<string, string> = {
   never_run: 'gray',
@@ -83,28 +83,49 @@ export default function AdminDashboardPage() {
   });
 
   return (
-    <Stack gap="xl">
-      <Title order={2}>Admin Dashboard</Title>
+    <Stack gap="lg" className={classes.page}>
+      <div className={classes.header}>
+        <div>
+          <Text className={classes.headerTitle}>
+            Admin <span className={classes.headerAccent}>Dashboard</span>
+          </Text>
+          <Text size="xs" c="dimmed" className={classes.headerSubtitle}>
+            Monitor user access, recommendation activity, and RAWG sync health from one operational surface.
+          </Text>
+        </div>
 
-      {/* Metrics */}
+        <Button
+          leftSection={<IconRefresh size={16} />}
+          loading={triggerPipeline.isPending}
+          onClick={() => triggerPipeline.mutate()}
+        >
+          Trigger sync
+        </Button>
+      </div>
+
       <Stack gap="xs">
-        <Title order={4}>System Metrics</Title>
+        <Group justify="space-between" className={classes.panelHeader}>
+          <div>
+            <Text size="sm" fw={600}>System metrics</Text>
+            <Text size="xs" c="dimmed">Snapshot refreshed automatically while the page is open.</Text>
+          </div>
+        </Group>
         {metricsLoading ? (
-          <Loader size="sm" />
+          <Center py="xl"><Loader size="sm" /></Center>
         ) : (
-          <SimpleGrid cols={{ base: 2, sm: 4 }}>
+          <div className={classes.metricsGrid}>
             {[
               { label: 'Total Users',            value: metrics?.total_users            ?? '–' },
               { label: 'Active Users (30d)',      value: metrics?.active_users           ?? '–' },
               { label: 'Premium Users',           value: metrics?.premium_count          ?? '–' },
               { label: 'Recommendations Served',  value: metrics?.recommendations_served ?? '–' },
             ].map((m) => (
-              <Paper key={m.label} p="md" withBorder radius="md">
-                <Text size="xs" c="dimmed">{m.label}</Text>
-                <Text fw={700} size="xl">{String(m.value)}</Text>
+              <Paper key={m.label} p="md" withBorder radius="md" className={classes.metricCard}>
+                <div className={classes.metricLabel}>{m.label}</div>
+                <div className={classes.metricValue}>{String(m.value)}</div>
               </Paper>
             ))}
-          </SimpleGrid>
+          </div>
         )}
         {metrics?.feedback_helpful_pct !== undefined && metrics.feedback_helpful_pct !== null && (
           <Text size="sm" c="dimmed">
@@ -113,17 +134,12 @@ export default function AdminDashboardPage() {
         )}
       </Stack>
 
-      {/* Data Pipeline */}
       <Stack gap="xs">
-        <Group justify="space-between">
-          <Title order={4}>Data Pipeline (RAWG Sync)</Title>
-          <Button
-            size="xs"
-            loading={triggerPipeline.isPending}
-            onClick={() => triggerPipeline.mutate()}
-          >
-            Trigger Manual Sync
-          </Button>
+        <Group justify="space-between" className={classes.panelHeader}>
+          <div>
+            <Text size="sm" fw={600}>Data pipeline</Text>
+            <Text size="xs" c="dimmed">RAWG catalog sync status and current worker task.</Text>
+          </div>
         </Group>
         <Paper p="md" withBorder radius="md">
           <Group gap="md">
@@ -140,68 +156,79 @@ export default function AdminDashboardPage() {
         </Paper>
       </Stack>
 
-      {/* User Table */}
       <Stack gap="xs">
-        <Title order={4}>Users</Title>
+        <Group justify="space-between" className={classes.panelHeader}>
+          <div>
+            <Text size="sm" fw={600}>Users</Text>
+            <Text size="xs" c="dimmed">Promote or demote accounts without changing your own role.</Text>
+          </div>
+        </Group>
         <TextInput
+          className={classes.searchInput}
+          leftSection={<IconSearch size={16} />}
           placeholder="Search by email or name…"
           value={search}
           onChange={(e) => setSearch(e.currentTarget.value)}
-          maw={320}
         />
         {usersLoading ? (
           <Center><Loader /></Center>
         ) : (
-          <Table striped highlightOnHover>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>ID</Table.Th>
-                <Table.Th>Email</Table.Th>
-                <Table.Th>Display Name</Table.Th>
-                <Table.Th>Role</Table.Th>
-                <Table.Th>Active</Table.Th>
-                <Table.Th>Actions</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {(users ?? []).map((u) => (
-                <Table.Tr key={u.id}>
-                  <Table.Td>{u.id}</Table.Td>
-                  <Table.Td>{u.email}</Table.Td>
-                  <Table.Td>{u.display_name ?? '–'}</Table.Td>
-                  <Table.Td>
-                    <Badge color={u.role === 'admin' ? 'red' : u.role === 'premium' ? 'violet' : 'gray'}>
-                      {u.role}
-                    </Badge>
-                  </Table.Td>
-                  <Table.Td>{u.is_active ? '✅' : '❌'}</Table.Td>
-                  <Table.Td>
-                    {u.role === 'basic' && u.id !== currentUser?.id && (
-                      <Button
-                        size="xs"
-                        color="violet"
-                        loading={updateRole.isPending}
-                        onClick={() => updateRole.mutate({ userId: u.id, role: 'premium' })}
-                      >
-                        Promote
-                      </Button>
-                    )}
-                    {u.role === 'premium' && u.id !== currentUser?.id && (
-                      <Button
-                        size="xs"
-                        variant="outline"
-                        color="gray"
-                        loading={updateRole.isPending}
-                        onClick={() => updateRole.mutate({ userId: u.id, role: 'basic' })}
-                      >
-                        Demote
-                      </Button>
-                    )}
-                  </Table.Td>
+          <Paper withBorder radius="md" className={classes.tableWrap}>
+            <Table striped highlightOnHover className={classes.userTable}>
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th>ID</Table.Th>
+                  <Table.Th>Email</Table.Th>
+                  <Table.Th>Display name</Table.Th>
+                  <Table.Th>Role</Table.Th>
+                  <Table.Th>Active</Table.Th>
+                  <Table.Th>Actions</Table.Th>
                 </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
+              </Table.Thead>
+              <Table.Tbody>
+                {(users ?? []).map((u) => (
+                  <Table.Tr key={u.id}>
+                    <Table.Td>{u.id}</Table.Td>
+                    <Table.Td>{u.email}</Table.Td>
+                    <Table.Td>{u.display_name ?? '–'}</Table.Td>
+                    <Table.Td>
+                      <Badge color={u.role === 'admin' ? 'red' : u.role === 'premium' ? 'ember' : 'gray'} variant="light">
+                        {u.role}
+                      </Badge>
+                    </Table.Td>
+                    <Table.Td>
+                      <span className={u.is_active ? classes.activeState : classes.inactiveState}>
+                        {u.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </Table.Td>
+                    <Table.Td>
+                      {u.role === 'basic' && u.id !== currentUser?.id && (
+                        <Button
+                          size="xs"
+                          color="ember"
+                          loading={updateRole.isPending}
+                          onClick={() => updateRole.mutate({ userId: u.id, role: 'premium' })}
+                        >
+                          Promote
+                        </Button>
+                      )}
+                      {u.role === 'premium' && u.id !== currentUser?.id && (
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          color="gray"
+                          loading={updateRole.isPending}
+                          onClick={() => updateRole.mutate({ userId: u.id, role: 'basic' })}
+                        >
+                          Demote
+                        </Button>
+                      )}
+                    </Table.Td>
+                  </Table.Tr>
+                ))}
+              </Table.Tbody>
+            </Table>
+          </Paper>
         )}
       </Stack>
     </Stack>

@@ -14,12 +14,12 @@
 .headerTitle {
   font-size: 1.5rem;
   font-weight: 700;
-  letter-spacing: -0.3px;
+  letter-spacing: 0;
   color: var(--mantine-color-gray-0);
 }
 
 .headerAccent {
-  color: var(--mantine-color-violet-5);
+  color: var(--mantine-color-ember-5);
 }
 
 .headerSubtitle {
@@ -133,7 +133,7 @@
 
 .searchInput :global(.mantine-Input-input:focus),
 .sortSelect :global(.mantine-Input-input:focus) {
-  border-color: var(--mantine-color-violet-6);
+  border-color: var(--mantine-color-ember-6);
 }
 
 .searchInput :global(.mantine-Input-section),

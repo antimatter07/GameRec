@@ -72,7 +72,7 @@ const STATUS_LABELS: Record<LibraryStatus, string> = {
 };
 
 const STATUS_COLORS: Record<LibraryStatus, string> = {
-  playing: 'violet',
+  playing: 'ember',
   completed: 'teal',
   backlog: 'blue',
   dropped: 'grape',
@@ -241,7 +241,7 @@ export default function LibraryPage() {
     return (
       <Center py={80}>
         <Stack align="center" gap="sm">
-          <Loader color="violet" size="md" />
+          <Loader color="ember" size="md" />
           <Text size="sm" c="dimmed">Loading your library…</Text>
         </Stack>
       </Center>
@@ -272,7 +272,7 @@ export default function LibraryPage() {
 
         <Button
           leftSection={<IconArrowRight size={16} />}
-          color="violet"
+          color="ember"
           onClick={() => navigate('/library/backlog')}
         >
           Play next
@@ -281,11 +281,11 @@ export default function LibraryPage() {
 
       <div className={classes.metricsGrid}>
         <Paper className={classes.metricCard} p="md" radius="md" withBorder>
-          <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-violet-light)' }}>
-            <IconBooks size={18} color="var(--mantine-color-violet-5)" />
+          <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-ember-light)' }}>
+            <IconBooks size={18} color="var(--mantine-color-ember-5)" />
           </div>
           <div className={classes.metricLabel}>Total games</div>
-          <div className={classes.metricValue} style={{ color: 'var(--mantine-color-violet-4)' }}>
+          <div className={classes.metricValue} style={{ color: 'var(--mantine-color-ember-4)' }}>
             {statusCounts.all}
           </div>
           <div className={classes.metricSub}>
@@ -353,7 +353,7 @@ export default function LibraryPage() {
                 Not now
               </Button>
               <Button
-                color="violet"
+                color="ember"
                 size="xs"
                 loading={updateEntry.isPending}
                 onClick={async () => {
@@ -426,7 +426,7 @@ export default function LibraryPage() {
                     key={genre.genre}
                     size="sm"
                     variant={index === 0 ? 'light' : 'default'}
-                    color={index === 0 ? 'violet' : 'gray'}
+                    color={index === 0 ? 'ember' : 'gray'}
                   >
                     {genre.genre} {genre.count}
                   </Badge>
@@ -452,7 +452,7 @@ export default function LibraryPage() {
           if (value) setActiveTab(value as LibraryStatusFilter);
         }}
         variant="pills"
-        color="violet"
+        color="ember"
       >
         <Tabs.List className={classes.tabsList}>
           {STATUS_TABS.map((tab) => (
@@ -483,7 +483,7 @@ export default function LibraryPage() {
                       </Text>
                       {isActivePanel && isFetching && !isFetchingNextPage && (
                         <span className={classes.inlineLoading}>
-                          <Loader size="xs" color="violet" />
+                          <Loader size="xs" color="ember" />
                         </span>
                       )}
                     </Group>
@@ -531,7 +531,7 @@ export default function LibraryPage() {
                         <Button
                           size="xs"
                           variant="light"
-                          color="violet"
+                          color="ember"
                           rightSection={<IconArrowRight size={14} />}
                           onClick={() => navigate('/library/backlog')}
                         >
@@ -620,7 +620,7 @@ export default function LibraryPage() {
                         <Button
                           size="xs"
                           variant="light"
-                          color="violet"
+                          color="ember"
                           loading={isFetchingNextPage}
                           onClick={() => {
                             void fetchNextPage();
@@ -664,7 +664,7 @@ export default function LibraryPage() {
 
           <Group justify="flex-end">
             <Button variant="default" onClick={closeEdit}>Cancel</Button>
-            <Button color="violet" onClick={handleSaveEdit} loading={updateEntry.isPending}>Save</Button>
+            <Button color="ember" onClick={handleSaveEdit} loading={updateEntry.isPending}>Save</Button>
           </Group>
         </Stack>
       </Modal>

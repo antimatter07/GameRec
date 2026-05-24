@@ -14,12 +14,12 @@
 .headerTitle {
   font-size: 1.5rem;
   font-weight: 700;
-  letter-spacing: -0.3px;
+  letter-spacing: 0;
   color: var(--mantine-color-gray-0);
 }
 
 .headerAccent {
-  color: var(--mantine-color-violet-5);
+  color: var(--mantine-color-ember-5);
 }
 
 .headerSubtitle {
@@ -105,7 +105,7 @@
 .avatar {
   flex-shrink: 0;
   background: var(--mantine-color-dark-5);
-  color: var(--mantine-color-violet-4);
+  color: var(--mantine-color-ember-4);
 }
 
 .identityInfo {
@@ -139,7 +139,7 @@
 
 .input :global(.mantine-Input-input:focus),
 .steamInput :global(.mantine-Input-input:focus) {
-  border-color: var(--mantine-color-violet-6);
+  border-color: var(--mantine-color-ember-6);
 }
 
 .input :global(.mantine-Input-label),
@@ -208,6 +208,24 @@
 .resultAccordion :global(.mantine-Accordion-control) {
   font-size: 0.8rem;
   font-weight: 600;
+}
+
+.deleteModalIcon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: var(--mantine-radius-sm);
+  background: rgba(143, 75, 94, 0.16);
+  color: var(--mantine-color-red-4);
+}
+
+.deleteWarning {
+  padding: 12px;
+  border: 1px solid rgba(143, 75, 94, 0.26);
+  border-radius: var(--mantine-radius-sm);
+  background: rgba(143, 75, 94, 0.1);
 }
 
 @media (max-width: 900px) {

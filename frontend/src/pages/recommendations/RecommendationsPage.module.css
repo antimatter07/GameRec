@@ -18,7 +18,7 @@
 }
 
 .headerAccent {
-  color: var(--mantine-color-violet-5);
+  color: var(--mantine-color-ember-5);
 }
 
 .headerSubtitle {
@@ -115,7 +115,7 @@
   width: 34px;
   flex-shrink: 0;
   padding-top: 2px;
-  color: var(--mantine-color-violet-4);
+  color: var(--mantine-color-ember-4);
   font-size: 0.82rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -143,7 +143,7 @@
 
 .coverButton:focus-visible,
 .titleButton:focus-visible {
-  outline: 2px solid var(--mantine-color-violet-7);
+  outline: 2px solid var(--mantine-color-ember-7);
   outline-offset: 2px;
 }
 
@@ -184,7 +184,7 @@
 }
 
 .titleButton:hover {
-  color: var(--mantine-color-violet-3);
+  color: var(--mantine-color-ember-3);
 }
 
 .matchMeta {

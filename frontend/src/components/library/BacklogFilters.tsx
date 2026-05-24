@@ -1,5 +1,6 @@
 import { Group, NumberInput, Select, SegmentedControl, Text } from '@mantine/core';
 import type { BacklogFiltersParams } from '../../api/library';
+import classes from './BacklogTools.module.css';
 
 interface BacklogFiltersProps {
   filters: BacklogFiltersParams;
@@ -20,18 +21,19 @@ const GENRE_OPTIONS = [
 
 export function BacklogFilters({ filters, onChange }: BacklogFiltersProps) {
   return (
-    <Group gap="md" align="flex-end" wrap="wrap">
+    <Group className={classes.filters} wrap="wrap">
       <Select
+        className={classes.control}
         label="Mood / Genre"
         placeholder="Any genre"
         clearable
         data={GENRE_OPTIONS}
         value={filters.mood_genre ?? null}
         onChange={(v) => onChange({ ...filters, mood_genre: v ?? undefined, page: 1 })}
-        w={160}
       />
 
       <NumberInput
+        className={classes.control}
         label="Max hours to beat"
         placeholder="Any length"
         min={1}
@@ -40,13 +42,13 @@ export function BacklogFilters({ filters, onChange }: BacklogFiltersProps) {
         onChange={(v) =>
           onChange({ ...filters, max_hours: v === '' ? undefined : Number(v), page: 1 })
         }
-        w={150}
       />
 
-      <Group gap={6} align="flex-end">
-        <Text size="sm" fw={500} mb={4}>Sort</Text>
+      <Group gap={6} align="flex-start" className={classes.sortGroup}>
+        <Text className={classes.sortLabel}>Sort</Text>
         <SegmentedControl
-          size="xs"
+          size="sm"
+          color="ember"
           data={SORT_OPTIONS}
           value={filters.sort ?? 'score'}
           onChange={(v) =>
