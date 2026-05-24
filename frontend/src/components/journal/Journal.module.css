@@ -55,6 +55,7 @@
 
 .primaryAction:focus-visible,
 .secondaryAction:focus-visible,
+.filterAction:focus-visible,
 .journalTabs :global(.mantine-Tabs-tab:focus-visible),
 .journalPagination :global(.mantine-Pagination-control:focus-visible),
 .sessionItem:focus-visible,
@@ -70,6 +71,15 @@
 .secondaryAction:hover {
   background: rgba(212, 103, 77, 0.1);
   color: var(--journal-ember-0);
+}
+
+.filterAction {
+  color: var(--mantine-color-gray-4);
+}
+
+.filterAction:hover {
+  background: var(--mantine-color-dark-6);
+  color: var(--mantine-color-gray-1);
 }
 
 .journalTabs :global(.mantine-Tabs-list) {
@@ -131,6 +141,150 @@
   border-color: var(--journal-ember-5);
   background: var(--journal-ember-5);
   color: var(--journal-ember-0);
+}
+
+/* ─── Journal Workspace ───────────────────────────────────────────────────── */
+
+.journalWorkspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: var(--mantine-spacing-md);
+  align-items: start;
+}
+
+.timelineColumn {
+  min-width: 0;
+}
+
+.timelinePanel,
+.journalSidebar > :global(.mantine-Paper-root),
+.patternGrid > :global(.mantine-Paper-root) {
+  border-color: var(--mantine-color-dark-4);
+  background: var(--mantine-color-dark-7);
+}
+
+.feedFilters {
+  justify-content: flex-end;
+}
+
+.timelineGroup {
+  display: grid;
+  gap: 8px;
+}
+
+.timelineGroupLabel {
+  width: fit-content;
+  border-radius: var(--mantine-radius-xs);
+  background: var(--mantine-color-dark-6);
+  color: var(--mantine-color-gray-4);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  line-height: 1;
+  padding: 6px 8px;
+  text-transform: uppercase;
+}
+
+.emptyJournalState {
+  min-height: 260px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mantine-spacing-xs);
+  border-radius: var(--mantine-radius-md);
+  background: var(--mantine-color-dark-6);
+  border: 1px solid var(--mantine-color-dark-4);
+  padding: var(--mantine-spacing-xl);
+}
+
+.emptyJournalState p {
+  max-width: 44ch;
+}
+
+.journalSidebar {
+  display: grid;
+  gap: var(--mantine-spacing-md);
+  position: sticky;
+  top: var(--mantine-spacing-md);
+}
+
+.weekSummaryGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.weekSummaryGrid > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--mantine-spacing-sm);
+  border-bottom: 1px solid var(--journal-divider);
+  padding-bottom: 10px;
+}
+
+.weekSummaryGrid > div:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.weekSummaryValue {
+  color: var(--journal-ember-4);
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.weekSummaryLabel {
+  color: var(--mantine-color-dimmed);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.sidebarNote {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  border-radius: var(--mantine-radius-sm);
+  background: var(--mantine-color-dark-6);
+  border: 1px solid transparent;
+  padding: 10px;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease;
+}
+
+.sidebarNote:hover {
+  background: var(--journal-hover);
+  border-color: var(--mantine-color-dark-4);
+}
+
+.sidebarNoteIcon {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: var(--mantine-radius-xs);
+  color: var(--journal-ember-4);
+  background: rgba(212, 103, 77, 0.12);
+}
+
+.sidebarNoteBody {
+  min-width: 0;
+  flex: 1;
+}
+
+.patternGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+  gap: var(--mantine-spacing-md);
 }
 
 /* ─── Metric Cards ─────────────────────────────────────────────────────────── */
@@ -240,7 +394,7 @@
   padding-right: 8px;
   font-size: 0.65rem;
   font-weight: 700;
-  color: white;
+  color: var(--journal-ember-0);
   min-width: fit-content;
   transition: width 600ms cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -401,7 +555,7 @@
 
 .sessionItem {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   padding: 12px 14px;
   background: var(--mantine-color-dark-6);
@@ -421,6 +575,11 @@
   cursor: pointer;
 }
 
+.sessionItemTimeline {
+  gap: 14px;
+  padding: 14px;
+}
+
 .sessionCover {
   width: 44px;
   height: 58px;
@@ -431,6 +590,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.sessionItemTimeline .sessionCover {
+  width: 68px;
+  height: 88px;
+  border-radius: var(--mantine-radius-sm);
 }
 
 .sessionCover img {
@@ -452,6 +617,17 @@
   text-overflow: ellipsis;
 }
 
+.sessionItemTimeline .sessionTitle {
+  font-size: 0.92rem;
+}
+
+.sessionTitleRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--mantine-spacing-sm);
+}
+
 .sessionMeta {
   font-size: 0.7rem;
   color: var(--mantine-color-dimmed);
@@ -470,10 +646,38 @@
   flex-shrink: 0;
 }
 
+.sessionNotes {
+  max-width: 70ch;
+  color: var(--mantine-color-gray-4);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  margin-top: 8px;
+}
+
 .sessionEmotionDots {
   display: flex;
   gap: 3px;
   flex-shrink: 0;
+}
+
+.sessionEmotionChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.emotionChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: var(--mantine-radius-xs);
+  background: var(--mantine-color-dark-5);
+  color: var(--mantine-color-gray-3);
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1;
+  padding: 5px 7px;
 }
 
 .emotionDot {
@@ -650,6 +854,35 @@
   }
 }
 
+@media (max-width: 64em) {
+  .journalWorkspace {
+    grid-template-columns: 1fr;
+  }
+
+  .journalSidebar {
+    position: static;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .patternGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 48em) {
+  .journalSidebar {
+    grid-template-columns: 1fr;
+  }
+
+  .timelinePanel :global(.mantine-Group-root:first-child) {
+    align-items: stretch;
+  }
+
+  .feedFilters {
+    justify-content: flex-start;
+  }
+}
+
 /* ─── Scratchpad ───────────────────────────────────────────────────────────── */
 
 .scratchpadEmpty {
@@ -762,7 +995,26 @@
     align-items: flex-start;
   }
 
-  .sessionEmotionDots {
+  .sessionItemTimeline {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .sessionItemTimeline .sessionCover {
+    width: 52px;
+    height: 70px;
+  }
+
+  .sessionTitleRow {
+    display: block;
+  }
+
+  .sessionDuration {
+    margin-top: 6px;
+  }
+
+  .sessionEmotionDots,
+  .sessionEmotionChips {
     display: none;
   }
 }
@@ -775,8 +1027,10 @@
   .backlogBarFill,
   .sessionItem,
   .noteCard,
+  .sidebarNote,
   .primaryAction,
   .secondaryAction,
+  .filterAction,
   .journalTabs :global(.mantine-Tabs-tab),
   .journalPagination :global(.mantine-Pagination-control),
   .journalForm :global(.mantine-Input-input),
