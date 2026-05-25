@@ -106,6 +106,12 @@
   flex-shrink: 0;
 }
 
+.searchControl {
+  display: grid;
+  gap: 4px;
+  min-width: 240px;
+}
+
 .searchInput {
   min-width: 240px;
 }
@@ -150,6 +156,14 @@
 .searchInput :global(.mantine-Input-section),
 .sortSelect :global(.mantine-Input-section) {
   color: var(--mantine-color-gray-5);
+}
+
+.searchStatus {
+  min-height: 0.85rem;
+  color: var(--mantine-color-dimmed);
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
 }
 
 .statusRow {
@@ -461,6 +475,7 @@
   }
 
   .panelControls,
+  .searchControl,
   .searchInput,
   .sortSelect,
   .viewSwitch {

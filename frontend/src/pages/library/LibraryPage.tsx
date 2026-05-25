@@ -217,19 +217,27 @@ export default function LibraryPage() {
   const avgRatingLabel = stats?.avg_rating !== null && stats?.avg_rating !== undefined
     ? stats.avg_rating.toFixed(1)
     : '—';
+  const normalizedSearchInput = searchInput.trim() || undefined;
+  const searchPending = normalizedSearchInput !== appliedSearch;
+  const showSearchStatus = Boolean(searchPending || appliedSearch);
 
   const applySearch = (value: string) => {
     const normalizedSearch = value.trim() || undefined;
     setAppliedSearch((current) => (current === normalizedSearch ? current : normalizedSearch));
   };
 
+  const clearSearch = () => {
+    setSearchInput('');
+    setAppliedSearch(undefined);
+  };
+
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-      applySearch(searchInput);
+      setAppliedSearch((current) => (current === normalizedSearchInput ? current : normalizedSearchInput));
     }, 3000);
 
     return () => window.clearTimeout(timeoutId);
-  }, [searchInput]);
+  }, [normalizedSearchInput]);
 
   const handleOpenEdit = (entry: LibraryEntry) => {
     setEditingEntry(entry);
@@ -450,30 +458,45 @@ export default function LibraryPage() {
 
                   {isActivePanel && (
                     <Group gap="sm" align="flex-end" className={classes.panelControls}>
-                      <TextInput
-                        className={classes.searchInput}
-                        placeholder="Search library titles..."
-                        value={searchInput}
-                        onChange={(event) => setSearchInput(event.currentTarget.value)}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter') {
-                            applySearch(searchInput);
+                      <div className={classes.searchControl}>
+                        <TextInput
+                          className={classes.searchInput}
+                          placeholder="Search saved games"
+                          value={searchInput}
+                          onChange={(event) => setSearchInput(event.currentTarget.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                              applySearch(searchInput);
+                            }
+                            if (event.key === 'Escape' && searchInput) {
+                              clearSearch();
+                            }
+                          }}
+                          leftSection={<IconSearch size={16} stroke={1.8} />}
+                          rightSection={
+                            searchInput ? (
+                              <ActionIcon
+                                variant="subtle"
+                                color="gray"
+                                onClick={clearSearch}
+                                aria-label="Clear library search"
+                              >
+                                <IconX size={16} stroke={1.8} />
+                              </ActionIcon>
+                            ) : null
                           }
-                        }}
-                        rightSection={
-                          <ActionIcon
-                            variant="subtle"
-                            color="gray"
-                            onClick={() => applySearch(searchInput)}
-                            aria-label="Search library"
-                          >
-                            <IconSearch size={16} stroke={1.8} />
-                          </ActionIcon>
-                        }
-                        rightSectionPointerEvents="all"
-                        size="sm"
-                        radius="md"
-                      />
+                          rightSectionPointerEvents="all"
+                          size="sm"
+                          radius="md"
+                        />
+                        {showSearchStatus && (
+                          <Text className={classes.searchStatus}>
+                            {searchPending
+                              ? 'Press Enter to search now, or pause typing for 3 seconds'
+                              : `Showing matches for "${appliedSearch ?? ''}"`}
+                          </Text>
+                        )}
+                      </div>
 
                       <Select
                         className={classes.sortSelect}
@@ -540,6 +563,17 @@ export default function LibraryPage() {
                           ? `No ${tab.value === 'all' ? 'library titles' : tab.label.toLowerCase()} matched "${appliedSearch}".`
                           : EMPTY_COPY[tab.value]}
                       </Text>
+                      {appliedSearch && (
+                        <Button
+                          size="xs"
+                          variant="light"
+                          color="ember"
+                          mt="sm"
+                          onClick={clearSearch}
+                        >
+                          Clear search
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ) : (
