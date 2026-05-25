@@ -35,6 +35,31 @@ const YEAR_OPTIONS = Array.from({ length: new Date().getFullYear() - 1979 }, (_,
   return { value: year, label: year };
 });
 
+const RATING_OPTIONS = [
+  { value: '4', label: '4.0+' },
+  { value: '3.5', label: '3.5+' },
+  { value: '3', label: '3.0+' },
+];
+
+const LENGTH_OPTIONS = [
+  { value: '10', label: 'Under 10h' },
+  { value: '25', label: 'Under 25h' },
+  { value: '50', label: 'Under 50h' },
+];
+
+const LIBRARY_OPTIONS = [
+  { value: 'all', label: 'All games' },
+  { value: 'not_saved', label: 'Not saved' },
+  { value: 'saved', label: 'Saved' },
+];
+
+const SORT_OPTIONS = [
+  { value: 'rating_desc', label: 'Top rated' },
+  { value: 'released_desc', label: 'Newest' },
+  { value: 'playtime_asc', label: 'Shortest' },
+  { value: 'name_asc', label: 'A-Z' },
+];
+
 /**
  * Filter bar for the game catalog.
  * TODO: Sync filter state with URL search params (useSearchParams)
@@ -44,10 +69,11 @@ export function GameFiltersBar({ filters, onChange, onReset, searchInput, onSear
   const commitSearch = () => update({ search: searchInput.trim() || undefined });
 
   return (
-    <Group className={classes.filtersRow} wrap="wrap" gap="md" align="center">
+    <Group className={classes.filtersRow} wrap="wrap" gap="sm" align="center">
       <TextInput
         className={classes.searchInput}
-        placeholder="Search games..."
+        aria-label="Search games"
+        placeholder="Search games…"
         value={searchInput}
         onChange={(e) => onSearchInputChange(e.currentTarget.value)}
         onKeyDown={(e) => e.key === 'Enter' && commitSearch()}
@@ -59,6 +85,7 @@ export function GameFiltersBar({ filters, onChange, onReset, searchInput, onSear
 
       <Select
         className={classes.filterSelect}
+        aria-label="Filter by genre"
         placeholder="Genre"
         clearable
         data={GENRE_OPTIONS}
@@ -70,6 +97,7 @@ export function GameFiltersBar({ filters, onChange, onReset, searchInput, onSear
 
       <Select
         className={classes.filterSelect}
+        aria-label="Filter by platform"
         placeholder="Platform"
         clearable
         data={PLATFORM_OPTIONS}
@@ -81,6 +109,7 @@ export function GameFiltersBar({ filters, onChange, onReset, searchInput, onSear
 
       <Select
         className={classes.yearSelect}
+        aria-label="Filter by release year"
         placeholder="Year"
         clearable
         data={YEAR_OPTIONS}
@@ -88,6 +117,52 @@ export function GameFiltersBar({ filters, onChange, onReset, searchInput, onSear
         onChange={(v) => update({ year: v ? Number(v) : undefined })}
         size="md"
         radius="md"
+      />
+
+      <Select
+        className={classes.compactSelect}
+        aria-label="Filter by minimum rating"
+        placeholder="Rating"
+        clearable
+        data={RATING_OPTIONS}
+        value={filters.min_rating ? String(filters.min_rating) : null}
+        onChange={(v) => update({ min_rating: v ? Number(v) : undefined })}
+        size="md"
+        radius="md"
+      />
+
+      <Select
+        className={classes.compactSelect}
+        aria-label="Filter by playtime length"
+        placeholder="Length"
+        clearable
+        data={LENGTH_OPTIONS}
+        value={filters.max_hours ? String(filters.max_hours) : null}
+        onChange={(v) => update({ max_hours: v ? Number(v) : undefined })}
+        size="md"
+        radius="md"
+      />
+
+      <Select
+        className={classes.filterSelect}
+        aria-label="Filter by library state"
+        data={LIBRARY_OPTIONS}
+        value={filters.library_state ?? 'all'}
+        onChange={(v) => update({ library_state: (v as GameFilters['library_state']) ?? 'all' })}
+        size="md"
+        radius="md"
+        allowDeselect={false}
+      />
+
+      <Select
+        className={classes.filterSelect}
+        aria-label="Sort catalog"
+        data={SORT_OPTIONS}
+        value={filters.sort ?? 'rating_desc'}
+        onChange={(v) => update({ sort: (v as GameFilters['sort']) ?? 'rating_desc' })}
+        size="md"
+        radius="md"
+        allowDeselect={false}
       />
 
       <Button

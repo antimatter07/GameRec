@@ -1,5 +1,6 @@
 import type { KeyboardEvent } from 'react';
 import { Badge, Card, Group, Image, Rating, Stack, Text } from '@mantine/core';
+import { IconClock, IconFlame, IconSparkles, IconStar } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import { useLibrary } from '../../hooks/useLibrary';
 import type { GameListItem } from '../../types/game';
@@ -10,6 +11,30 @@ interface GameCardProps {
   game: GameListItem;
   /** Show an "Add to Library" button — omit on the library page */
   showAdd?: boolean;
+}
+
+function getDiscoverySignal(game: GameListItem, inLibrary: boolean) {
+  const hours = game.hltb_main_hours ?? game.playtime;
+  const releaseYear = game.released ? new Date(game.released).getFullYear() : null;
+  const currentYear = new Date().getFullYear();
+
+  if (inLibrary) {
+    return { label: 'In your library', tone: 'teal', icon: IconSparkles };
+  }
+
+  if (hours !== null && hours <= 12) {
+    return { label: 'Short backlog pick', tone: 'blue', icon: IconClock };
+  }
+
+  if (game.rating !== null && game.rating >= 4.25) {
+    return { label: 'Highly rated', tone: 'yellow', icon: IconStar };
+  }
+
+  if (releaseYear !== null && releaseYear >= currentYear - 1) {
+    return { label: 'Recent release', tone: 'ember', icon: IconFlame };
+  }
+
+  return { label: 'Discovery pick', tone: 'gray', icon: IconSparkles };
 }
 
 export function GameCard({ game, showAdd = false }: GameCardProps) {
@@ -27,8 +52,16 @@ export function GameCard({ game, showAdd = false }: GameCardProps) {
     : game.playtime
       ? `${game.playtime}h avg`
       : null;
+  const signal = getDiscoverySignal(game, inLibrary);
+  const SignalIcon = signal.icon;
 
   const openGame = () => navigate(`/games/${game.id}`);
+  const openGameFromKeyboard = (event: KeyboardEvent) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      openGame();
+    }
+  };
 
   return (
     <Card
@@ -36,40 +69,63 @@ export function GameCard({ game, showAdd = false }: GameCardProps) {
       padding="sm"
       radius="md"
       withBorder
-      role="link"
-      tabIndex={0}
-      onClick={openGame}
-      onKeyDown={(event: KeyboardEvent) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          openGame();
-        }
-      }}
-      aria-label={`Open ${game.name}`}
     >
       <Card.Section className={classes.imageSection}>
-        <Image
-          src={game.background_image ?? undefined}
-          alt={game.name}
-          className={classes.image}
-          fallbackSrc="https://placehold.co/400x200?text=No+Image"
-        />
+        <button
+          type="button"
+          className={classes.coverButton}
+          onClick={openGame}
+          onKeyDown={openGameFromKeyboard}
+          aria-label={`Open ${game.name}`}
+        >
+          <Image
+            src={game.background_image ?? undefined}
+            alt=""
+            className={classes.image}
+            fallbackSrc="https://placehold.co/400x200?text=No+Image"
+          />
+        </button>
         <div className={classes.imageShade} />
         {playtimeLabel && (
           <Badge className={classes.playtimeBadge} variant="filled" size="sm">
             {playtimeLabel}
           </Badge>
         )}
+        {showAdd && (
+          <div className={classes.saveControl}>
+            <SaveToLibraryButton
+              game={game}
+              libraryEntry={libraryEntry}
+              className={classes.saveIcon}
+              size="lg"
+              iconOnly
+            />
+          </div>
+        )}
       </Card.Section>
 
       <Stack gap={10} mt="sm" className={classes.body}>
-        <Text fw={600} lineClamp={2} className={classes.title}>
+        <button
+          type="button"
+          className={classes.titleButton}
+          onClick={openGame}
+          onKeyDown={openGameFromKeyboard}
+        >
           {game.name}
-        </Text>
+        </button>
 
         <Text size="sm" c="dimmed" className={classes.meta}>
           {metaItems}
         </Text>
+
+        <Badge
+          className={classes.signalBadge}
+          color={signal.tone}
+          variant="light"
+          leftSection={<SignalIcon size={12} stroke={1.8} />}
+        >
+          {signal.label}
+        </Badge>
 
         <Group gap={8} align="center" className={classes.ratingRow}>
           <Rating value={(game.rating ?? 0) / 2} fractions={2} readOnly size="sm" color="yellow" />
@@ -78,16 +134,6 @@ export function GameCard({ game, showAdd = false }: GameCardProps) {
           </Text>
         </Group>
 
-        {showAdd && (
-          <Group gap="xs" mt="auto">
-            <SaveToLibraryButton
-              game={game}
-              libraryEntry={libraryEntry}
-              className={`${classes.actionButton} ${inLibrary ? classes.removeButton : ''}`}
-              fullWidth
-            />
-          </Group>
-        )}
       </Stack>
     </Card>
   );

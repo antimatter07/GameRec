@@ -16,9 +16,14 @@
   flex: 0 0 124px;
 }
 
+.compactSelect {
+  flex: 0 0 136px;
+}
+
 .searchInput :global(.mantine-Input-input),
 .filterSelect :global(.mantine-Input-input),
-.yearSelect :global(.mantine-Input-input) {
+.yearSelect :global(.mantine-Input-input),
+.compactSelect :global(.mantine-Input-input) {
   min-height: 42px;
   border-color: var(--mantine-color-dark-4);
   background: var(--mantine-color-dark-6);
@@ -31,43 +36,47 @@
 
 .searchInput :global(.mantine-Input-input)::placeholder,
 .filterSelect :global(.mantine-Input-input)::placeholder,
-.yearSelect :global(.mantine-Input-input)::placeholder {
+.yearSelect :global(.mantine-Input-input)::placeholder,
+.compactSelect :global(.mantine-Input-input)::placeholder {
   color: var(--mantine-color-gray-5);
 }
 
 .searchInput :global(.mantine-Input-section),
 .filterSelect :global(.mantine-Input-section),
-.yearSelect :global(.mantine-Input-section) {
+.yearSelect :global(.mantine-Input-section),
+.compactSelect :global(.mantine-Input-section) {
   color: var(--mantine-color-gray-5);
 }
 
 .searchInput :global(.mantine-Input-input:focus),
 .filterSelect :global(.mantine-Input-input:focus),
-.yearSelect :global(.mantine-Input-input:focus) {
-  border-color: #b9543e;
+.yearSelect :global(.mantine-Input-input:focus),
+.compactSelect :global(.mantine-Input-input:focus) {
+  border-color: var(--mantine-color-ember-6);
 }
 
 .resetButton {
   align-self: stretch;
   min-height: 42px;
   padding-inline: 0;
-  color: #e97d61;
+  color: var(--mantine-color-ember-4);
 }
 
 .resetButton:hover {
   background: rgba(212, 103, 77, 0.1);
-  color: #fff1ec;
+  color: var(--mantine-color-ember-0);
 }
 
 .resetButton:focus-visible {
-  outline: 2px solid #b9543e;
+  outline: 2px solid var(--mantine-color-ember-6);
   outline-offset: 2px;
 }
 
 @media (max-width: 900px) {
   .searchInput,
   .filterSelect,
-  .yearSelect {
+  .yearSelect,
+  .compactSelect {
     flex-basis: 100%;
     min-width: 0;
   }
@@ -80,7 +89,8 @@
 @media (prefers-reduced-motion: reduce) {
   .searchInput :global(.mantine-Input-input),
   .filterSelect :global(.mantine-Input-input),
-  .yearSelect :global(.mantine-Input-input) {
+  .yearSelect :global(.mantine-Input-input),
+  .compactSelect :global(.mantine-Input-input) {
     transition: none;
   }
 }
