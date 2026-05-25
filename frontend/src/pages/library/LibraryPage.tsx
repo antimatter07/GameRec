@@ -11,11 +11,13 @@ import {
   Modal,
   Paper,
   Rating,
+  SegmentedControl,
   Select,
   Stack,
   Tabs,
   Text,
   TextInput,
+  Tooltip,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
@@ -25,6 +27,7 @@ import {
   IconBooks,
   IconCheck,
   IconLayoutGrid,
+  IconListDetails,
   IconPencil,
   IconPlayerPlay,
   IconStar,
@@ -113,15 +116,42 @@ function formatGenres(entry: LibraryEntry) {
   return genreNames.length > 0 ? genreNames.join(' • ') : 'No genres yet';
 }
 
+function formatGameMeta(entry: LibraryEntry) {
+  const releaseYear = entry.game.released ? new Date(entry.game.released).getFullYear() : null;
+  const platform = entry.game.platforms[0]?.name;
+  const genre = entry.game.genres[0]?.name;
+
+  return [releaseYear ?? 'TBA', genre, platform].filter(Boolean).join(' / ');
+}
+
+function formatRuntime(entry: LibraryEntry) {
+  const hours = entry.game.hltb_main_hours ?? entry.game.playtime;
+
+  if (!hours) return null;
+
+  return `${Math.round(hours)}h`;
+}
+
+function getGameInitials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0]?.toUpperCase())
+    .join('');
+}
+
 export default function LibraryPage() {
   const [activeTab, setActiveTab] = useState<LibraryStatusFilter>('all');
   const [sort, setSort] = useState<LibrarySort>('added_at_desc');
+  const [viewMode, setViewMode] = useState<'covers' | 'compact'>('covers');
   const [searchInput, setSearchInput] = useState('');
   const [appliedSearch, setAppliedSearch] = useState<string | undefined>(undefined);
   const [editingEntry, setEditingEntry] = useState<LibraryEntry | null>(null);
   const [editStatus, setEditStatus] = useState<LibraryStatus>('backlog');
   const [editRating, setEditRating] = useState<number>(0);
   const [removingEntryId, setRemovingEntryId] = useState<number | null>(null);
+  const [updatingEntryId, setUpdatingEntryId] = useState<number | null>(null);
   const [nextCandidate, setNextCandidate] = useState<LibraryEntry | null>(null);
   const [editOpened, { open: openEdit, close: closeEdit }] = useDisclosure(false);
   const navigate = useNavigate();
@@ -184,6 +214,9 @@ export default function LibraryPage() {
   const completionRate = statusCounts.all > 0
     ? Math.round((statusCounts.completed / statusCounts.all) * 100)
     : 0;
+  const avgRatingLabel = stats?.avg_rating !== null && stats?.avg_rating !== undefined
+    ? stats.avg_rating.toFixed(1)
+    : '—';
 
   const applySearch = (value: string) => {
     const normalizedSearch = value.trim() || undefined;
@@ -237,6 +270,22 @@ export default function LibraryPage() {
     }
   };
 
+  const handleInlineUpdate = async (entry: LibraryEntry, updates: { status?: LibraryStatus; rating?: number }) => {
+    setUpdatingEntryId(entry.id);
+
+    try {
+      const result = await updateEntry.mutateAsync({
+        id: entry.id,
+        updates,
+      });
+      setNextCandidate(result.next_game_candidate);
+    } catch {
+      notifications.show({ color: 'red', message: `Failed to update ${entry.game.name}` });
+    } finally {
+      setUpdatingEntryId((current) => (current === entry.id ? null : current));
+    }
+  };
+
   if (isLoading && !data) {
     return (
       <Center py={80}>
@@ -279,65 +328,49 @@ export default function LibraryPage() {
         </Button>
       </div>
 
-      <div className={classes.metricsGrid}>
-        <Paper className={classes.metricCard} p="md" radius="md" withBorder>
-          <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-ember-light)' }}>
-            <IconBooks size={18} color="var(--mantine-color-ember-5)" />
+      <Paper className={classes.summaryBar} p="md" radius="md" withBorder>
+        <div className={classes.summaryItem}>
+          <div className={classes.summaryIcon} style={{ background: 'var(--mantine-color-ember-light)' }}>
+            <IconBooks size={16} color="var(--mantine-color-ember-5)" />
           </div>
-          <div className={classes.metricLabel}>Total games</div>
-          <div className={classes.metricValue} style={{ color: 'var(--mantine-color-ember-4)' }}>
-            {statusCounts.all}
+          <div>
+            <Text className={classes.summaryValue}>{statusCounts.all}</Text>
+            <Text className={classes.summaryLabel}>saved games</Text>
           </div>
-          <div className={classes.metricSub}>
-            {topGenre
-              ? `${topGenre.genre} leads with ${topGenre.count} title${topGenre.count === 1 ? '' : 's'}`
-              : 'Start building your collection'}
-          </div>
-        </Paper>
+        </div>
 
-        <Paper className={classes.metricCard} p="md" radius="md" withBorder>
-          <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-blue-light)' }}>
-            <IconPlayerPlay size={18} color="var(--mantine-color-blue-5)" />
+        <div className={classes.summaryItem}>
+          <div className={classes.summaryIcon} style={{ background: 'var(--mantine-color-blue-light)' }}>
+            <IconPlayerPlay size={16} color="var(--mantine-color-blue-5)" />
           </div>
-          <div className={classes.metricLabel}>Playing now</div>
-          <div className={classes.metricValue} style={{ color: 'var(--mantine-color-blue-4)' }}>
-            {statusCounts.playing + statusCounts.replaying}
+          <div>
+            <Text className={classes.summaryValue}>{statusCounts.playing + statusCounts.replaying}</Text>
+            <Text className={classes.summaryLabel}>playing now</Text>
           </div>
-          <div className={classes.metricSub}>
-            {statusCounts.backlog > 0
-              ? `${statusCounts.backlog} waiting in backlog`
-              : 'Nothing waiting in backlog'}
-          </div>
-        </Paper>
+        </div>
 
-        <Paper className={classes.metricCard} p="md" radius="md" withBorder>
-          <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-teal-light)' }}>
-            <IconTrophy size={18} color="var(--mantine-color-teal-5)" />
+        <div className={classes.summaryItem}>
+          <div className={classes.summaryIcon} style={{ background: 'var(--mantine-color-teal-light)' }}>
+            <IconTrophy size={16} color="var(--mantine-color-teal-5)" />
           </div>
-          <div className={classes.metricLabel}>Completed</div>
-          <div className={classes.metricValue} style={{ color: 'var(--mantine-color-teal-4)' }}>
-            {statusCounts.completed}
+          <div>
+            <Text className={classes.summaryValue}>{completionRate}%</Text>
+            <Text className={classes.summaryLabel}>completed</Text>
           </div>
-          <div className={classes.metricSub}>
-            {statusCounts.all > 0 ? `${completionRate}% of your library finished` : 'No finished runs yet'}
-          </div>
-        </Paper>
+        </div>
 
-        <Paper className={classes.metricCard} p="md" radius="md" withBorder>
-          <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-yellow-light)' }}>
-            <IconStar size={18} color="var(--mantine-color-yellow-5)" />
+        <div className={classes.summaryItem}>
+          <div className={classes.summaryIcon} style={{ background: 'var(--mantine-color-yellow-light)' }}>
+            <IconStar size={16} color="var(--mantine-color-yellow-5)" />
           </div>
-          <div className={classes.metricLabel}>Average rating</div>
-          <div className={classes.metricValue} style={{ color: 'var(--mantine-color-yellow-4)' }}>
-            {stats?.avg_rating !== null && stats?.avg_rating !== undefined
-              ? stats.avg_rating.toFixed(1)
-              : '—'}
+          <div>
+            <Text className={classes.summaryValue}>{avgRatingLabel}</Text>
+            <Text className={classes.summaryLabel}>
+              {ratedEntries.length > 0 ? `${ratedEntries.length} rated` : 'rating'}
+            </Text>
           </div>
-          <div className={classes.metricSub}>
-            {ratedEntries.length > 0 ? `${ratedEntries.length} rated entr${ratedEntries.length === 1 ? 'y' : 'ies'}` : 'Add ratings as you go'}
-          </div>
-        </Paper>
-      </div>
+        </div>
+      </Paper>
 
       {nextCandidate && (
         <Paper p="md" radius="md" withBorder>
@@ -371,80 +404,6 @@ export default function LibraryPage() {
           </Group>
         </Paper>
       )}
-
-      <div className={classes.overviewGrid}>
-        <Paper p="md" radius="md" withBorder>
-          <Group justify="space-between" mb="sm" className={classes.panelHeader}>
-            <div>
-              <Text size="sm" fw={600}>Status overview</Text>
-              <Text size="xs" c="dimmed">A quick read on how your collection is distributed.</Text>
-            </div>
-          </Group>
-
-          <Stack gap="sm">
-            {(Object.keys(STATUS_LABELS) as LibraryStatus[]).map((status) => {
-              const count = statusCounts[status];
-              const width = statusCounts.all > 0 ? Math.max((count / statusCounts.all) * 100, count > 0 ? 8 : 0) : 0;
-
-              return (
-                <div key={status} className={classes.statusRow}>
-                  <div className={classes.statusMeta}>
-                    <Text className={classes.statusLabel}>{STATUS_LABELS[status]}</Text>
-                    <Text className={classes.statusValue}>{count}</Text>
-                  </div>
-                  <div className={classes.statusTrack}>
-                    <div
-                      className={classes.statusFill}
-                      style={{
-                        width: `${width}%`,
-                        background: `var(--mantine-color-${STATUS_COLORS[status]}-5)`,
-                      }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </Stack>
-        </Paper>
-
-        <Paper p="md" radius="md" withBorder>
-          <Group justify="space-between" mb="sm" className={classes.panelHeader}>
-            <div>
-              <Text size="sm" fw={600}>Top genres</Text>
-              <Text size="xs" c="dimmed">The genres showing up most often across your saved titles.</Text>
-            </div>
-            <Text size="xs" c="dimmed" className={classes.panelMeta}>
-              {statusCounts.all} tracked
-            </Text>
-          </Group>
-
-          {stats && stats.top_genres.length > 0 ? (
-            <Stack gap="sm">
-              <div className={classes.genreCloud}>
-                {stats.top_genres.slice(0, 6).map((genre, index) => (
-                  <Badge
-                    key={genre.genre}
-                    size="sm"
-                    variant={index === 0 ? 'light' : 'default'}
-                    color={index === 0 ? 'ember' : 'gray'}
-                  >
-                    {genre.genre} {genre.count}
-                  </Badge>
-                ))}
-              </div>
-              <Text size="xs" c="dimmed" className={classes.genreInsight}>
-                {topGenre
-                  ? `${topGenre.genre} is setting the tone for your library right now.`
-                  : 'Genre trends will show up here as your library grows.'}
-              </Text>
-            </Stack>
-          ) : (
-            <Text size="sm" c="dimmed" py="lg">
-              Add a few more games to surface genre trends here.
-            </Text>
-          )}
-        </Paper>
-      </div>
 
       <Tabs
         value={activeTab}
@@ -527,6 +486,36 @@ export default function LibraryPage() {
                         allowDeselect={false}
                       />
 
+                      <SegmentedControl
+                        className={classes.viewSwitch}
+                        aria-label="Library view"
+                        value={viewMode}
+                        onChange={(value) => setViewMode(value as 'covers' | 'compact')}
+                        size="sm"
+                        radius="md"
+                        color="ember"
+                        data={[
+                          {
+                            value: 'covers',
+                            label: (
+                              <span className={classes.viewSwitchLabel}>
+                                <IconLayoutGrid size={14} />
+                                Covers
+                              </span>
+                            ),
+                          },
+                          {
+                            value: 'compact',
+                            label: (
+                              <span className={classes.viewSwitchLabel}>
+                                <IconListDetails size={14} />
+                                Compact
+                              </span>
+                            ),
+                          },
+                        ]}
+                      />
+
                       {tab.value === 'backlog' && panelEntries.length > 0 && (
                         <Button
                           size="xs"
@@ -555,62 +544,196 @@ export default function LibraryPage() {
                   </div>
                 ) : (
                   <>
-                    <Box className={classes.grid}>
-                      {panelEntries.map((entry) => (
-                        <Box key={entry.id} className={classes.libraryItem}>
-                          <GameCard game={entry.game} />
+                    {viewMode === 'covers' ? (
+                      <Box className={classes.grid}>
+                        {panelEntries.map((entry) => (
+                          <Box key={entry.id} className={classes.libraryItem}>
+                            <GameCard game={entry.game} />
 
-                          <Paper p="sm" radius="md" withBorder className={classes.entryMeta}>
-                            <Group justify="space-between" align="flex-start" gap="sm" wrap="nowrap">
-                              <div className={classes.entryInfo}>
-                                <Group gap={6} wrap="wrap" mb={6}>
+                            <Paper p="sm" radius="md" withBorder className={classes.entryMeta}>
+                              <Group justify="space-between" align="flex-start" gap="sm" wrap="nowrap">
+                                <div className={classes.entryInfo}>
+                                  <Group gap={6} wrap="wrap" mb={6}>
+                                    <Badge size="xs" color={STATUS_COLORS[entry.status]} variant="light">
+                                      {STATUS_LABELS[entry.status]}
+                                    </Badge>
+                                    {entry.rating !== null && (
+                                      <Group gap={6} wrap="nowrap">
+                                        <Rating value={entry.rating} fractions={2} readOnly size="xs" color="yellow" />
+                                        <Text size="xs" c="dimmed" className={classes.ratingText}>
+                                          {entry.rating.toFixed(1)}
+                                        </Text>
+                                      </Group>
+                                    )}
+                                  </Group>
+
+                                  <Text className={classes.entryMetaLine}>
+                                    Added {dateFormatter.format(new Date(entry.added_at))}
+                                  </Text>
+                                  <Text className={`${classes.entryMetaLine} ${classes.entryGenres}`}>
+                                    {formatGenres(entry)}
+                                  </Text>
+                                </div>
+
+                                <Group gap={6} className={classes.entryActions} wrap="nowrap">
+                                  <Tooltip label={`Edit ${entry.game.name}`} withArrow>
+                                    <ActionIcon
+                                      size="sm"
+                                      variant="subtle"
+                                      color="gray"
+                                      onClick={() => handleOpenEdit(entry)}
+                                      aria-label={`Edit ${entry.game.name}`}
+                                    >
+                                      <IconPencil size={14} />
+                                    </ActionIcon>
+                                  </Tooltip>
+                                  <Tooltip label={`Remove ${entry.game.name}`} withArrow>
+                                    <ActionIcon
+                                      size="sm"
+                                      variant="subtle"
+                                      color="red"
+                                      onClick={() => handleRemove(entry.id, entry.game.name)}
+                                      loading={removingEntryId === entry.id}
+                                      aria-label={`Remove ${entry.game.name} from library`}
+                                    >
+                                      <IconTrash size={14} />
+                                    </ActionIcon>
+                                  </Tooltip>
+                                </Group>
+                              </Group>
+                            </Paper>
+                          </Box>
+                        ))}
+                      </Box>
+                    ) : (
+                      <div className={classes.compactList}>
+                        {panelEntries.map((entry) => {
+                          const rowUpdating = updatingEntryId === entry.id;
+                          const runtime = formatRuntime(entry);
+
+                          return (
+                            <Paper key={entry.id} p="sm" radius="md" withBorder className={classes.compactRow}>
+                              <button
+                                type="button"
+                                className={classes.compactCover}
+                                onClick={() => navigate(`/games/${entry.game.id}`)}
+                                aria-label={`Open ${entry.game.name}`}
+                              >
+                                {entry.game.background_image ? (
+                                  <img src={entry.game.background_image} alt="" />
+                                ) : (
+                                  <span>{getGameInitials(entry.game.name)}</span>
+                                )}
+                              </button>
+
+                              <div className={classes.compactTitleBlock}>
+                                <button
+                                  type="button"
+                                  className={classes.compactTitle}
+                                  onClick={() => navigate(`/games/${entry.game.id}`)}
+                                >
+                                  {entry.game.name}
+                                </button>
+                                <Text className={classes.compactMeta}>{formatGameMeta(entry)}</Text>
+                                <Group gap={6} wrap="wrap" className={classes.compactMobileBadges}>
                                   <Badge size="xs" color={STATUS_COLORS[entry.status]} variant="light">
                                     {STATUS_LABELS[entry.status]}
                                   </Badge>
-                                  {entry.rating !== null && (
-                                    <Group gap={6} wrap="nowrap">
-                                      <Rating value={entry.rating} fractions={2} readOnly size="xs" color="yellow" />
-                                      <Text size="xs" c="dimmed" className={classes.ratingText}>
-                                        {entry.rating.toFixed(1)}
-                                      </Text>
-                                    </Group>
-                                  )}
+                                  {runtime && <Badge size="xs" variant="default">{runtime}</Badge>}
                                 </Group>
+                              </div>
 
-                                <Text className={classes.entryMetaLine}>
-                                  Added {dateFormatter.format(new Date(entry.added_at))}
-                                </Text>
-                                <Text className={`${classes.entryMetaLine} ${classes.entryGenres}`}>
-                                  {formatGenres(entry)}
+                              <div className={classes.compactStatus}>
+                                <Select
+                                  aria-label={`Change status for ${entry.game.name}`}
+                                  value={entry.status}
+                                  onChange={(value) => {
+                                    if (value && value !== entry.status) {
+                                      void handleInlineUpdate(entry, { status: value as LibraryStatus });
+                                    }
+                                  }}
+                                  data={[
+                                    { value: 'playing', label: 'Playing' },
+                                    { value: 'replaying', label: 'Replaying' },
+                                    { value: 'completed', label: 'Completed' },
+                                    { value: 'backlog', label: 'Backlog' },
+                                    { value: 'wishlist', label: 'Wishlist' },
+                                    { value: 'dropped', label: 'Dropped' },
+                                  ]}
+                                  size="xs"
+                                  radius="md"
+                                  disabled={rowUpdating}
+                                  allowDeselect={false}
+                                />
+                              </div>
+
+                              <div className={classes.compactRating}>
+                                <Rating
+                                  value={entry.rating ?? 0}
+                                  fractions={2}
+                                  size="xs"
+                                  color="yellow"
+                                  onChange={(value) => {
+                                    if (value !== entry.rating && value > 0) {
+                                      void handleInlineUpdate(entry, { rating: value });
+                                    }
+                                  }}
+                                  aria-label={`Rate ${entry.game.name}`}
+                                  readOnly={rowUpdating}
+                                />
+                                <Text size="xs" c="dimmed" className={classes.ratingText}>
+                                  {entry.rating !== null ? entry.rating.toFixed(1) : 'Not rated'}
                                 </Text>
                               </div>
 
-                              <Group gap={6} className={classes.entryActions} wrap="nowrap">
-                                <ActionIcon
-                                  size="sm"
-                                  variant="subtle"
-                                  color="gray"
-                                  onClick={() => handleOpenEdit(entry)}
-                                  aria-label="Edit entry"
-                                >
-                                  <IconPencil size={14} />
-                                </ActionIcon>
-                                <ActionIcon
-                                  size="sm"
-                                  variant="subtle"
-                                  color="red"
-                                  onClick={() => handleRemove(entry.id, entry.game.name)}
-                                  loading={removingEntryId === entry.id}
-                                  aria-label="Remove from library"
-                                >
-                                  <IconTrash size={14} />
-                                </ActionIcon>
+                              <div className={classes.compactAdded}>
+                                <Text className={classes.compactLabel}>Added</Text>
+                                <Text className={classes.compactValue}>
+                                  {dateFormatter.format(new Date(entry.added_at))}
+                                </Text>
+                              </div>
+
+                              <div className={classes.compactRuntime}>
+                                {runtime ? (
+                                  <>
+                                    <Text className={classes.compactLabel}>Runtime</Text>
+                                    <Text className={classes.compactValue}>{runtime}</Text>
+                                  </>
+                                ) : (
+                                  <Text className={classes.compactValue}>No runtime</Text>
+                                )}
+                              </div>
+
+                              <Group gap={6} className={classes.compactActions} wrap="nowrap">
+                                <Tooltip label={`Edit ${entry.game.name}`} withArrow>
+                                  <ActionIcon
+                                    size="sm"
+                                    variant="subtle"
+                                    color="gray"
+                                    onClick={() => handleOpenEdit(entry)}
+                                    aria-label={`Edit ${entry.game.name}`}
+                                  >
+                                    <IconPencil size={14} />
+                                  </ActionIcon>
+                                </Tooltip>
+                                <Tooltip label={`Remove ${entry.game.name}`} withArrow>
+                                  <ActionIcon
+                                    size="sm"
+                                    variant="subtle"
+                                    color="red"
+                                    onClick={() => handleRemove(entry.id, entry.game.name)}
+                                    loading={removingEntryId === entry.id}
+                                    aria-label={`Remove ${entry.game.name} from library`}
+                                  >
+                                    <IconTrash size={14} />
+                                  </ActionIcon>
+                                </Tooltip>
                               </Group>
-                            </Group>
-                          </Paper>
-                        </Box>
-                      ))}
-                    </Box>
+                            </Paper>
+                          );
+                        })}
+                      </div>
+                    )}
 
                     <div className={classes.loadMoreFooter}>
                       <Text size="xs" c="dimmed">
@@ -637,6 +760,80 @@ export default function LibraryPage() {
           );
         })}
       </Tabs>
+
+      <div className={classes.insightGrid}>
+        <Paper p="md" radius="md" withBorder className={classes.insightPanel}>
+          <Group justify="space-between" mb="sm" className={classes.panelHeader}>
+            <div>
+              <Text size="sm" fw={600}>Library shape</Text>
+              <Text size="xs" c="dimmed">A compact read after the shelf, not before it.</Text>
+            </div>
+          </Group>
+
+          <Stack gap="sm">
+            {(Object.keys(STATUS_LABELS) as LibraryStatus[]).map((status) => {
+              const count = statusCounts[status];
+              const width = statusCounts.all > 0 ? Math.max((count / statusCounts.all) * 100, count > 0 ? 8 : 0) : 0;
+
+              return (
+                <div key={status} className={classes.statusRow}>
+                  <div className={classes.statusMeta}>
+                    <Text className={classes.statusLabel}>{STATUS_LABELS[status]}</Text>
+                    <Text className={classes.statusValue}>{count}</Text>
+                  </div>
+                  <div className={classes.statusTrack}>
+                    <div
+                      className={classes.statusFill}
+                      style={{
+                        width: `${width}%`,
+                        background: `var(--mantine-color-${STATUS_COLORS[status]}-5)`,
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </Stack>
+        </Paper>
+
+        <Paper p="md" radius="md" withBorder className={classes.insightPanel}>
+          <Group justify="space-between" mb="sm" className={classes.panelHeader}>
+            <div>
+              <Text size="sm" fw={600}>Taste signals</Text>
+              <Text size="xs" c="dimmed">Genres showing up most often across saved titles.</Text>
+            </div>
+            <Text size="xs" c="dimmed" className={classes.panelMeta}>
+              {statusCounts.all} tracked
+            </Text>
+          </Group>
+
+          {stats && stats.top_genres.length > 0 ? (
+            <Stack gap="sm">
+              <div className={classes.genreCloud}>
+                {stats.top_genres.slice(0, 6).map((genre, index) => (
+                  <Badge
+                    key={genre.genre}
+                    size="sm"
+                    variant={index === 0 ? 'light' : 'default'}
+                    color={index === 0 ? 'ember' : 'gray'}
+                  >
+                    {genre.genre} {genre.count}
+                  </Badge>
+                ))}
+              </div>
+              <Text size="xs" c="dimmed" className={classes.genreInsight}>
+                {topGenre
+                  ? `${topGenre.genre} is setting the tone for your library right now.`
+                  : 'Genre trends will show up here as your library grows.'}
+              </Text>
+            </Stack>
+          ) : (
+            <Text size="sm" c="dimmed" py="lg">
+              Add a few more games to surface genre trends here.
+            </Text>
+          )}
+        </Paper>
+      </div>
 
       <Modal opened={editOpened} onClose={closeEdit} title="Edit library entry" centered size="sm">
         <Stack gap="md">
