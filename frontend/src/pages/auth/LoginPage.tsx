@@ -2,8 +2,10 @@ import { Anchor, Button, Container, Divider, Paper, PasswordInput, Text, TextInp
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { Link } from 'react-router';
+import { IconDeviceGamepad2 } from '@tabler/icons-react';
 import { useAuth } from '../../hooks/useAuth';
 import { GoogleSignInButton } from '../../components/GoogleSignInButton';
+import classes from './AuthPages.module.css';
 
 export default function LoginPage() {
   const { login, loginWithGoogle } = useAuth();
@@ -25,16 +27,26 @@ export default function LoginPage() {
   });
 
   return (
-    <Container size={420} my={40}>
-      <Title ta="center">Welcome back</Title>
-      <Text c="dimmed" size="sm" ta="center" mt={5}>
-        Don't have an account?{' '}
-        <Anchor component={Link} to="/register">
-          Register
-        </Anchor>
-      </Text>
+    <div className={classes.page}>
+      <Container size={440} className={classes.shell}>
+        <div className={classes.brand}>
+          <span className={classes.brandMark}>
+            <IconDeviceGamepad2 size={21} stroke={1.9} />
+          </span>
+          <Text fw={800} size="lg">GameRec</Text>
+        </div>
+        <Title ta="center" className={classes.title}>Welcome back</Title>
+        <Text c="dimmed" size="sm" ta="center" mt={6} className={classes.subtitle}>
+          Sign in to continue shaping your library, queue, and recommendations.
+        </Text>
+        <Text c="dimmed" size="sm" ta="center" mt={8}>
+          Need an account?{' '}
+          <Anchor component={Link} to="/register" c="ember.3">
+            Create one
+          </Anchor>
+        </Text>
 
-      <Paper withBorder shadow="md" p={30} mt={30} radius="md">
+      <Paper withBorder p="xl" mt="lg" radius="md" className={classes.card}>
         <GoogleSignInButton
           fullWidth
           onSuccess={(accessToken) =>
@@ -53,12 +65,14 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit}>
           <TextInput
+            className={classes.input}
             label="Email"
             placeholder="you@example.com"
             required
             {...form.getInputProps('email')}
           />
           <PasswordInput
+            className={classes.input}
             label="Password"
             placeholder="Your password"
             required
@@ -74,5 +88,6 @@ export default function LoginPage() {
         </form>
       </Paper>
     </Container>
+    </div>
   );
 }

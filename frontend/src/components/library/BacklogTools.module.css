@@ -1,0 +1,109 @@
+.filters {
+  align-items: flex-end;
+  gap: var(--mantine-spacing-sm);
+}
+
+.control {
+  min-width: 160px;
+}
+
+.control :global(.mantine-Input-input) {
+  min-height: 42px;
+  border-color: var(--mantine-color-dark-4);
+  background: var(--mantine-color-dark-6);
+  color: var(--mantine-color-gray-0);
+}
+
+.control :global(.mantine-Input-input:focus) {
+  border-color: var(--mantine-color-ember-6);
+}
+
+.sortGroup {
+  flex: 1;
+  min-width: 260px;
+}
+
+.sortLabel {
+  margin-bottom: 6px;
+  color: var(--mantine-color-gray-2);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.priorityCard {
+  transition:
+    background 150ms ease,
+    border-color 150ms ease;
+}
+
+.priorityCard:hover {
+  border-color: var(--mantine-color-dark-4);
+  background: #171b27;
+}
+
+.cover {
+  width: 88px;
+  height: 66px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: var(--mantine-radius-sm);
+  background: var(--mantine-color-dark-5);
+}
+
+.cover img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.coverFallback {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: var(--mantine-color-dimmed);
+}
+
+.titleButton {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--mantine-color-gray-0);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: left;
+}
+
+.titleButton:hover {
+  color: var(--mantine-color-ember-3);
+}
+
+.titleButton:focus-visible {
+  outline: 2px solid var(--mantine-color-ember-6);
+  outline-offset: 2px;
+}
+
+.metaText {
+  color: var(--mantine-color-dimmed);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 48em) {
+  .filters {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .control,
+  .sortGroup {
+    width: 100%;
+    min-width: 0;
+  }
+}

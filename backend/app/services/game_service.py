@@ -1,13 +1,16 @@
 from fastapi import HTTPException, status
-from sqlalchemy import Text, cast, extract
+from sqlalchemy import Text, cast, extract, func
 from sqlalchemy.orm import Session
+from typing import Literal
 
 from app.models.game import Game
+from app.models.library import LibraryEntry
 from app.schemas.game import PaginatedGames
 
 
 def list_games(
     db: Session,
+    user_id: int,
     page: int = 1,
     page_size: int = 20,
     search: str | None = None,
@@ -15,6 +18,9 @@ def list_games(
     platform: str | None = None,
     year: int | None = None,
     min_rating: float | None = None,
+    max_hours: int | None = None,
+    library_state: Literal["all", "saved", "not_saved"] = "all",
+    sort: Literal["rating_desc", "released_desc", "name_asc", "playtime_asc"] = "rating_desc",
 ) -> PaginatedGames:
     query = db.query(Game)
 
@@ -25,11 +31,39 @@ def list_games(
     if min_rating is not None:
         query = query.filter(Game.rating >= min_rating)
     if genre:
-        query = query.filter(cast(Game.genres, Text).ilike(f'%"name": "{genre}"%'))
+        genre_text = cast(Game.genres, Text)
+        query = query.filter(
+            genre_text.ilike(f'%"slug": "{genre}"%')
+            | genre_text.ilike(f'%"name": "{genre}"%')
+        )
     if platform:
-        query = query.filter(cast(Game.platforms, Text).ilike(f'%"name": "{platform}"%'))
+        platform_text = cast(Game.platforms, Text)
+        query = query.filter(
+            platform_text.ilike(f'%"slug": "{platform}"%')
+            | platform_text.ilike(f'%"name": "{platform}"%')
+        )
+    if max_hours is not None:
+        query = query.filter(func.coalesce(Game.hltb_main_hours, Game.playtime) <= max_hours)
+
+    if library_state != "all":
+        saved_game_ids = db.query(LibraryEntry.game_id).filter(LibraryEntry.user_id == user_id)
+        if library_state == "saved":
+            query = query.filter(Game.id.in_(saved_game_ids))
+        else:
+            query = query.filter(~Game.id.in_(saved_game_ids))
 
     total = query.count()
+
+    playtime_hours = func.coalesce(Game.hltb_main_hours, Game.playtime)
+    if sort == "released_desc":
+        query = query.order_by(Game.released.desc().nullslast(), Game.rating.desc().nullslast(), Game.id.asc())
+    elif sort == "name_asc":
+        query = query.order_by(Game.name.asc(), Game.id.asc())
+    elif sort == "playtime_asc":
+        query = query.order_by(playtime_hours.asc().nullslast(), Game.rating.desc().nullslast(), Game.id.asc())
+    else:
+        query = query.order_by(Game.rating.desc().nullslast(), Game.ratings_count.desc(), Game.id.asc())
+
     games = query.offset((page - 1) * page_size).limit(page_size).all()
 
     return PaginatedGames(total=total, page=page, page_size=page_size, results=games)

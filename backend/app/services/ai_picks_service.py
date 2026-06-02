@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-import redis as redis_lib
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session, joinedload
 
@@ -19,6 +18,7 @@ from app.models.recommendation import (
     RecommendationStatus,
 )
 from app.services.llm_provider import LLMProviderError, get_default_llm_provider
+from app.services import kv_store
 from app.services.steam_import_service import (
     _best_by_popularity,
     _score_candidate as _score_title_match,
@@ -97,11 +97,6 @@ class DroppedAIPick:
     matched_game_id: int | None = None
 
 
-def _redis_client():
-    """Create a Redis client for AI Picks cache and dirtiness checks."""
-    return redis_lib.from_url(settings.REDIS_URL)
-
-
 def _dossier_cache_key(user_id: int) -> str:
     """Build the Redis cache key for a user's generated taste dossier."""
     return f"ai_picks:dossier:{user_id}"
@@ -152,10 +147,9 @@ def _length_bucket(hours: float | None) -> str:
 def invalidate_ai_picks_cache(user_id: int) -> None:
     """Mark AI Picks as stale after library, rating, or journal changes."""
     try:
-        r = _redis_client()
         ttl_seconds = max(int(_CACHE_TTL.total_seconds()), 60)
-        r.delete(_dossier_cache_key(user_id))
-        r.setex(_dirty_cache_key(user_id), ttl_seconds, "1")
+        kv_store.delete(_dossier_cache_key(user_id))
+        kv_store.set_text(_dirty_cache_key(user_id), "1", ttl_seconds=ttl_seconds)
     except Exception:
         pass
 
@@ -163,7 +157,7 @@ def invalidate_ai_picks_cache(user_id: int) -> None:
 def _clear_dirty_flag(user_id: int) -> None:
     """Clear the stale marker after a fresh AI Picks batch is generated."""
     try:
-        _redis_client().delete(_dirty_cache_key(user_id))
+        kv_store.delete(_dirty_cache_key(user_id))
     except Exception:
         pass
 
@@ -171,7 +165,7 @@ def _clear_dirty_flag(user_id: int) -> None:
 def _is_dirty(user_id: int) -> bool:
     """Return whether the user's cached taste dossier should be regenerated."""
     try:
-        return bool(_redis_client().get(_dirty_cache_key(user_id)))
+        return kv_store.exists(_dirty_cache_key(user_id))
     except Exception:
         return False
 
@@ -179,9 +173,11 @@ def _is_dirty(user_id: int) -> bool:
 def _load_cached_dossier(user_id: int) -> TasteDossier | None:
     """Load a previously generated taste dossier from Redis, if available."""
     try:
-        payload = _redis_client().get(_dossier_cache_key(user_id))
+        payload = kv_store.get_text(_dossier_cache_key(user_id))
         if not payload:
             return None
+        if isinstance(payload, bytes):
+            payload = payload.decode("utf-8")
         return TasteDossier.model_validate(json.loads(payload))
     except Exception:
         return None
@@ -190,10 +186,10 @@ def _load_cached_dossier(user_id: int) -> TasteDossier | None:
 def _store_cached_dossier(user_id: int, dossier: TasteDossier) -> None:
     """Persist a generated taste dossier to Redis for reuse within the TTL."""
     try:
-        _redis_client().setex(
+        kv_store.set_text(
             _dossier_cache_key(user_id),
-            int(_CACHE_TTL.total_seconds()),
             json.dumps(dossier.model_dump()),
+            ttl_seconds=int(_CACHE_TTL.total_seconds()),
         )
     except Exception:
         pass

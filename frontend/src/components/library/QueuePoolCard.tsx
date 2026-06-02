@@ -1,7 +1,7 @@
 import { ActionIcon, Badge, Group, Rating, Text } from '@mantine/core';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { IconPlus } from '@tabler/icons-react';
+import { IconDeviceGamepad2, IconPlus } from '@tabler/icons-react';
 import type { LibraryEntry, LibraryStatus } from '../../types/library';
 import classes from './QueueCards.module.css';
 
@@ -11,7 +11,7 @@ interface QueuePoolCardProps {
 }
 
 const STATUS_COLORS: Record<LibraryStatus, string> = {
-  playing:   'violet',
+  playing:   'ember',
   completed: 'blue',
   backlog:   'teal',
   dropped:   'grape',
@@ -53,7 +53,7 @@ export function QueuePoolCard({ entry, onPlusClick }: QueuePoolCardProps) {
             size="sm"
             radius="sm"
             variant="filled"
-            color="violet"
+            color="ember"
             className={classes.actionButton}
             onClick={(event) => {
               event.stopPropagation();
@@ -70,7 +70,7 @@ export function QueuePoolCard({ entry, onPlusClick }: QueuePoolCardProps) {
           <img src={game.background_image} alt={game.name} className={classes.coverImage} />
         ) : (
           <div className={classes.coverFallback}>
-            <Text size="lg">🎮</Text>
+            <IconDeviceGamepad2 size={24} stroke={1.6} />
           </div>
         )}
       </div>

@@ -61,4 +61,7 @@ export interface GameFilters {
   platform?: string;
   year?: number;
   min_rating?: number;
+  max_hours?: number;
+  library_state?: 'all' | 'saved' | 'not_saved';
+  sort?: 'rating_desc' | 'released_desc' | 'name_asc' | 'playtime_asc';
 }

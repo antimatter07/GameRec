@@ -26,6 +26,7 @@ import {
   IconArrowRight,
   IconBooks,
   IconClock,
+  IconDeviceGamepad2,
   IconLayoutGrid,
   IconPlayerPlay,
   IconSparkles,
@@ -173,7 +174,7 @@ export default function QueuePage() {
     return (
       <Center py={80}>
         <Stack align="center" gap="sm">
-          <Loader color="violet" size="md" />
+          <Loader color="ember" size="md" />
           <Text size="sm" c="dimmed">Loading your queue…</Text>
         </Stack>
       </Center>
@@ -194,7 +195,7 @@ export default function QueuePage() {
 
         <Button
           leftSection={<IconArrowRight size={16} />}
-          color="violet"
+          color="ember"
           variant="light"
           onClick={() => navigate('/library/backlog')}
         >
@@ -204,11 +205,11 @@ export default function QueuePage() {
 
       <div className={classes.metricsGrid}>
         <Paper className={classes.metricCard} p="md" radius="md" withBorder>
-          <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-violet-light)' }}>
-            <IconLayoutGrid size={18} color="var(--mantine-color-violet-5)" />
+          <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-ember-light)' }}>
+            <IconLayoutGrid size={18} color="var(--mantine-color-ember-5)" />
           </div>
           <div className={classes.metricLabel}>Queued now</div>
-          <div className={classes.metricValue} style={{ color: 'var(--mantine-color-violet-4)' }}>
+          <div className={classes.metricValue} style={{ color: 'var(--mantine-color-ember-4)' }}>
             {queueItems.length}
           </div>
           <div className={classes.metricSub}>Drag cards to reorder the lineup</div>
@@ -263,7 +264,7 @@ export default function QueuePage() {
                 {nextUp.entry.game.background_image ? (
                   <img src={nextUp.entry.game.background_image} alt={nextUp.entry.game.name} />
                 ) : (
-                  <Text size="lg">🎮</Text>
+                  <IconDeviceGamepad2 size={26} stroke={1.6} />
                 )}
               </div>
               <div className={classes.nextUpInfo}>
@@ -321,7 +322,7 @@ export default function QueuePage() {
                         style={{
                           width: `${Math.max((genre.count / queueItems.length) * 100, 10)}%`,
                           background: index === 0
-                            ? 'var(--mantine-color-violet-5)'
+                            ? 'var(--mantine-color-ember-5)'
                             : 'var(--mantine-color-blue-5)',
                         }}
                       />
@@ -408,7 +409,7 @@ export default function QueuePage() {
                 </Button>
                 <Button
                   size="xs"
-                  color="violet"
+                  color="ember"
                   onClick={() => adoptSuggestion.mutate()}
                   loading={adoptSuggestion.isPending}
                   disabled={suggestionState ? !suggestionState.can_adopt : true}

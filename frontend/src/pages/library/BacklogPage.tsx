@@ -2,12 +2,11 @@ import { useState } from 'react';
 import {
   Button,
   Center,
-  Group,
   Loader,
   Pagination,
+  Paper,
   Stack,
   Text,
-  Title,
 } from '@mantine/core';
 import { IconArrowLeft } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
@@ -15,6 +14,7 @@ import { BacklogFilters } from '../../components/library/BacklogFilters';
 import { BacklogPriorityCard } from '../../components/library/BacklogPriorityCard';
 import { usePrioritizedBacklog } from '../../hooks/useLibrary';
 import type { BacklogFiltersParams } from '../../api/library';
+import classes from './BacklogPage.module.css';
 
 const PAGE_SIZE = 20;
 
@@ -31,9 +31,9 @@ export default function BacklogPage() {
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 1;
 
   return (
-    <Stack gap="md">
-      <Group justify="space-between" align="center">
-        <Group gap="xs">
+    <Stack gap="lg" className={classes.page}>
+      <div className={classes.header}>
+        <div>
           <Button
             variant="subtle"
             size="xs"
@@ -42,25 +42,37 @@ export default function BacklogPage() {
           >
             Library
           </Button>
-          <Title order={2}>Play Next</Title>
-        </Group>
+          <Text className={classes.headerTitle}>
+            Play <span className={classes.headerAccent}>Next</span>
+          </Text>
+          <Text size="xs" c="dimmed" className={classes.headerSubtitle}>
+            Prioritize backlog titles by fit, time commitment, and how long they have been waiting.
+          </Text>
+        </div>
         {data && (
           <Text size="sm" c="dimmed">{data.total} game{data.total !== 1 ? 's' : ''} in backlog</Text>
         )}
-      </Group>
+      </div>
 
-      <BacklogFilters filters={filters} onChange={setFilters} />
+      <Paper p="md" radius="md" withBorder>
+        <BacklogFilters filters={filters} onChange={setFilters} />
+      </Paper>
 
-      {isLoading && <Center h={300}><Loader /></Center>}
+      {isLoading && <Center h={300}><Loader color="ember" /></Center>}
 
       {isError && (
-        <Text c="red" ta="center">Failed to load backlog. Try again.</Text>
+        <Paper p="md" radius="md" withBorder>
+          <Text c="red.4" ta="center" size="sm">Failed to load backlog. Try again.</Text>
+        </Paper>
       )}
 
       {data && data.results.length === 0 && (
-        <Text c="dimmed" ta="center" mt="xl">
-          No backlog games match your filters.
-        </Text>
+        <div className={classes.emptyState}>
+          <div>
+            <Text size="sm" fw={600}>No matching backlog games</Text>
+            <Text size="xs" c="dimmed" mt={4}>Adjust the filters or add more saved games to your backlog.</Text>
+          </div>
+        </div>
       )}
 
       {data && data.results.length > 0 && (

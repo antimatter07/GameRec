@@ -1,5 +1,5 @@
 .page {
-  gap: 1.25rem;
+  gap: var(--mantine-spacing-lg);
   padding: var(--mantine-spacing-lg);
 }
 
@@ -14,12 +14,12 @@
 .headerTitle {
   font-size: 1.5rem;
   font-weight: 700;
-  letter-spacing: -0.3px;
+  letter-spacing: 0;
   color: var(--mantine-color-gray-0);
 }
 
 .headerAccent {
-  color: var(--mantine-color-violet-5);
+  color: var(--mantine-color-ember-5);
 }
 
 .headerSubtitle {
@@ -27,64 +27,63 @@
   max-width: 640px;
 }
 
-.metricsGrid {
+.summaryBar {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--mantine-spacing-sm);
+  background: var(--mantine-color-dark-7);
 }
 
-.metricCard {
-  position: relative;
-  overflow: hidden;
-  transition:
-    border-color 150ms ease,
-    background 150ms ease;
+.summaryItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding-right: var(--mantine-spacing-sm);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.metricCard:hover {
-  border-color: var(--mantine-color-dark-4);
-  background: #171b27;
+.summaryItem:last-child {
+  padding-right: 0;
+  border-right: 0;
 }
 
-.metricIcon {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  width: 36px;
-  height: 36px;
+.summaryIcon {
+  width: 34px;
+  height: 34px;
   border-radius: var(--mantine-radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
-.metricLabel {
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--mantine-color-dimmed);
-  margin-bottom: 6px;
-}
-
-.metricValue {
-  font-size: 1.6rem;
+.summaryValue {
+  color: var(--mantine-color-gray-0);
+  font-size: 1.05rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
 }
 
-.metricSub {
-  margin-top: 6px;
-  font-size: 0.7rem;
+.summaryLabel {
+  margin-top: 2px;
   color: var(--mantine-color-dimmed);
-  min-height: 1.1rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  text-transform: uppercase;
 }
 
-.overviewGrid {
+.insightGrid {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
   gap: var(--mantine-spacing-sm);
+}
+
+.insightPanel {
+  background: var(--mantine-color-dark-7);
 }
 
 .panelHeader {
@@ -107,12 +106,30 @@
   flex-shrink: 0;
 }
 
+.searchControl {
+  display: grid;
+  gap: 4px;
+  min-width: 240px;
+}
+
 .searchInput {
   min-width: 240px;
 }
 
 .sortSelect {
   min-width: 180px;
+}
+
+.viewSwitch {
+  min-width: 190px;
+}
+
+.viewSwitchLabel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  line-height: 1;
 }
 
 .searchInput :global(.mantine-Input-input),
@@ -133,12 +150,20 @@
 
 .searchInput :global(.mantine-Input-input:focus),
 .sortSelect :global(.mantine-Input-input:focus) {
-  border-color: var(--mantine-color-violet-6);
+  border-color: var(--mantine-color-ember-6);
 }
 
 .searchInput :global(.mantine-Input-section),
 .sortSelect :global(.mantine-Input-section) {
   color: var(--mantine-color-gray-5);
+}
+
+.searchStatus {
+  min-height: 0.85rem;
+  color: var(--mantine-color-dimmed);
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
 }
 
 .statusRow {
@@ -210,7 +235,7 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
   gap: 14px;
   align-items: stretch;
 }
@@ -259,6 +284,157 @@
   font-variant-numeric: tabular-nums;
 }
 
+.compactList {
+  display: grid;
+  gap: 8px;
+}
+
+.compactRow {
+  display: grid;
+  grid-template-columns:
+    64px
+    minmax(180px, 1.5fr)
+    minmax(138px, 0.78fr)
+    minmax(148px, 0.9fr)
+    minmax(104px, 0.55fr)
+    minmax(82px, 0.4fr)
+    auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 84px;
+  background: var(--mantine-color-dark-7);
+  transition:
+    border-color 150ms ease,
+    background 150ms ease;
+}
+
+.compactRow:hover {
+  border-color: var(--mantine-color-dark-3);
+  background: #171b27;
+}
+
+.compactCover {
+  width: 64px;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--mantine-radius-sm);
+  background:
+    linear-gradient(145deg, rgba(212, 103, 77, 0.18), rgba(23, 27, 39, 0.9)),
+    var(--mantine-color-dark-6);
+  color: var(--mantine-color-ember-1);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.compactCover img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.compactCover:focus-visible,
+.compactTitle:focus-visible {
+  outline: 2px solid var(--mantine-color-ember-6);
+  outline-offset: 2px;
+}
+
+.compactTitleBlock {
+  min-width: 0;
+}
+
+.compactTitle {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--mantine-color-gray-0);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compactTitle:hover {
+  color: var(--mantine-color-ember-2);
+}
+
+.compactMeta {
+  max-width: 100%;
+  overflow: hidden;
+  margin-top: 4px;
+  color: var(--mantine-color-dimmed);
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compactMobileBadges {
+  display: none;
+  margin-top: 6px;
+}
+
+.compactStatus :global(.mantine-Input-input) {
+  border-color: var(--mantine-color-dark-4);
+  background: var(--mantine-color-dark-6);
+  color: var(--mantine-color-gray-0);
+}
+
+.compactStatus :global(.mantine-Input-input:focus) {
+  border-color: var(--mantine-color-ember-6);
+}
+
+.compactRating {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  min-width: 0;
+}
+
+.compactAdded,
+.compactRuntime {
+  min-width: 0;
+}
+
+.compactLabel {
+  color: var(--mantine-color-dimmed);
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.compactValue {
+  overflow: hidden;
+  margin-top: 3px;
+  color: var(--mantine-color-gray-2);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compactActions {
+  justify-content: flex-end;
+}
+
 .emptyState {
   min-height: 220px;
   display: flex;
@@ -285,18 +461,71 @@
     padding: var(--mantine-spacing-md);
   }
 
-  .metricsGrid {
+  .summaryBar {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .overviewGrid {
+  .summaryItem:nth-child(2) {
+    padding-right: 0;
+    border-right: 0;
+  }
+
+  .insightGrid {
     grid-template-columns: 1fr;
   }
 
   .panelControls,
+  .searchControl,
   .searchInput,
-  .sortSelect {
+  .sortSelect,
+  .viewSwitch {
     width: 100%;
+  }
+
+  .compactRow {
+    grid-template-columns: 58px minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 10px;
+  }
+
+  .compactCover {
+    width: 58px;
+    height: 72px;
+  }
+
+  .compactTitleBlock {
+    align-self: center;
+  }
+
+  .compactStatus,
+  .compactRating,
+  .compactAdded,
+  .compactRuntime {
+    grid-column: 2 / 4;
+  }
+
+  .compactStatus {
+    max-width: 220px;
+  }
+
+  .compactRating {
+    grid-template-columns: auto 1fr;
+    align-items: center;
+  }
+
+  .compactAdded,
+  .compactRuntime {
+    display: none;
+  }
+
+  .compactActions {
+    grid-column: 3;
+    grid-row: 1;
+    align-self: start;
+  }
+
+  .compactMobileBadges {
+    display: flex;
   }
 }
 
@@ -307,8 +536,20 @@
 }
 
 @media (max-width: 30em) {
-  .metricsGrid {
+  .summaryBar {
     grid-template-columns: 1fr;
+  }
+
+  .summaryItem {
+    padding-right: 0;
+    padding-bottom: var(--mantine-spacing-xs);
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .summaryItem:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
   }
 
   .statusMeta {

@@ -1,10 +1,12 @@
-import { Avatar, Group, Menu, Text } from '@mantine/core';
-import { IconLogout, IconUser } from '@tabler/icons-react';
+import type { ReactNode } from 'react';
+import { Avatar, Group, Menu, Text, UnstyledButton } from '@mantine/core';
+import { IconDeviceGamepad2, IconLogout, IconUser } from '@tabler/icons-react';
 import { Link } from 'react-router';
 import { useAuth } from '../../hooks/useAuth';
 import { useAuthStore } from '../../store/authStore';
+import classes from './AppLayout.module.css';
 
-export function AppHeader() {
+export function AppHeader({ mobileToggle }: { mobileToggle?: ReactNode }) {
   const user = useAuthStore((s) => s.user);
   const { logout } = useAuth();
 
@@ -12,20 +14,31 @@ export function AppHeader() {
   const avatarLabel = displayName ? displayName.charAt(0).toUpperCase() : '?';
 
   return (
-    <Group h="100%" px="md" justify="space-between">
-      <Text fw={700} size="lg">
-        🎮 GameRec
-      </Text>
+    <Group h="100%" justify="space-between" className={classes.headerInner} wrap="nowrap">
+      <Group gap="sm" wrap="nowrap" miw={0}>
+        {mobileToggle}
+        <Link to="/games" className={classes.brandLink}>
+          <span className={classes.brandMark}>
+            <IconDeviceGamepad2 size={19} stroke={1.9} />
+          </span>
+          <span className={classes.brandText}>
+            <span className={classes.brandName}>GameRec</span>
+            
+          </span>
+        </Link>
+      </Group>
 
-      <Group>
-        <Menu position="bottom-end" withArrow>
+      <Group wrap="nowrap">
+        <Menu position="bottom-end" withArrow width={190}>
           <Menu.Target>
-            <Group gap="xs" style={{ cursor: 'pointer' }}>
-              <Avatar radius="xl" size="sm" color="blue">
-                {avatarLabel}
-              </Avatar>
-              <Text size="sm">{displayName}</Text>
-            </Group>
+            <UnstyledButton className={classes.userTarget}>
+              <Group gap="xs" wrap="nowrap">
+                <Avatar radius="sm" size="sm" color="ember">
+                  {avatarLabel}
+                </Avatar>
+                <Text size="sm" truncate className={classes.userName}>{displayName}</Text>
+              </Group>
+            </UnstyledButton>
           </Menu.Target>
 
           <Menu.Dropdown>
@@ -35,7 +48,7 @@ export function AppHeader() {
             <Menu.Divider />
             <Menu.Item
               leftSection={<IconLogout size={16} />}
-              color="red"
+              color="red.4"
               onClick={logout}
             >
               Log out

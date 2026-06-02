@@ -3,8 +3,10 @@ import { Anchor, Button, Container, Divider, Paper, PasswordInput, Text, TextInp
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { Link } from 'react-router';
+import { IconDeviceGamepad2 } from '@tabler/icons-react';
 import { useAuth } from '../../hooks/useAuth';
 import { GoogleSignInButton } from '../../components/GoogleSignInButton';
+import classes from './AuthPages.module.css';
 
 export default function RegisterPage() {
   const { register, loginWithGoogle } = useAuth();
@@ -28,16 +30,26 @@ export default function RegisterPage() {
   });
 
   return (
-    <Container size={420} my={40}>
-      <Title ta="center">Create an account</Title>
-      <Text c="dimmed" size="sm" ta="center" mt={5}>
-        Already have an account?{' '}
-        <Anchor component={Link} to="/login">
-          Sign in
-        </Anchor>
-      </Text>
+    <div className={classes.page}>
+      <Container size={440} className={classes.shell}>
+        <div className={classes.brand}>
+          <span className={classes.brandMark}>
+            <IconDeviceGamepad2 size={21} stroke={1.9} />
+          </span>
+          <Text fw={800} size="lg">GameRec</Text>
+        </div>
+        <Title ta="center" className={classes.title}>Create an account</Title>
+        <Text c="dimmed" size="sm" ta="center" mt={6} className={classes.subtitle}>
+          Start a personal game library that can explain what fits your taste.
+        </Text>
+        <Text c="dimmed" size="sm" ta="center" mt={8}>
+          Already have an account?{' '}
+          <Anchor component={Link} to="/login" c="ember.3">
+            Sign in
+          </Anchor>
+        </Text>
 
-      <Paper withBorder shadow="md" p={30} mt={30} radius="md">
+      <Paper withBorder p="xl" mt="lg" radius="md" className={classes.card}>
         <GoogleSignInButton
           fullWidth
           label="Sign up with Google"
@@ -57,12 +69,14 @@ export default function RegisterPage() {
 
         <form onSubmit={handleSubmit}>
           <TextInput
+            className={classes.input}
             label="Display name"
             placeholder="Your name"
             required
             {...form.getInputProps('display_name')}
           />
           <TextInput
+            className={classes.input}
             label="Email"
             placeholder="you@example.com"
             required
@@ -70,6 +84,7 @@ export default function RegisterPage() {
             {...form.getInputProps('email')}
           />
           <PasswordInput
+            className={classes.input}
             label="Password"
             placeholder="At least 8 characters"
             required
@@ -83,5 +98,6 @@ export default function RegisterPage() {
         </form>
       </Paper>
     </Container>
+    </div>
   );
 }

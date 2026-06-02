@@ -1,5 +1,5 @@
 import { Button, Group, Paper, SimpleGrid, Stack, Text } from '@mantine/core';
-import { IconNote } from '@tabler/icons-react';
+import { IconNote, IconNotes } from '@tabler/icons-react';
 import type { PlaythroughNote } from '../../types/journal';
 import { PlaythroughNoteCard } from './PlaythroughNoteCard';
 import classes from './Journal.module.css';
@@ -48,7 +48,7 @@ export function ScratchpadPanel({
           </Text>
         </div>
         {onCreate && (
-          <Button leftSection={<IconNote size={16} />} onClick={onCreate}>
+          <Button className={classes.primaryAction} leftSection={<IconNote size={16} />} onClick={onCreate}>
             {actionLabel}
           </Button>
         )}
@@ -56,7 +56,12 @@ export function ScratchpadPanel({
 
       {notes.length === 0 || !hasVisibleSections ? (
         <Paper withBorder radius="md" p="lg" className={classes.scratchpadEmpty}>
-          <Text size="sm" c="dimmed" ta="center">{emptyMessage}</Text>
+          <Stack align="center" gap="xs">
+            <div className={classes.stateIcon}>
+              <IconNotes size={18} stroke={1.8} />
+            </div>
+            <Text size="sm" c="dimmed" ta="center">{emptyMessage}</Text>
+          </Stack>
         </Paper>
       ) : (
         <>

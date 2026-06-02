@@ -1,5 +1,6 @@
-import { Text, Badge, Tooltip, Image } from '@mantine/core';
-import { IconTrophy } from '@tabler/icons-react';
+import { Badge, Tooltip, Image } from '@mantine/core';
+import { IconDeviceGamepad2, IconTrophy } from '@tabler/icons-react';
+import type { KeyboardEvent } from 'react';
 import { EmotionType, EMOTION_CONFIG } from '../../types/journal';
 import type { SessionLog } from '../../types/journal';
 import classes from './Journal.module.css';
@@ -18,7 +19,7 @@ const EMOTION_CSS_COLORS: Record<EmotionType, string> = {
 };
 
 function formatDuration(minutes: number | null): string {
-  if (!minutes) return '—';
+  if (!minutes) return 'No time';
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   if (h === 0) return `${m}m`;
@@ -46,28 +47,58 @@ function formatDate(isoString: string): string {
 interface JournalFeedItemProps {
   session:  SessionLog;
   onClick?: () => void;
+  variant?: 'compact' | 'timeline';
 }
 
-export function JournalFeedItem({ session, onClick }: JournalFeedItemProps) {
+export function JournalFeedItem({ session, onClick, variant = 'compact' }: JournalFeedItemProps) {
+  const coverSize = variant === 'timeline'
+    ? { width: 68, height: 88 }
+    : { width: 44, height: 58 };
+  const clickableProps = onClick
+    ? {
+        role: 'button',
+        tabIndex: 0,
+        onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            onClick();
+          }
+        },
+      }
+    : {};
+
   return (
-    <div className={classes.sessionItem} onClick={onClick}>
+    <div
+      className={[
+        classes.sessionItem,
+        variant === 'timeline' ? classes.sessionItemTimeline : '',
+        onClick ? classes.sessionItemClickable : '',
+      ].filter(Boolean).join(' ')}
+      onClick={onClick}
+      {...clickableProps}
+    >
       <div className={classes.sessionCover}>
         {session.game_cover_url ? (
           <Image
             src={session.game_cover_url}
             alt={session.game_title ?? 'Game'}
-            w={44}
-            h={58}
+            w={coverSize.width}
+            h={coverSize.height}
             fit="cover"
           />
         ) : (
-          <Text size="lg">🎮</Text>
+          <IconDeviceGamepad2 size={18} />
         )}
       </div>
 
       <div className={classes.sessionInfo}>
-        <div className={classes.sessionTitle}>
-          {session.game_title ?? `Game #${session.game_id}`}
+        <div className={classes.sessionTitleRow}>
+          <div className={classes.sessionTitle}>
+            {session.game_title ?? `Game #${session.game_id}`}
+          </div>
+          <div className={classes.sessionDuration}>
+            {formatDuration(session.duration_minutes)}
+          </div>
         </div>
         <div className={classes.sessionMeta}>
           <span>Logged {formatDate(session.started_at)}</span>
@@ -88,31 +119,40 @@ export function JournalFeedItem({ session, onClick }: JournalFeedItemProps) {
             </Badge>
           )}
         </div>
-      </div>
 
-      {/* Emotion dots */}
-      {session.emotions && session.emotions.length > 0 && (
-        <div className={classes.sessionEmotionDots}>
-          {session.emotions.slice(0, 5).map((emotion, i) => (
-            <Tooltip
-              key={`${emotion}-${i}`}
-              label={EMOTION_CONFIG[emotion]?.label ?? emotion}
-              withArrow
-              position="top"
-            >
-              <div
-                className={classes.emotionDot}
-                style={{
-                  background: EMOTION_CSS_COLORS[emotion] ?? 'var(--mantine-color-gray-5)',
-                }}
-              />
-            </Tooltip>
-          ))}
-        </div>
-      )}
+        {variant === 'timeline' && session.notes && (
+          <div className={classes.sessionNotes}>
+            {session.notes}
+          </div>
+        )}
 
-      <div className={classes.sessionDuration}>
-        {formatDuration(session.duration_minutes)}
+        {session.emotions && session.emotions.length > 0 && (
+          <div className={variant === 'timeline' ? classes.sessionEmotionChips : classes.sessionEmotionDots}>
+            {session.emotions.slice(0, variant === 'timeline' ? 4 : 5).map((emotion, i) => (
+              <Tooltip
+                key={`${emotion}-${i}`}
+                label={EMOTION_CONFIG[emotion]?.label ?? emotion}
+                withArrow
+                position="top"
+              >
+                {variant === 'timeline' ? (
+                  <span className={classes.emotionChip}>
+                    <span
+                      className={classes.emotionDot}
+                      style={{ background: EMOTION_CSS_COLORS[emotion] ?? 'var(--mantine-color-gray-5)' }}
+                    />
+                    {EMOTION_CONFIG[emotion]?.label ?? emotion}
+                  </span>
+                ) : (
+                  <div
+                    className={classes.emotionDot}
+                    style={{ background: EMOTION_CSS_COLORS[emotion] ?? 'var(--mantine-color-gray-5)' }}
+                  />
+                )}
+              </Tooltip>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

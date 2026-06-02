@@ -13,12 +13,12 @@
 .headerTitle {
   font-size: 1.5rem;
   font-weight: 700;
-  letter-spacing: -0.3px;
+  letter-spacing: 0;
   color: var(--mantine-color-gray-0);
 }
 
 .headerAccent {
-  color: var(--mantine-color-violet-5);
+  color: var(--mantine-color-ember-5);
 }
 
 .headerSubtitle {
@@ -28,6 +28,7 @@
 
 .filterPanel {
   background: var(--mantine-color-dark-7);
+  border-color: var(--mantine-color-dark-4);
 }
 
 .resultCount {
@@ -60,6 +61,87 @@
   align-items: stretch;
 }
 
+.skeletonCard {
+  min-height: 392px;
+  overflow: hidden;
+  background: var(--mantine-color-dark-7);
+  border-color: var(--mantine-color-dark-4);
+}
+
+.statePanel {
+  background: var(--mantine-color-dark-7);
+  border-color: var(--mantine-color-dark-4);
+}
+
+.stateIcon {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: var(--mantine-radius-sm);
+  color: var(--mantine-color-ember-4);
+  background: rgba(212, 103, 77, 0.14);
+}
+
+.emptyState {
+  min-height: 180px;
+  flex-direction: column;
+  gap: var(--mantine-spacing-xs);
+}
+
+.pagination :global(.mantine-Pagination-control) {
+  border-color: var(--mantine-color-dark-4);
+  background: var(--mantine-color-dark-6);
+  color: var(--mantine-color-gray-2);
+  transition:
+    border-color 150ms ease,
+    background 150ms ease,
+    color 150ms ease;
+}
+
+.pagination :global(.mantine-Pagination-control:hover) {
+  border-color: var(--mantine-color-dark-3);
+  background: #171b27;
+}
+
+.pagination :global(.mantine-Pagination-control[data-active]) {
+  border-color: var(--mantine-color-ember-5);
+  background: var(--mantine-color-ember-5);
+  color: var(--mantine-color-ember-0);
+}
+
+.pagination :global(.mantine-Pagination-control:focus-visible) {
+  outline: 2px solid var(--mantine-color-ember-6);
+  outline-offset: 2px;
+}
+
+.clearButton {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(212, 103, 77, 0.26);
+  border-radius: var(--mantine-radius-sm);
+  background: rgba(212, 103, 77, 0.1);
+  color: var(--mantine-color-ember-1);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 700;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease;
+}
+
+.clearButton:hover {
+  border-color: rgba(212, 103, 77, 0.42);
+  background: rgba(212, 103, 77, 0.16);
+}
+
+.clearButton:focus-visible {
+  outline: 2px solid var(--mantine-color-ember-6);
+  outline-offset: 2px;
+}
+
 @media (max-width: 900px) {
   .page {
     padding: var(--mantine-spacing-md);
@@ -73,5 +155,11 @@
 @media (max-width: 768px) {
   .grid {
     grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pagination :global(.mantine-Pagination-control) {
+    transition: none;
   }
 }

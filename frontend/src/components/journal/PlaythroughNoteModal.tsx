@@ -28,6 +28,7 @@ import type {
   PlaythroughNoteStatus as PlaythroughNoteStatusValue,
   PlaythroughNoteUpdate,
 } from '../../types/journal';
+import classes from './Journal.module.css';
 
 interface PlaythroughNoteModalProps {
   opened: boolean;
@@ -153,8 +154,14 @@ export function PlaythroughNoteModal({
       title={isEditing ? 'Edit scratchpad note' : 'New scratchpad note'}
       size="lg"
       centered
+      classNames={{
+        content: classes.modalContent,
+        header: classes.modalHeader,
+        title: classes.modalTitle,
+        body: classes.modalBody,
+      }}
     >
-      <Stack gap="md">
+      <Stack gap="md" className={classes.journalForm}>
         {pickerMode && (
           <Autocomplete
             label="Game"
@@ -231,8 +238,8 @@ export function PlaythroughNoteModal({
         </Group>
 
         <Group justify="flex-end">
-          <Button variant="subtle" onClick={handleClose}>Cancel</Button>
-          <Button onClick={handleSubmit} loading={createNote.isPending || updateNote.isPending}>
+          <Button variant="subtle" className={classes.secondaryAction} onClick={handleClose}>Cancel</Button>
+          <Button className={classes.primaryAction} onClick={handleSubmit} loading={createNote.isPending || updateNote.isPending}>
             {isEditing ? 'Save changes' : 'Save note'}
           </Button>
         </Group>

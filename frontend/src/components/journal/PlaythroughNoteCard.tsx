@@ -9,6 +9,7 @@ import {
 } from '@mantine/core';
 import {
   IconCheck,
+  IconDeviceGamepad2,
   IconEdit,
   IconPinned,
   IconPinnedOff,
@@ -41,7 +42,7 @@ export function PlaythroughNoteCard({
         {note.game_cover_url ? (
           <Image src={note.game_cover_url} alt={note.game_title ?? 'Game'} w={44} h={58} fit="cover" />
         ) : (
-          <Text size="lg">🎮</Text>
+          <IconDeviceGamepad2 size={18} />
         )}
       </div>
 
@@ -56,22 +57,34 @@ export function PlaythroughNoteCard({
 
           <Group gap={6} wrap="nowrap">
             <Tooltip label={isDone ? 'Mark open again' : 'Mark done'} withArrow>
-              <ActionIcon variant="subtle" color={isDone ? 'yellow' : 'teal'} onClick={() => onToggleStatus(note)}>
+              <ActionIcon
+                className={classes.noteAction}
+                variant="subtle"
+                color={isDone ? 'yellow' : 'teal'}
+                aria-label={isDone ? 'Mark note open again' : 'Mark note done'}
+                onClick={() => onToggleStatus(note)}
+              >
                 {isDone ? <IconRestore size={15} /> : <IconCheck size={15} />}
               </ActionIcon>
             </Tooltip>
             <Tooltip label={note.pinned ? 'Unpin' : 'Pin'} withArrow>
-              <ActionIcon variant="subtle" color={note.pinned ? 'yellow' : 'gray'} onClick={() => onTogglePinned(note)}>
+              <ActionIcon
+                className={classes.noteAction}
+                variant="subtle"
+                color={note.pinned ? 'yellow' : 'gray'}
+                aria-label={note.pinned ? 'Unpin note' : 'Pin note'}
+                onClick={() => onTogglePinned(note)}
+              >
                 {note.pinned ? <IconPinnedOff size={15} /> : <IconPinned size={15} />}
               </ActionIcon>
             </Tooltip>
             <Tooltip label="Edit" withArrow>
-              <ActionIcon variant="subtle" color="blue" onClick={() => onEdit(note)}>
+              <ActionIcon className={classes.noteAction} variant="subtle" color="blue" aria-label="Edit note" onClick={() => onEdit(note)}>
                 <IconEdit size={15} />
               </ActionIcon>
             </Tooltip>
             <Tooltip label="Delete" withArrow>
-              <ActionIcon variant="subtle" color="red" onClick={() => onDelete(note)}>
+              <ActionIcon className={classes.noteAction} variant="subtle" color="red" aria-label="Delete note" onClick={() => onDelete(note)}>
                 <IconTrash size={15} />
               </ActionIcon>
             </Tooltip>
@@ -79,7 +92,7 @@ export function PlaythroughNoteCard({
         </Group>
 
         <Group gap={6} mt={8}>
-          <Badge size="xs" variant="light" color={isDone ? 'teal' : 'violet'}>
+          <Badge size="xs" variant="light" color={isDone ? 'teal' : 'orange'}>
             {note.kind}
           </Badge>
           {note.remind_next_session && (

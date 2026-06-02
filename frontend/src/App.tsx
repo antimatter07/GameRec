@@ -14,24 +14,25 @@ import { router } from './router';
 import { useAuthStore } from './store/authStore';
 import { useUIStore } from './store/uiStore';
 
-// ─── Custom violet ramp ────────────────────────────────────────────────────────
-const violet: MantineColorsTuple = [
-  '#f3f0ff',
-  '#e5dbff',
-  '#d0bfff',
-  '#b197fc',
-  '#9d84fd',
-  '#7c5cfc',
-  '#7048e8',
-  '#6741d9',
-  '#5f3dc4',
-  '#5235ab',
+const ember: MantineColorsTuple = [
+  '#fff1ec',
+  '#ffe1d6',
+  '#ffc4b2',
+  '#f99a7e',
+  '#e97d61',
+  '#d4674d',
+  '#b9543e',
+  '#944331',
+  '#733629',
+  '#552922',
 ];
 
-// ─── Gamematch theme ──────────────────────────────────────────────────────────
 const theme = createTheme({
-  primaryColor: 'violet',
-  colors: { violet },
+  primaryColor: 'ember',
+  colors: {
+    ember,
+    violet: ember,
+  },
 
   fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   fontFamilyMonospace: "'Space Mono', 'JetBrains Mono', monospace",
@@ -53,6 +54,7 @@ const theme = createTheme({
     Paper: {
       defaultProps: {
         bg: 'var(--mantine-color-dark-7)',
+        shadow: 'none',
       },
     },
     Button: {
@@ -68,9 +70,49 @@ const theme = createTheme({
     Tabs: {
       styles: {
         tab: {
-          fontWeight: '500',
+          fontWeight: '600',
           fontSize: '0.8rem',
         },
+      },
+    },
+    Modal: {
+      defaultProps: {
+        overlayProps: { backgroundOpacity: 0.7, blur: 2 },
+        radius: 'md',
+      },
+      styles: {
+        content: {
+          background: 'var(--mantine-color-dark-7)',
+          border: '1px solid var(--mantine-color-dark-4)',
+        },
+        header: {
+          background: 'var(--mantine-color-dark-7)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+        },
+        title: {
+          fontSize: '0.95rem',
+          fontWeight: 700,
+        },
+      },
+    },
+    TextInput: {
+      defaultProps: {
+        radius: 'sm',
+      },
+    },
+    PasswordInput: {
+      defaultProps: {
+        radius: 'sm',
+      },
+    },
+    Select: {
+      defaultProps: {
+        radius: 'sm',
+      },
+    },
+    Textarea: {
+      defaultProps: {
+        radius: 'sm',
       },
     },
   },

@@ -19,6 +19,7 @@ from app.schemas.library import (
 )
 from app.services import library_service
 from app.services import steam_import_service
+from app.services import task_queue
 
 router = APIRouter()
 
@@ -79,10 +80,9 @@ def get_library_stats(db: DBDep, current_user: CurrentUserDep):
 def add_to_library(entry: LibraryEntryCreate, db: DBDep, current_user: CurrentUserDep):
     result = library_service.add_game(db, current_user.id, entry)
     try:
-        from app.workers.tasks.recommendation import precompute_for_user
         from app.services.ai_picks_service import invalidate_ai_picks_cache
         invalidate_ai_picks_cache(current_user.id)
-        precompute_for_user.delay(current_user.id)
+        task_queue.enqueue_precompute_for_user(current_user.id)
     except Exception:
         pass  # Celery unavailable — recommendations will recompute on next request
     return result
@@ -93,10 +93,9 @@ def import_steam_library(payload: SteamImportRequest, db: DBDep, current_user: C
     result = steam_import_service.import_steam_library(db, current_user.id, payload.steam_profile)
     if result["added"] or result["already_in_library"]:
         try:
-            from app.workers.tasks.recommendation import precompute_for_user
             from app.services.ai_picks_service import invalidate_ai_picks_cache
             invalidate_ai_picks_cache(current_user.id)
-            precompute_for_user.delay(current_user.id)
+            task_queue.enqueue_precompute_for_user(current_user.id)
         except Exception:
             pass
     return result
@@ -121,10 +120,9 @@ def get_prioritized_backlog(
 def update_library_entry(entry_id: int, updates: LibraryEntryUpdate, db: DBDep, current_user: CurrentUserDep):
     result = library_service.update_entry(db, current_user.id, entry_id, updates)
     try:
-        from app.workers.tasks.recommendation import precompute_for_user
         from app.services.ai_picks_service import invalidate_ai_picks_cache
         invalidate_ai_picks_cache(current_user.id)
-        precompute_for_user.delay(current_user.id)
+        task_queue.enqueue_precompute_for_user(current_user.id)
     except Exception:
         pass
     return result
@@ -134,9 +132,8 @@ def update_library_entry(entry_id: int, updates: LibraryEntryUpdate, db: DBDep, 
 def remove_from_library(entry_id: int, db: DBDep, current_user: CurrentUserDep):
     library_service.remove_game(db, current_user.id, entry_id)
     try:
-        from app.workers.tasks.recommendation import precompute_for_user
         from app.services.ai_picks_service import invalidate_ai_picks_cache
         invalidate_ai_picks_cache(current_user.id)
-        precompute_for_user.delay(current_user.id)
+        task_queue.enqueue_precompute_for_user(current_user.id)
     except Exception:
         pass  # Celery unavailable — recommendations will recompute on next request

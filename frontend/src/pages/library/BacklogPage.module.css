@@ -1,0 +1,45 @@
+.page {
+  gap: 1.25rem;
+  padding: var(--mantine-spacing-lg);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--mantine-spacing-sm);
+  flex-wrap: wrap;
+}
+
+.headerTitle {
+  color: var(--mantine-color-gray-0);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.headerAccent {
+  color: var(--mantine-color-ember-5);
+}
+
+.headerSubtitle {
+  max-width: 680px;
+  margin-top: 4px;
+}
+
+.emptyState {
+  min-height: 260px;
+  display: grid;
+  place-items: center;
+  padding: var(--mantine-spacing-xl) var(--mantine-spacing-md);
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+  border-radius: var(--mantine-radius-md);
+  background: var(--mantine-color-dark-6);
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .page {
+    padding: var(--mantine-spacing-md);
+  }
+}

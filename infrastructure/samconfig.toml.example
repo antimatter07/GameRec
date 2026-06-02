@@ -1,0 +1,28 @@
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "video-game-recommender"
+resolve_s3 = true
+resolve_image_repos = true
+s3_prefix = "video-game-recommender"
+region = "ap-southeast-1"
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = true
+parameter_overrides = [
+  "AppEnv=production",
+  "AppRuntime=lambda",
+  "TaskBackend=sqs",
+  "KvBackend=dynamodb",
+  "AwsSsmParameterPath=/gamerec/prod",
+  "ParameterStoreKmsKeyArn=*",
+  "EnableWorkerReservedConcurrency=false",
+  "EnableRawgSchedules=false",
+  "AllowedOrigins=https://app.yourdomain.com",
+  "CookieDomain=.yourdomain.com",
+  "EcsClusterArn=",
+  "EcsRawgTaskDefinitionArn=",
+  "EcsRawgContainerName=rawg",
+  "EcsSubnetIds=subnet-abc123,subnet-def456",
+  "EcsSecurityGroupIds=sg-abc123",
+  "EcsTaskExecutionRoleArn=*"
+]

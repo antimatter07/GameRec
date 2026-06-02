@@ -1,5 +1,6 @@
 import type { CSSProperties, HTMLAttributes, ReactNode, Ref } from 'react';
 import { Group, Rating, Text } from '@mantine/core';
+import { IconDeviceGamepad2 } from '@tabler/icons-react';
 import type { GameListItem } from '../../types/game';
 import classes from './QueueCards.module.css';
 
@@ -62,7 +63,7 @@ export function QueueCard({
           <img src={game.background_image} alt={game.name} className={classes.coverImage} />
         ) : (
           <div className={classes.coverFallback}>
-            <Text size="lg">🎮</Text>
+            <IconDeviceGamepad2 size={24} stroke={1.6} />
           </div>
         )}
       </div>

@@ -3,7 +3,6 @@
   flex-direction: column;
   height: 100%;
   min-height: 392px;
-  cursor: pointer;
   overflow: hidden;
   border-color: var(--mantine-color-dark-4);
   background: var(--mantine-color-dark-7);
@@ -17,16 +16,28 @@
   background: #171b27;
 }
 
-.card:focus-visible {
-  outline: 2px solid var(--mantine-color-violet-7);
-  outline-offset: 2px;
-}
-
 .imageSection {
+  position: relative;
   flex: 0 0 57%;
   min-height: 220px;
   overflow: hidden;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.coverButton {
+  width: 100%;
+  height: 100%;
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.coverButton:focus-visible,
+.titleButton:focus-visible {
+  outline: 2px solid var(--mantine-color-ember-6);
+  outline-offset: 2px;
 }
 
 .image {
@@ -38,6 +49,53 @@
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.imageShade {
+  position: absolute;
+  inset: auto 0 0;
+  height: 46%;
+  pointer-events: none;
+  background: linear-gradient(to top, rgba(10, 12, 18, 0.72), rgba(10, 12, 18, 0));
+}
+
+.playtimeBadge {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  max-width: calc(100% - 20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(10, 12, 18, 0.78);
+  color: var(--mantine-color-gray-0);
+  font-size: 0.68rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  backdrop-filter: blur(8px);
+}
+
+.saveControl {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 3;
+}
+
+.saveIcon {
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(10, 12, 18, 0.82);
+  color: var(--mantine-color-ember-0);
+  box-shadow: none;
+}
+
+.saveIcon:hover {
+  background: var(--mantine-color-ember-5);
+}
+
+.saveIcon:focus-visible {
+  outline: 2px solid var(--mantine-color-ember-6);
+  outline-offset: 2px;
 }
 
 .body {
@@ -52,6 +110,28 @@
   line-height: 1.45rem;
 }
 
+.titleButton {
+  display: -webkit-box;
+  min-height: 3rem;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--mantine-color-gray-0);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.96rem;
+  font-weight: 700;
+  line-height: 1.45rem;
+  text-align: left;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.titleButton:hover {
+  color: var(--mantine-color-ember-2);
+}
+
 .meta {
   min-height: 1.25rem;
   font-size: 0.75rem;
@@ -61,8 +141,15 @@
   letter-spacing: 0.04em;
 }
 
+.signalBadge {
+  width: fit-content;
+  max-width: 100%;
+  text-transform: none;
+}
+
 .ratingRow {
   min-height: 1.5rem;
+  color: var(--mantine-color-yellow-5);
 }
 
 .ratingRow :global(svg) {
@@ -74,20 +161,8 @@
   font-variant-numeric: tabular-nums;
 }
 
-.actionButton {
-  height: 42px;
-  margin-top: auto;
-  font-weight: 600;
-}
-
-.removeButton {
-  background-color: #8f4b5e;
-}
-
-.removeButton:hover {
-  background-color: #7a3f50;
-}
-
-.removeButton:active {
-  background-color: #6c3746;
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
 }

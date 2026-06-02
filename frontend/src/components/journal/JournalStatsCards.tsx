@@ -31,14 +31,14 @@ const EMOTION_CSS_COLORS: Record<EmotionType, string> = {
 };
 
 const GENRE_COLORS = [
-  'var(--mantine-color-violet-5)',
+  '#d4674d',
   'var(--mantine-color-teal-5)',
+  '#e0b957',
+  '#5b8def',
   'var(--mantine-color-pink-5)',
   'var(--mantine-color-orange-5)',
-  'var(--mantine-color-blue-5)',
-  'var(--mantine-color-grape-5)',
   'var(--mantine-color-green-5)',
-  'var(--mantine-color-yellow-5)',
+  'var(--mantine-color-gray-5)',
 ];
 
 // ─── Top Metrics Row ──────────────────────────────────────────────────────────
@@ -51,11 +51,11 @@ export function MetricCards({ stats }: MetricCardsProps) {
   return (
     <div className={classes.metricsGrid}>
       <Paper className={classes.metricCard} p="md" radius="md" withBorder>
-        <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-violet-light)' }}>
-          <IconClock size={18} color="var(--mantine-color-violet-5)" />
+        <div className={classes.metricIcon} style={{ background: 'rgba(212, 103, 77, 0.14)' }}>
+          <IconClock size={18} color="#d4674d" />
         </div>
         <div className={classes.metricLabel}>Hours this week</div>
-        <div className={classes.metricValue} style={{ color: 'var(--mantine-color-violet-4)' }}>
+        <div className={classes.metricValue} style={{ color: '#e97d61' }}>
           {stats.total_hours_this_week.toFixed(1)}
         </div>
         <div className={classes.metricSub}>
@@ -195,7 +195,7 @@ export function WeeklyActivityCard({ dailyHours, currentStreak, longestStreak }:
             <circle cx="50" cy="50" r="42" fill="none" stroke="var(--mantine-color-dark-5)" strokeWidth="6" />
             <circle
               cx="50" cy="50" r="42" fill="none"
-              stroke="var(--mantine-color-violet-5)"
+              stroke="#d4674d"
               strokeWidth="6"
               strokeLinecap="round"
               strokeDasharray={circumference}
@@ -245,7 +245,7 @@ export function EmotionSummaryCard({
     <Stack gap="sm">
       {dominantEmotion && (
         <div style={{ textAlign: 'center', marginBottom: 4 }}>
-          <Text size="sm" fw={600} c="violet.4">
+          <Text size="sm" fw={600} c="#e97d61">
             Dominant mood: {EMOTION_CONFIG[dominantEmotion]?.label}
           </Text>
           <Text size="xs" c="dimmed">
@@ -282,7 +282,7 @@ export function EmotionSummaryCard({
             <>
               . Most frustrating:{' '}
               <Text span fw={600} c="var(--mantine-color-text)">{emotionStats.top_negative_game.game_title}</Text>{' '}
-              — but you kept going.
+              but you kept going.
             </>
           )}
         </div>
@@ -313,7 +313,7 @@ export function BacklogProgressCard({ completed, playing, backlog }: BacklogProg
           <div className={classes.backlogMiniLabel}>Completed</div>
         </div>
         <div className={classes.backlogMiniCard}>
-          <div className={classes.backlogMiniValue} style={{ color: 'var(--mantine-color-violet-4)' }}>{playing}</div>
+          <div className={classes.backlogMiniValue} style={{ color: '#e97d61' }}>{playing}</div>
           <div className={classes.backlogMiniLabel}>Playing</div>
         </div>
         <div className={classes.backlogMiniCard}>
@@ -324,14 +324,14 @@ export function BacklogProgressCard({ completed, playing, backlog }: BacklogProg
 
       <div className={classes.backlogBarContainer}>
         <div className={classes.backlogBarFill} style={{ width: `${completedPct}%`, background: 'var(--mantine-color-teal-5)', borderRadius: '4px 0 0 4px' }} />
-        <div className={classes.backlogBarFill} style={{ width: `${playingPct}%`, background: 'var(--mantine-color-violet-5)' }} />
+        <div className={classes.backlogBarFill} style={{ width: `${playingPct}%`, background: '#d4674d' }} />
         <div className={classes.backlogBarFill} style={{ width: `${backlogPct}%`, background: 'var(--mantine-color-dark-5)', borderRadius: '0 4px 4px 0' }} />
       </div>
 
       <Group gap="md">
         {[
           { color: 'var(--mantine-color-teal-5)',   label: 'Completed' },
-          { color: 'var(--mantine-color-violet-5)', label: 'Playing'   },
+          { color: '#d4674d', label: 'Playing'   },
           { color: 'var(--mantine-color-dark-5)',   label: 'Backlog'   },
         ].map(({ color, label }) => (
           <Group key={label} gap={4}>

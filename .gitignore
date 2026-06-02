@@ -34,5 +34,7 @@ dist-ssr
 .claude
 .env
 **/.env
+backend/.env.production
+.aws-sam/
 backend/data/
 CLAUDE.md
