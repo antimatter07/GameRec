@@ -8,6 +8,7 @@ from app.database import Base
 
 
 class SessionLog(Base):
+    """Journal entry representing a play session for one user and game."""
     __tablename__ = "session_logs"
 
     id:               Mapped[int]            = mapped_column(primary_key=True)
@@ -44,10 +45,17 @@ class SessionLog(Base):
     library_entry = relationship("LibraryEntry")
 
     def __repr__(self) -> str:
+        """Repr.
+
+        Delegates the request to the appropriate service layer and returns the serialized response.
+
+        Returns:
+            String value produced by the operation."""
         return f"<SessionLog id={self.id} user={self.user_id} game={self.game_id}>"
 
 
 class PlaythroughNote(Base):
+    """Journal note attached to a game or library entry with status and note type metadata."""
     __tablename__ = "playthrough_notes"
 
     id:               Mapped[int]             = mapped_column(primary_key=True)
@@ -83,10 +91,17 @@ class PlaythroughNote(Base):
     library_entry = relationship("LibraryEntry")
 
     def __repr__(self) -> str:
+        """Repr.
+
+        Delegates the request to the appropriate service layer and returns the serialized response.
+
+        Returns:
+            String value produced by the operation."""
         return f"<PlaythroughNote id={self.id} user={self.user_id} game={self.game_id} kind={self.kind}>"
 
 
 class GameRating(Base):
+    """Multi-axis user rating for a game used by journaling and taste analysis."""
     __tablename__ = "game_ratings"
     __table_args__ = (
         UniqueConstraint("user_id", "game_id", name="uq_game_ratings_user_game"),
@@ -120,4 +135,10 @@ class GameRating(Base):
     game = relationship("Game")
 
     def __repr__(self) -> str:
+        """Repr.
+
+        Delegates the request to the appropriate service layer and returns the serialized response.
+
+        Returns:
+            String value produced by the operation."""
         return f"<GameRating id={self.id} user={self.user_id} game={self.game_id}>"

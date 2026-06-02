@@ -7,6 +7,7 @@ from app.database import Base
 
 
 class QueueSuggestion(Base):
+    """AI-generated play queue suggestion batch for a user."""
     __tablename__ = "queue_suggestions"
 
     id:                  Mapped[int] = mapped_column(primary_key=True)
@@ -25,6 +26,7 @@ class QueueSuggestion(Base):
 
 
 class QueueSuggestionItem(Base):
+    """One ranked item within an AI-generated queue suggestion batch."""
     __tablename__ = "queue_suggestion_items"
 
     id:                 Mapped[int] = mapped_column(primary_key=True)

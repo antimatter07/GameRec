@@ -26,6 +26,26 @@ def list_games(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_basic),
 ):
+    """List games.
+
+    Returns a filtered, sorted page of catalog games for the current user.
+
+    Args:
+        page: One-based page number to return. Defaults to 1.
+        page_size: Maximum number of records to return per page. Defaults to Query(20, ge=1, le=100).
+        search: Optional search text used to filter returned records. Defaults to Query(None).
+        genre: Optional genre filter reserved for recommendation queries. Defaults to Query(None).
+        platform: Optional platform filter reserved for recommendation queries. Defaults to Query(None).
+        year: Optional release year used to filter games. Defaults to Query(None).
+        min_rating: Optional minimum rating threshold used to filter games. Defaults to Query(None, ge=0, le=5).
+        max_hours: Optional maximum playtime threshold used to filter games. Defaults to Query(None, ge=1).
+        library_state: Library inclusion filter for the current user. Defaults to "all".
+        sort: Sort mode used to order returned records. Defaults to Query('rating_desc').
+        db: SQLAlchemy database session used to query or persist application data. Defaults to Depends(get_db).
+        current_user: Authenticated user supplied by the route dependency. Defaults to Depends(require_basic).
+
+    Returns:
+        Serialized response object or task result produced by the operation."""
     return game_service.list_games(
         db,
         current_user.id,
@@ -48,4 +68,15 @@ def get_game(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_basic),
 ):
+    """Get game.
+
+    Returns one catalog game by ID or raises the service-layer not-found response.
+
+    Args:
+        game_id: ID of the game to read or update.
+        db: SQLAlchemy database session used to query or persist application data. Defaults to Depends(get_db).
+        current_user: Authenticated user supplied by the route dependency. Defaults to Depends(require_basic).
+
+    Returns:
+        Serialized response object or task result produced by the operation."""
     return game_service.get_game_by_id(db, game_id)

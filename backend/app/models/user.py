@@ -8,12 +8,14 @@ from app.database import Base
 
 
 class UserRole(str, enum.Enum):
+    """Authorization roles used by dependency guards and rate-limit policy."""
     BASIC   = "basic"
     PREMIUM = "premium"
     ADMIN   = "admin"
 
 
 class User(Base):
+    """Application user account with authentication, profile, role, and relationship fields."""
     __tablename__ = "users"
 
     id:              Mapped[int]      = mapped_column(primary_key=True)
@@ -40,4 +42,10 @@ class User(Base):
     # TODO: Add relationship to PremiumRequest model once created (3.2 feature)
 
     def __repr__(self) -> str:
+        """Repr.
+
+        Delegates the request to the appropriate service layer and returns the serialized response.
+
+        Returns:
+            String value produced by the operation."""
         return f"<User id={self.id} email={self.email} role={self.role}>"

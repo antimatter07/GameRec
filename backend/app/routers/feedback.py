@@ -17,6 +17,20 @@ def submit_feedback(
     current_user: User = Depends(require_basic),
 ):
     # Verify the item belongs to one of the current user's recommendations.
+    """Submit feedback.
+
+    Records thumbs-up or thumbs-down feedback for a recommendation item.
+
+    Args:
+        feedback: Validated recommendation feedback payload.
+        db: SQLAlchemy database session used to query or persist application data. Defaults to Depends(get_db).
+        current_user: Authenticated user supplied by the route dependency. Defaults to Depends(require_basic).
+
+    Returns:
+        Serialized response object or task result produced by the operation.
+
+    Raises:
+        HTTPException: When the request cannot be authorized, validated, or completed."""
     item: RecommendationItem | None = (
         db.query(RecommendationItem)
         .join(RecommendationItem.recommendation)

@@ -16,11 +16,23 @@ logger = logging.getLogger(__name__)
 
 
 def _build_vectors() -> int:
+    """Build vectors.
+
+    Runs the local vector-building script and returns its process exit code.
+
+    Returns:
+        Integer value produced by the operation."""
     result = subprocess.run([sys.executable, "scripts/build_vectors.py"], check=False)
     return result.returncode
 
 
 def main() -> int:
+    """Run.
+
+    Executes the requested RAWG job command and returns a process-style exit code.
+
+    Returns:
+        Integer value produced by the operation."""
     parser = argparse.ArgumentParser(description="Run RAWG and catalog maintenance jobs.")
     subparsers = parser.add_subparsers(dest="command", required=True)
 

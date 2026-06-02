@@ -7,6 +7,7 @@ from app.database import Base
 
 
 class RawgSyncState(Base):
+    """Durable RAWG crawl checkpoint for a named catalog pass."""
     __tablename__ = "rawg_sync_state"
 
     pass_name: Mapped[str] = mapped_column(String(64), primary_key=True)
@@ -23,6 +24,7 @@ class RawgSyncState(Base):
 
 
 class RawgSeenGame(Base):
+    """RAWG item decision history used to skip duplicates and delay rejected-game rechecks."""
     __tablename__ = "rawg_seen_games"
 
     rawg_id: Mapped[int] = mapped_column(Integer, primary_key=True)

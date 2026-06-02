@@ -5,6 +5,7 @@ from app.database import Base
 
 
 class GameExternalId(Base):
+    """External provider identifier associated with a local game record."""
     __tablename__ = "game_external_ids"
     __table_args__ = (
         UniqueConstraint("provider", "external_id", name="uq_game_external_provider_id"),

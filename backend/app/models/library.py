@@ -8,6 +8,7 @@ from app.database import Base
 
 
 class LibraryStatus(str, enum.Enum):
+    """Allowed lifecycle states for a user library entry."""
     PLAYING   = "playing"
     COMPLETED = "completed"
     BACKLOG   = "backlog"
@@ -17,6 +18,7 @@ class LibraryStatus(str, enum.Enum):
 
 
 class LibraryEntry(Base):
+    """Join model connecting a user to a game with status, rating, and tracking metadata."""
     __tablename__ = "library_entries"
     __table_args__ = (
         UniqueConstraint("user_id", "game_id", name="uq_user_game"),
@@ -47,4 +49,10 @@ class LibraryEntry(Base):
     queue_suggestion_items = relationship("QueueSuggestionItem", back_populates="entry", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
+        """Repr.
+
+        Delegates the request to the appropriate service layer and returns the serialized response.
+
+        Returns:
+            String value produced by the operation."""
         return f"<LibraryEntry user={self.user_id} game={self.game_id} status={self.status}>"

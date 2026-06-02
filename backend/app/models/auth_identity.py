@@ -7,6 +7,7 @@ from app.database import Base
 
 
 class AuthIdentity(Base):
+    """External authentication identity linked to a local user account."""
     __tablename__ = "auth_identities"
     __table_args__ = (UniqueConstraint("provider", "provider_sub", name="uq_provider_sub"),)
 

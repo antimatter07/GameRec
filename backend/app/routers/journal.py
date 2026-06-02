@@ -33,6 +33,17 @@ CurrentUserDep = Annotated[User,    Depends(require_basic)]
 
 @router.post("/sessions", response_model=SessionLogOut, status_code=status.HTTP_201_CREATED)
 def log_session(payload: SessionLogCreate, db: DBDep, current_user: CurrentUserDep):
+    """Log session.
+
+    Creates a journal session log for the current user.
+
+    Args:
+        payload: Validated request payload or event payload for the operation.
+        db: SQLAlchemy database session used to query or persist application data.
+        current_user: Authenticated user supplied by the route dependency.
+
+    Returns:
+        Serialized response object or task result produced by the operation."""
     result = journal_service.create_session(db, current_user.id, payload)
     invalidate_ai_picks_cache(current_user.id)
     return result
@@ -41,6 +52,16 @@ def log_session(payload: SessionLogCreate, db: DBDep, current_user: CurrentUserD
 # NOTE: /sessions/stats must be before /sessions/{session_id} to avoid path-param clash.
 @router.get("/sessions/stats", response_model=JournalStats)
 def get_stats(db: DBDep, current_user: CurrentUserDep):
+    """Get stats.
+
+    Returns aggregate statistics for the current route domain.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        current_user: Authenticated user supplied by the route dependency.
+
+    Returns:
+        Serialized response object or task result produced by the operation."""
     return journal_service.get_stats(db, current_user.id)
 
 
@@ -52,6 +73,19 @@ def list_sessions(
     page:     int        = Query(1, ge=1),
     per_page: int        = Query(20, ge=1, le=100),
 ):
+    """List sessions.
+
+    Returns paginated journal sessions for the current user.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        current_user: Authenticated user supplied by the route dependency.
+        game_id: ID of the game to read or update. Defaults to Query(None).
+        page: One-based page number to return. Defaults to 1.
+        per_page: per page value used by the operation. Defaults to Query(20, ge=1, le=100).
+
+    Returns:
+        Serialized response object or task result produced by the operation."""
     return journal_service.list_sessions(db, current_user.id, game_id, page, per_page)
 
 
@@ -62,6 +96,18 @@ def update_session(
     db: DBDep,
     current_user: CurrentUserDep,
 ):
+    """Update session.
+
+    Updates a journal session owned by the current user.
+
+    Args:
+        session_id: ID of the journal session being read or modified.
+        payload: Validated request payload or event payload for the operation.
+        db: SQLAlchemy database session used to query or persist application data.
+        current_user: Authenticated user supplied by the route dependency.
+
+    Returns:
+        Serialized response object or task result produced by the operation."""
     result = journal_service.update_session(db, current_user.id, session_id, payload)
     invalidate_ai_picks_cache(current_user.id)
     return result
@@ -69,6 +115,17 @@ def update_session(
 
 @router.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_session(session_id: int, db: DBDep, current_user: CurrentUserDep):
+    """Delete session.
+
+    Deletes a journal session owned by the current user.
+
+    Args:
+        session_id: ID of the journal session being read or modified.
+        db: SQLAlchemy database session used to query or persist application data.
+        current_user: Authenticated user supplied by the route dependency.
+
+    Returns:
+        None."""
     journal_service.delete_session(db, current_user.id, session_id)
     invalidate_ai_picks_cache(current_user.id)
 
@@ -80,6 +137,18 @@ def get_feed(
     page:     int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
 ):
+    """Get feed.
+
+    Returns the combined journal activity feed for the current user.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        current_user: Authenticated user supplied by the route dependency.
+        page: One-based page number to return. Defaults to 1.
+        per_page: per page value used by the operation. Defaults to Query(20, ge=1, le=100).
+
+    Returns:
+        Serialized response object or task result produced by the operation."""
     return journal_service.get_feed(db, current_user.id, page, per_page)
 
 
@@ -87,6 +156,17 @@ def get_feed(
 
 @router.post("/notes", response_model=PlaythroughNoteOut, status_code=status.HTTP_201_CREATED)
 def create_note(payload: PlaythroughNoteCreate, db: DBDep, current_user: CurrentUserDep):
+    """Create note.
+
+    Creates a playthrough note for the current user.
+
+    Args:
+        payload: Validated request payload or event payload for the operation.
+        db: SQLAlchemy database session used to query or persist application data.
+        current_user: Authenticated user supplied by the route dependency.
+
+    Returns:
+        Serialized response object or task result produced by the operation."""
     return journal_service.create_note(db, current_user.id, payload)
 
 
@@ -102,6 +182,23 @@ def list_notes(
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=100),
 ):
+    """List notes.
+
+    Returns filtered playthrough notes for the current user.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        current_user: Authenticated user supplied by the route dependency.
+        game_id: ID of the game to read or update. Defaults to Query(None).
+        status_value: Optional note status filter. Defaults to Query(None, alias='status').
+        kind: Optional note kind filter. Defaults to Query(None).
+        pinned: pinned value used by the operation. Defaults to Query(None).
+        remind_next_session: remind next session value used by the operation. Defaults to Query(None).
+        page: One-based page number to return. Defaults to 1.
+        per_page: per page value used by the operation. Defaults to Query(50, ge=1, le=100).
+
+    Returns:
+        Serialized response object or task result produced by the operation."""
     return journal_service.list_notes(
         db,
         current_user.id,
@@ -122,11 +219,34 @@ def update_note(
     db: DBDep,
     current_user: CurrentUserDep,
 ):
+    """Update note.
+
+    Updates a playthrough note owned by the current user.
+
+    Args:
+        note_id: ID of the playthrough note being read or modified.
+        payload: Validated request payload or event payload for the operation.
+        db: SQLAlchemy database session used to query or persist application data.
+        current_user: Authenticated user supplied by the route dependency.
+
+    Returns:
+        Serialized response object or task result produced by the operation."""
     return journal_service.update_note(db, current_user.id, note_id, payload)
 
 
 @router.delete("/notes/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_note(note_id: int, db: DBDep, current_user: CurrentUserDep):
+    """Delete note.
+
+    Deletes a playthrough note owned by the current user.
+
+    Args:
+        note_id: ID of the playthrough note being read or modified.
+        db: SQLAlchemy database session used to query or persist application data.
+        current_user: Authenticated user supplied by the route dependency.
+
+    Returns:
+        None."""
     journal_service.delete_note(db, current_user.id, note_id)
 
 
@@ -139,6 +259,18 @@ def upsert_rating(
     db: DBDep,
     current_user: CurrentUserDep,
 ):
+    """Create or update rating.
+
+    Creates or updates a multi-axis game rating for the current user.
+
+    Args:
+        game_id: ID of the game to read or update.
+        payload: Validated request payload or event payload for the operation.
+        db: SQLAlchemy database session used to query or persist application data.
+        current_user: Authenticated user supplied by the route dependency.
+
+    Returns:
+        Serialized response object or task result produced by the operation."""
     result = journal_service.upsert_rating(db, current_user.id, game_id, payload)
     invalidate_ai_picks_cache(current_user.id)
     return result
@@ -146,12 +278,33 @@ def upsert_rating(
 
 @router.get("/ratings", response_model=list[MultiAxisRatingOut])
 def get_all_ratings(db: DBDep, current_user: CurrentUserDep):
+    """Get all ratings.
+
+    Returns all multi-axis game ratings for the current user.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        current_user: Authenticated user supplied by the route dependency.
+
+    Returns:
+        Serialized response object or task result produced by the operation."""
     return journal_service.get_all_ratings(db, current_user.id)
 
 
 # NOTE: /ratings must be before /ratings/{game_id} to avoid matching "ratings" as a game_id.
 @router.get("/ratings/{game_id}", response_model=MultiAxisRatingOut)
 def get_rating(game_id: int, db: DBDep, current_user: CurrentUserDep):
+    """Get rating.
+
+    Returns the current user rating for one game.
+
+    Args:
+        game_id: ID of the game to read or update.
+        db: SQLAlchemy database session used to query or persist application data.
+        current_user: Authenticated user supplied by the route dependency.
+
+    Returns:
+        Serialized response object or task result produced by the operation."""
     return journal_service.get_rating(db, current_user.id, game_id)
 
 
@@ -165,4 +318,17 @@ def get_emotion_stats(
     game_id: int | None = Query(None),
     genre:   str | None = Query(None),
 ):
+    """Get emotion stats.
+
+    Returns emotion trends and aggregate journal sentiment for the current user.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        current_user: Authenticated user supplied by the route dependency.
+        period: period value used by the operation. Defaults to Query('30d', pattern='^(7d|30d|90d|all)$').
+        game_id: ID of the game to read or update. Defaults to Query(None).
+        genre: Optional genre filter reserved for recommendation queries. Defaults to Query(None).
+
+    Returns:
+        Serialized response object or task result produced by the operation."""
     return journal_service.get_emotion_stats(db, current_user.id, period, game_id, genre)

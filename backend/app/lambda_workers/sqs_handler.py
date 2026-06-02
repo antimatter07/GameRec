@@ -16,6 +16,19 @@ logger = logging.getLogger(__name__)
 
 
 def _dispatch(task_name: str, payload: dict[str, Any]) -> None:
+    """Dispatch.
+
+    Maps an SQS task message to the corresponding synchronous worker runner.
+
+    Args:
+        task_name: Canonical task name to dispatch.
+        payload: Validated request payload or event payload for the operation.
+
+    Returns:
+        None.
+
+    Raises:
+        ValueError: When supplied input cannot be validated or mapped to application data."""
     if task_name == task_queue.TASK_PRECOMPUTE_FOR_USER:
         run_precompute_for_user(int(payload["user_id"]))
         return
@@ -41,6 +54,16 @@ def _dispatch(task_name: str, payload: dict[str, Any]) -> None:
 
 
 def handler(event, context):
+    """Handle.
+
+    Processes AWS Lambda SQS records and dispatches each encoded task payload.
+
+    Args:
+        event: AWS Lambda event containing SQS records.
+        context: AWS Lambda runtime context object.
+
+    Returns:
+        Serialized response object or task result produced by the operation."""
     failures: list[dict[str, str]] = []
     for record in event.get("Records", []):
         message_id = record.get("messageId", "")

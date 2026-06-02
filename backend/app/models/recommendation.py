@@ -8,22 +8,33 @@ from app.database import Base
 
 
 def _enum_values(enum_cls: type[enum.Enum]) -> list[str]:
+    """Enum values.
+
+    Returns SQLAlchemy enum values using the enum value strings stored in the database.
+
+    Args:
+        enum_cls: enum cls value used by the operation.
+
+    Returns:
+        List of serialized response objects."""
     return [member.value for member in enum_cls]
 
 
 class RecommendationKind(str, enum.Enum):
+    """Recommendation feed categories supported by the backend."""
     COSINE = "cosine"
     AI_PICKS = "ai_picks"
 
 
 class RecommendationStatus(str, enum.Enum):
+    """Lifecycle states for asynchronous recommendation batches."""
     PENDING = "pending"
     READY = "ready"
     FAILED = "failed"
 
 
 class Recommendation(Base):
-    """A batch of recommendations generated for a user at a point in time."""
+    """Recommendation batch header for cosine and AI-generated recommendation feeds."""
     __tablename__ = "recommendations"
 
     id:               Mapped[int]      = mapped_column(primary_key=True)
@@ -53,7 +64,7 @@ class Recommendation(Base):
 
 
 class RecommendationItem(Base):
-    """A single game within a recommendation batch."""
+    """Ranked game inside a recommendation batch with score and optional explanation."""
     __tablename__ = "recommendation_items"
 
     id:                Mapped[int]   = mapped_column(primary_key=True)
@@ -74,7 +85,7 @@ class RecommendationItem(Base):
 
 
 class RecommendationFeedback(Base):
-    """User thumbs-up / thumbs-down on a recommendation item."""
+    """User feedback attached to a recommendation item for future scoring adjustments."""
     __tablename__ = "recommendation_feedback"
 
     id:         Mapped[int]      = mapped_column(primary_key=True)

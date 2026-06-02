@@ -22,7 +22,22 @@ def get_recommendations(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_basic),
 ):
-    """Return the user's cosine-similarity game recommendations."""
+    """Get recommendations.
+
+    Returns the current cosine recommendation batch and schedules premium explanations when needed.
+
+    Args:
+        genre: Optional genre filter reserved for recommendation queries. Defaults to Query(None).
+        platform: Optional platform filter reserved for recommendation queries. Defaults to Query(None).
+        release_year: Optional release-year filter reserved for recommendation queries. Defaults to Query(None).
+        db: SQLAlchemy database session used to query or persist application data. Defaults to Depends(get_db).
+        current_user: Authenticated user supplied by the route dependency. Defaults to Depends(require_basic).
+
+    Returns:
+        Serialized response object or task result produced by the operation.
+
+    Raises:
+        HTTPException: When the request cannot be authorized, validated, or completed."""
     try:
         recommendation = recommendation_service.get_or_generate(current_user.id, db)
     except ValueError as exc:
@@ -61,7 +76,18 @@ def get_recommendation_history(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_basic),
 ):
-    """Return prior cosine-similarity recommendation batches for the user."""
+    """Get recommendation history.
+
+    Returns prior cosine recommendation batches for the current user.
+
+    Args:
+        page: One-based page number to return. Defaults to 1.
+        page_size: Maximum number of records to return per page. Defaults to Query(10, ge=1, le=50).
+        db: SQLAlchemy database session used to query or persist application data. Defaults to Depends(get_db).
+        current_user: Authenticated user supplied by the route dependency. Defaults to Depends(require_basic).
+
+    Returns:
+        Serialized response object or task result produced by the operation."""
     offset = (page - 1) * page_size
     recommendations = (
         db.query(Recommendation)
@@ -83,7 +109,16 @@ def get_ai_picks(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_ai_picks),
 ):
-    """Return the current state of the LLM-native AI Picks feed."""
+    """Get ai picks.
+
+    Returns the current state of the premium AI Picks feed.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data. Defaults to Depends(get_db).
+        current_user: Authenticated user supplied by the route dependency. Defaults to Depends(require_ai_picks).
+
+    Returns:
+        Serialized response object or task result produced by the operation."""
     return get_ai_picks_state(current_user.id, db)
 
 
@@ -92,7 +127,19 @@ def refresh_ai_picks(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_ai_picks),
 ):
-    """Request a fresh AI Picks batch and enqueue generation when needed."""
+    """Refresh ai picks.
+
+    Requests a fresh AI Picks batch and enqueues generation when a pending row is created.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data. Defaults to Depends(get_db).
+        current_user: Authenticated user supplied by the route dependency. Defaults to Depends(require_ai_picks).
+
+    Returns:
+        Serialized response object or task result produced by the operation.
+
+    Raises:
+        HTTPException: When the request cannot be authorized, validated, or completed."""
     try:
         recommendation, should_enqueue = request_ai_picks_refresh(current_user.id, db)
     except ValueError as exc:
@@ -112,7 +159,16 @@ def get_game_dna(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_premium),
 ):
-    """Return the premium Game DNA summary, using Redis as a short cache."""
+    """Get game DNA.
+
+    Returns the premium Game DNA summary, using the key-value store as a short-lived cache.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data. Defaults to Depends(get_db).
+        current_user: Authenticated user supplied by the route dependency. Defaults to Depends(require_premium).
+
+    Returns:
+        Serialized response object or task result produced by the operation."""
     # Check Redis cache first
     cache_key = f"game_dna:{current_user.id}"
     try:

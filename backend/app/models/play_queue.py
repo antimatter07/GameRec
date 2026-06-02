@@ -7,6 +7,7 @@ from app.database import Base
 
 
 class PlayQueueEntry(Base):
+    """Ordered play queue entry linking a user, library entry, and game."""
     __tablename__ = "play_queue_entries"
     __table_args__ = (
         UniqueConstraint("user_id", "entry_id", name="uq_queue_user_entry"),
@@ -23,4 +24,10 @@ class PlayQueueEntry(Base):
     entry = relationship("LibraryEntry", back_populates="play_queue_entry")
 
     def __repr__(self) -> str:
+        """Repr.
+
+        Delegates the request to the appropriate service layer and returns the serialized response.
+
+        Returns:
+            String value produced by the operation."""
         return f"<PlayQueueEntry user={self.user_id} entry={self.entry_id} pos={self.position}>"

@@ -8,6 +8,7 @@ from app.database import Base
 
 
 class Game(Base):
+    """Catalog game model populated from RAWG and enriched with recommendation metadata."""
     __tablename__ = "games"
 
     id:               Mapped[int]      = mapped_column(primary_key=True)
@@ -50,4 +51,10 @@ class Game(Base):
     external_ids = relationship("GameExternalId", back_populates="game", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
+        """Repr.
+
+        Delegates the request to the appropriate service layer and returns the serialized response.
+
+        Returns:
+            String value produced by the operation."""
         return f"<Game id={self.id} name={self.name!r}>"

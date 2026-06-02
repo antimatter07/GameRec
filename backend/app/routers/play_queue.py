@@ -25,25 +25,64 @@ CurrentUserDep = Annotated[User, Depends(require_basic)]
 
 @router.get("", response_model=PlayQueueOut)
 def get_queue(db: DBDep, current_user: CurrentUserDep):
-    """Return the authenticated user's current play queue."""
+    """Get queue.
+
+    Returns the current user play queue.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        current_user: Authenticated user supplied by the route dependency.
+
+    Returns:
+        Serialized response object or task result produced by the operation."""
     return play_queue_service.get_queue(db, current_user.id)
 
 
 @router.post("", response_model=PlayQueueOut, status_code=status.HTTP_201_CREATED)
 def enqueue_game(payload: PlayQueueEnqueue, db: DBDep, current_user: CurrentUserDep):
-    """Add a library entry to the play queue."""
+    """Enqueue game.
+
+    Adds a library entry to the current user play queue.
+
+    Args:
+        payload: Validated request payload or event payload for the operation.
+        db: SQLAlchemy database session used to query or persist application data.
+        current_user: Authenticated user supplied by the route dependency.
+
+    Returns:
+        Serialized response object or task result produced by the operation."""
     return play_queue_service.enqueue(db, current_user.id, payload)
 
 
 @router.delete("/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
 def dequeue_game(entry_id: int, db: DBDep, current_user: CurrentUserDep):
-    """Remove a queue entry from the user's play queue."""
+    """Dequeue game.
+
+    Removes one entry from the current user play queue.
+
+    Args:
+        entry_id: ID of the library or queue entry being modified.
+        db: SQLAlchemy database session used to query or persist application data.
+        current_user: Authenticated user supplied by the route dependency.
+
+    Returns:
+        Serialized response object or task result produced by the operation."""
     play_queue_service.dequeue(db, current_user.id, entry_id)
 
 
 @router.put("/order", response_model=PlayQueueOut)
 def reorder_queue(payload: PlayQueueReorder, db: DBDep, current_user: CurrentUserDep):
-    """Persist a manual queue reorder supplied by the client."""
+    """Reorder queue.
+
+    Persists a new play queue order for the current user.
+
+    Args:
+        payload: Validated request payload or event payload for the operation.
+        db: SQLAlchemy database session used to query or persist application data.
+        current_user: Authenticated user supplied by the route dependency.
+
+    Returns:
+        Serialized response object or task result produced by the operation."""
     return play_queue_service.reorder(db, current_user.id, payload)
 
 
@@ -52,7 +91,16 @@ def get_queue_suggestion(
     db: DBDep,
     current_user: Annotated[User, Depends(require_queue_suggestions)],
 ):
-    """Return the latest AI suggested play order state for the queue."""
+    """Get queue suggestion.
+
+    Returns the current AI queue suggestion state.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        current_user: Authenticated user supplied by the route dependency.
+
+    Returns:
+        Serialized response object or task result produced by the operation."""
     return get_queue_suggestion_state(current_user.id, db)
 
 
@@ -62,7 +110,17 @@ def ensure_queue_suggestion_for_user(
     db: DBDep,
     current_user: Annotated[User, Depends(require_queue_suggestions)],
 ):
-    """Create or reuse a pending AI play-order suggestion for the queue."""
+    """Ensure queue suggestion for user.
+
+    Ensures a queue suggestion exists and dispatches generation when needed.
+
+    Args:
+        payload: Validated request payload or event payload for the operation.
+        db: SQLAlchemy database session used to query or persist application data.
+        current_user: Authenticated user supplied by the route dependency.
+
+    Returns:
+        Serialized response object or task result produced by the operation."""
     state, should_enqueue, suggestion_id = ensure_queue_suggestion(current_user.id, payload.trigger_source, db)
     if should_enqueue and suggestion_id is not None:
         try:
@@ -77,7 +135,19 @@ def adopt_queue_suggestion_for_user(
     db: DBDep,
     current_user: Annotated[User, Depends(require_queue_suggestions)],
 ):
-    """Apply the ready AI suggested play order to the queue."""
+    """Adopt queue suggestion for user.
+
+    Applies the latest AI queue suggestion to the current user queue.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        current_user: Authenticated user supplied by the route dependency.
+
+    Returns:
+        Serialized response object or task result produced by the operation.
+
+    Raises:
+        HTTPException: When the request cannot be authorized, validated, or completed."""
     try:
         return adopt_queue_suggestion(current_user.id, db)
     except ValueError as exc:
