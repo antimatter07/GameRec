@@ -17,6 +17,6 @@ parameter_overrides = [
   "ParameterStoreKmsKeyArn=*",
   "EnableWorkerReservedConcurrency=false",
   "EnableRawgSchedules=false",
-  "AllowedOrigins=https://app.yourdomain.com",
-  "CookieDomain=.yourdomain.com",
+  "AllowedOrigins=https://app.gamerec.uk",
+  "CookieDomain=.gamerec.uk",
 ]
