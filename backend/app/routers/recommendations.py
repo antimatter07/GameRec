@@ -8,6 +8,7 @@ from app.models.user import User, UserRole
 from app.schemas.recommendation import AIPicksStateOut, GameDNAOut, RecommendationOut
 from app.services import ai_service, recommendation_service
 from app.services.ai_picks_service import get_ai_picks_state, request_ai_picks_refresh
+from app.services import kv_store, task_queue
 
 router = APIRouter()
 
@@ -46,8 +47,7 @@ def get_recommendations(
         needs_explanations = any(item.explanation is None for item in recommendation.items)
         if needs_explanations:
             try:
-                from app.workers.tasks.recommendation import generate_ai_explanations
-                generate_ai_explanations.delay(recommendation.id)
+                task_queue.enqueue_ai_explanations(recommendation.id)
             except Exception:
                 pass  # Celery unavailable — explanations will be null for now
 
@@ -100,8 +100,7 @@ def refresh_ai_picks(
 
     if should_enqueue and recommendation.status.value == "pending":
         try:
-            from app.workers.tasks.recommendation import generate_ai_picks
-            generate_ai_picks.delay(recommendation.id, current_user.id)
+            task_queue.enqueue_ai_picks(recommendation.id, current_user.id)
         except Exception:
             pass
 
@@ -117,14 +116,9 @@ def get_game_dna(
     # Check Redis cache first
     cache_key = f"game_dna:{current_user.id}"
     try:
-        import json as _json
-        import redis as redis_lib
-        from app.config import settings
-
-        r = redis_lib.from_url(settings.REDIS_URL)
-        cached = r.get(cache_key)
+        cached = kv_store.get_json(cache_key)
         if cached:
-            return _json.loads(cached)
+            return cached
     except Exception:
         pass
 
@@ -132,8 +126,7 @@ def get_game_dna(
 
     # Cache for 1 hour (invalidated on library changes via precompute_for_user)
     try:
-        import json as _json
-        r.setex(cache_key, 3600, _json.dumps(dna))
+        kv_store.set_json(cache_key, dna, ttl_seconds=3600)
     except Exception:
         pass
 

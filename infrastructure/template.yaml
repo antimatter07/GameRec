@@ -1,0 +1,464 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Serverless deployment for the video game recommender API and workers.
+
+Parameters:
+  AppEnv:
+    Type: String
+    Default: production
+  AppRuntime:
+    Type: String
+    Default: lambda
+  TaskBackend:
+    Type: String
+    Default: sqs
+  KvBackend:
+    Type: String
+    Default: dynamodb
+  AwsSsmParameterPath:
+    Type: String
+    Default: /gamerec/prod
+  ParameterStoreKmsKeyArn:
+    Type: String
+    Default: "*"
+  EnableWorkerReservedConcurrency:
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+  EnableRawgSchedules:
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+  AllowedOrigins:
+    Type: String
+    Default: https://app.yourdomain.com
+  CookieDomain:
+    Type: String
+    Default: .yourdomain.com
+  EcsClusterArn:
+    Type: String
+    Default: ""
+  EcsRawgTaskDefinitionArn:
+    Type: String
+    Default: ""
+  EcsRawgContainerName:
+    Type: String
+    Default: rawg
+  EcsSubnetIds:
+    Type: CommaDelimitedList
+    Default: ""
+  EcsSecurityGroupIds:
+    Type: CommaDelimitedList
+    Default: ""
+  EcsTaskExecutionRoleArn:
+    Type: String
+    Default: "*"
+
+Conditions:
+  HasFargateConfig: !Not [!Equals [!Ref EcsClusterArn, ""]]
+  UseWorkerReservedConcurrency: !Equals [!Ref EnableWorkerReservedConcurrency, "true"]
+  UseRawgSchedules: !Equals [!Ref EnableRawgSchedules, "true"]
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 1024
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        APP_ENV: !Ref AppEnv
+        APP_RUNTIME: !Ref AppRuntime
+        TASK_BACKEND: !Ref TaskBackend
+        KV_BACKEND: !Ref KvBackend
+        AWS_SSM_PARAMETER_PATH: !Ref AwsSsmParameterPath
+        DYNAMODB_KV_TABLE: !Ref KvTable
+        ALLOWED_ORIGINS: !Ref AllowedOrigins
+        COOKIE_DOMAIN: !Ref CookieDomain
+        COOKIE_SAMESITE: lax
+        SQS_RECOMMENDATION_QUEUE_URL: !Ref RecommendationQueue
+        SQS_AI_QUEUE_URL: !Ref AiQueue
+        SQS_HLTB_QUEUE_URL: !Ref HltbQueue
+        SQS_RAWG_QUEUE_URL: !Ref RawgQueue
+        ECS_CLUSTER_ARN: !If [HasFargateConfig, !Ref EcsClusterArn, ""]
+        ECS_RAWG_TASK_DEFINITION_ARN: !If [HasFargateConfig, !Ref EcsRawgTaskDefinitionArn, ""]
+        ECS_RAWG_CONTAINER_NAME: !If [HasFargateConfig, !Ref EcsRawgContainerName, ""]
+        ECS_SUBNET_IDS: !If [HasFargateConfig, !Join [",", !Ref EcsSubnetIds], ""]
+        ECS_SECURITY_GROUP_IDS: !If [HasFargateConfig, !Join [",", !Ref EcsSecurityGroupIds], ""]
+
+Resources:
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+
+  KvTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: expires_at
+        Enabled: true
+
+  RecommendationDlq:
+    Type: AWS::SQS::Queue
+  RecommendationQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 180
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt RecommendationDlq.Arn
+        maxReceiveCount: 3
+
+  AiDlq:
+    Type: AWS::SQS::Queue
+  AiQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 300
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt AiDlq.Arn
+        maxReceiveCount: 3
+
+  HltbDlq:
+    Type: AWS::SQS::Queue
+  HltbQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 180
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt HltbDlq.Arn
+        maxReceiveCount: 3
+
+  RawgDlq:
+    Type: AWS::SQS::Queue
+  RawgQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 900
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt RawgDlq.Arn
+        maxReceiveCount: 3
+
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - app.lambda_handler.handler
+      Timeout: 30
+      Events:
+        Root:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /
+            Method: ANY
+        Proxy:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /{proxy+}
+            Method: ANY
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+                - ssm:GetParameters
+                - ssm:GetParametersByPath
+              Resource:
+                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AwsSsmParameterPath}"
+                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AwsSsmParameterPath}/*"
+            - Effect: Allow
+              Action:
+                - kms:Decrypt
+              Resource: !Ref ParameterStoreKmsKeyArn
+        - DynamoDBCrudPolicy:
+            TableName: !Ref KvTable
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt RecommendationQueue.QueueName
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt AiQueue.QueueName
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt HltbQueue.QueueName
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt RawgQueue.QueueName
+        - !If
+          - HasFargateConfig
+          - Statement:
+              - Effect: Allow
+                Action:
+                  - ecs:RunTask
+                Resource: !Ref EcsRawgTaskDefinitionArn
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                Resource: !Ref EcsTaskExecutionRoleArn
+          - !Ref AWS::NoValue
+    Metadata:
+      Dockerfile: Dockerfile.lambda
+      DockerContext: ../backend
+      DockerTag: api-latest
+
+  RecommendationWorkerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - app.lambda_workers.sqs_handler.handler
+      Timeout: 180
+      ReservedConcurrentExecutions: !If [UseWorkerReservedConcurrency, 2, !Ref AWS::NoValue]
+      Events:
+        Queue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt RecommendationQueue.Arn
+            BatchSize: 1
+            FunctionResponseTypes:
+              - ReportBatchItemFailures
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+                - ssm:GetParameters
+                - ssm:GetParametersByPath
+              Resource:
+                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AwsSsmParameterPath}"
+                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AwsSsmParameterPath}/*"
+            - Effect: Allow
+              Action:
+                - kms:Decrypt
+              Resource: !Ref ParameterStoreKmsKeyArn
+        - DynamoDBCrudPolicy:
+            TableName: !Ref KvTable
+        - SQSPollerPolicy:
+            QueueName: !GetAtt RecommendationQueue.QueueName
+    Metadata:
+      Dockerfile: Dockerfile.lambda
+      DockerContext: ../backend
+      DockerTag: recommendation-worker-latest
+
+  AiWorkerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - app.lambda_workers.sqs_handler.handler
+      Timeout: 300
+      ReservedConcurrentExecutions: !If [UseWorkerReservedConcurrency, 2, !Ref AWS::NoValue]
+      Events:
+        Queue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt AiQueue.Arn
+            BatchSize: 1
+            FunctionResponseTypes:
+              - ReportBatchItemFailures
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+                - ssm:GetParameters
+                - ssm:GetParametersByPath
+              Resource:
+                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AwsSsmParameterPath}"
+                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AwsSsmParameterPath}/*"
+            - Effect: Allow
+              Action:
+                - kms:Decrypt
+              Resource: !Ref ParameterStoreKmsKeyArn
+        - DynamoDBCrudPolicy:
+            TableName: !Ref KvTable
+        - SQSPollerPolicy:
+            QueueName: !GetAtt AiQueue.QueueName
+    Metadata:
+      Dockerfile: Dockerfile.lambda
+      DockerContext: ../backend
+      DockerTag: ai-worker-latest
+
+  HltbWorkerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - app.lambda_workers.sqs_handler.handler
+      Timeout: 180
+      ReservedConcurrentExecutions: !If [UseWorkerReservedConcurrency, 1, !Ref AWS::NoValue]
+      Events:
+        Queue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt HltbQueue.Arn
+            BatchSize: 1
+            FunctionResponseTypes:
+              - ReportBatchItemFailures
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+                - ssm:GetParameters
+                - ssm:GetParametersByPath
+              Resource:
+                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AwsSsmParameterPath}"
+                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AwsSsmParameterPath}/*"
+            - Effect: Allow
+              Action:
+                - kms:Decrypt
+              Resource: !Ref ParameterStoreKmsKeyArn
+        - DynamoDBCrudPolicy:
+            TableName: !Ref KvTable
+        - SQSPollerPolicy:
+            QueueName: !GetAtt HltbQueue.QueueName
+    Metadata:
+      Dockerfile: Dockerfile.lambda
+      DockerContext: ../backend
+      DockerTag: hltb-worker-latest
+
+  RawgWorkerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - app.lambda_workers.sqs_handler.handler
+      Timeout: 900
+      ReservedConcurrentExecutions: !If [UseWorkerReservedConcurrency, 1, !Ref AWS::NoValue]
+      Events:
+        Queue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt RawgQueue.Arn
+            BatchSize: 1
+            FunctionResponseTypes:
+              - ReportBatchItemFailures
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+                - ssm:GetParameters
+                - ssm:GetParametersByPath
+              Resource:
+                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AwsSsmParameterPath}"
+                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AwsSsmParameterPath}/*"
+            - Effect: Allow
+              Action:
+                - kms:Decrypt
+              Resource: !Ref ParameterStoreKmsKeyArn
+        - DynamoDBCrudPolicy:
+            TableName: !Ref KvTable
+        - SQSPollerPolicy:
+            QueueName: !GetAtt RawgQueue.QueueName
+    Metadata:
+      Dockerfile: Dockerfile.lambda
+      DockerContext: ../backend
+      DockerTag: rawg-worker-latest
+
+  RawgScheduleQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref RawgQueue
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt RawgQueue.Arn
+
+  DailyRawgEnrichmentRule:
+    Type: AWS::Events::Rule
+    Condition: UseRawgSchedules
+    Properties:
+      ScheduleExpression: cron(30 3 * * ? *)
+      State: ENABLED
+      Targets:
+        - Id: RawgKnownEnrichment
+          Arn: !GetAtt RawgQueue.Arn
+          Input: '{"task_name":"rawg_sync.enrich_known_games","payload":{"max_requests":500}}'
+
+  WeeklyRawgRecentRule:
+    Type: AWS::Events::Rule
+    Condition: UseRawgSchedules
+    Properties:
+      ScheduleExpression: cron(0 3 ? * MON *)
+      State: ENABLED
+      Targets:
+        - Id: RawgRecentReleases
+          Arn: !GetAtt RawgQueue.Arn
+          Input: '{"task_name":"rawg_sync.sync_recent_releases","payload":{"max_requests":1000,"days_back":60}}'
+
+  RawgFargateEventsRole:
+    Type: AWS::IAM::Role
+    Condition: HasFargateConfig
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: RunRawgFargateTask
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: ecs:RunTask
+                Resource: !Ref EcsRawgTaskDefinitionArn
+              - Effect: Allow
+                Action: iam:PassRole
+                Resource: !Ref EcsTaskExecutionRoleArn
+
+  MonthlyRawgCatalogRule:
+    Type: AWS::Events::Rule
+    Condition: HasFargateConfig
+    Properties:
+      ScheduleExpression: cron(0 3 1 * ? *)
+      State: DISABLED
+      Targets:
+        - Id: RawgCatalogFargate
+          Arn: !Ref EcsClusterArn
+          RoleArn: !GetAtt RawgFargateEventsRole.Arn
+          EcsParameters:
+            TaskDefinitionArn: !Ref EcsRawgTaskDefinitionArn
+            LaunchType: FARGATE
+            NetworkConfiguration:
+              AwsVpcConfiguration:
+                AssignPublicIp: ENABLED
+                Subnets: !Ref EcsSubnetIds
+                SecurityGroups: !Ref EcsSecurityGroupIds
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway default endpoint.
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+  KvTableName:
+    Value: !Ref KvTable
+  RecommendationQueueUrl:
+    Value: !Ref RecommendationQueue
+  AiQueueUrl:
+    Value: !Ref AiQueue
+  HltbQueueUrl:
+    Value: !Ref HltbQueue
+  RawgQueueUrl:
+    Value: !Ref RawgQueue

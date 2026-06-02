@@ -84,11 +84,8 @@ def build_user_taste_profile(user_id: int, db: Session) -> np.ndarray:
 
     # Cache in Redis (best-effort)
     try:
-        from app.config import settings
-        import redis as redis_lib
-
-        r = redis_lib.from_url(settings.REDIS_URL)
-        r.setex(f"taste:{user_id}", _CACHE_TTL, profile_f32.tobytes())
+        from app.services import kv_store
+        kv_store.set_text(f"taste:{user_id}", profile_f32.tobytes(), ttl_seconds=_CACHE_TTL)
     except Exception:
         pass  # Redis unavailable — proceed without caching
 

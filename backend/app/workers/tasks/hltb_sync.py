@@ -11,14 +11,14 @@ from datetime import datetime, timezone
 
 from app.database import SessionLocal
 from app.models.game import Game
+from app.services import task_queue
 from app.utils.hltb_client import fetch_hltb
 from app.workers.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
 
 
-@celery_app.task(name="hltb_sync.enrich_game_hltb", bind=True, max_retries=3)
-def enrich_game_hltb(self, game_id: int):
+def run_enrich_game_hltb(game_id: int) -> None:
     """
     Fetch HLTB playtime data for a single game and persist it to the DB.
 
@@ -52,9 +52,17 @@ def enrich_game_hltb(self, game_id: int):
     except Exception as exc:
         db.rollback()
         logger.exception("enrich_game_hltb failed for game_id=%d: %s", game_id, exc)
-        raise self.retry(exc=exc, countdown=60)
+        raise
     finally:
         db.close()
+
+
+@celery_app.task(name="hltb_sync.enrich_game_hltb", bind=True, max_retries=3)
+def enrich_game_hltb(self, game_id: int):
+    try:
+        run_enrich_game_hltb(game_id)
+    except Exception as exc:
+        raise self.retry(exc=exc, countdown=60)
 
 
 @celery_app.task(name="hltb_sync.enrich_all_hltb")
@@ -79,7 +87,7 @@ def enrich_all_hltb() -> int:
 
     ids = [row[0] for row in game_ids]
     for i, game_id in enumerate(ids):
-        enrich_game_hltb.apply_async(args=[game_id], countdown=i * 2)
+        task_queue.enqueue_hltb_game(game_id, delay_seconds=i * 2)
 
     logger.info("enrich_all_hltb: enqueued %d games", len(ids))
     return len(ids)

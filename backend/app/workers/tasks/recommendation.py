@@ -5,8 +5,7 @@ from app.workers.celery_app import celery_app
 logger = logging.getLogger(__name__)
 
 
-@celery_app.task(name="recommendation.precompute_for_user")
-def precompute_for_user(user_id: int) -> None:
+def run_precompute_for_user(user_id: int) -> None:
     """
     Recompute the cosine-similarity recommendation batch after library changes.
 
@@ -23,10 +22,8 @@ def precompute_for_user(user_id: int) -> None:
 
         # Invalidate cached game-dna so it reflects the updated library
         try:
-            import redis as redis_lib
-            from app.config import settings
-            r = redis_lib.from_url(settings.REDIS_URL)
-            r.delete(f"game_dna:{user_id}")
+            from app.services import kv_store
+            kv_store.delete(f"game_dna:{user_id}")
         except Exception:
             pass
         try:
@@ -44,8 +41,12 @@ def precompute_for_user(user_id: int) -> None:
         db.close()
 
 
-@celery_app.task(name="recommendation.generate_ai_picks")
-def generate_ai_picks(recommendation_id: int, user_id: int) -> None:
+@celery_app.task(name="recommendation.precompute_for_user")
+def precompute_for_user(user_id: int) -> None:
+    run_precompute_for_user(user_id)
+
+
+def run_generate_ai_picks(recommendation_id: int, user_id: int) -> None:
     """
     Generate the LLM-native AI Picks batch for a pending recommendation row.
     """
@@ -81,8 +82,12 @@ def generate_ai_picks(recommendation_id: int, user_id: int) -> None:
         db.close()
 
 
-@celery_app.task(name="queue.generate_suggestion")
-def generate_queue_suggestion(suggestion_id: int, user_id: int) -> None:
+@celery_app.task(name="recommendation.generate_ai_picks")
+def generate_ai_picks(recommendation_id: int, user_id: int) -> None:
+    run_generate_ai_picks(recommendation_id, user_id)
+
+
+def run_generate_queue_suggestion(suggestion_id: int, user_id: int) -> None:
     """
     Generate the LLM-based suggested play order for a pending queue request.
     """
@@ -114,8 +119,12 @@ def generate_queue_suggestion(suggestion_id: int, user_id: int) -> None:
         db.close()
 
 
-@celery_app.task(name="recommendation.generate_ai_explanations")
-def generate_ai_explanations(recommendation_id: int) -> None:
+@celery_app.task(name="queue.generate_suggestion")
+def generate_queue_suggestion(suggestion_id: int, user_id: int) -> None:
+    run_generate_queue_suggestion(suggestion_id, user_id)
+
+
+def run_generate_ai_explanations(recommendation_id: int) -> None:
     """
     Populate premium LLM explanations for an existing recommendation batch.
 
@@ -163,3 +172,8 @@ def generate_ai_explanations(recommendation_id: int) -> None:
         raise
     finally:
         db.close()
+
+
+@celery_app.task(name="recommendation.generate_ai_explanations")
+def generate_ai_explanations(recommendation_id: int) -> None:
+    run_generate_ai_explanations(recommendation_id)

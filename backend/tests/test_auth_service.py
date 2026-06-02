@@ -1,6 +1,6 @@
 """
 Unit tests for app/services/auth_service.py.
-DB and Redis are mocked — testing authentication, revocation, and JWT lookup logic.
+DB and the key/value store are mocked — testing authentication, revocation, and JWT lookup logic.
 """
 from unittest.mock import MagicMock, patch
 
@@ -91,17 +91,17 @@ def test_generate_csrf_token_is_non_empty():
 
 def test_revoke_auth_token_stores_token_jti_in_redis():
     token = create_auth_token(user_id=1, role="basic")
-    with patch("app.services.auth_service.redis_client") as mock_redis:
+    with patch("app.services.auth_service.kv_store") as mock_kv:
         revoke_auth_token(token)
 
-    mock_redis.setex.assert_called_once()
-    key_used = mock_redis.setex.call_args[0][0]
+    mock_kv.set_text.assert_called_once()
+    key_used = mock_kv.set_text.call_args[0][0]
     assert key_used.startswith(_revoked_token_key(""))
 
 
 def test_is_auth_token_revoked_reads_redis():
-    with patch("app.services.auth_service.redis_client") as mock_redis:
-        mock_redis.exists.return_value = 1
+    with patch("app.services.auth_service.kv_store") as mock_kv:
+        mock_kv.exists.return_value = True
         result = is_auth_token_revoked({"jti": "abc123"})
 
     assert result is True
@@ -115,8 +115,8 @@ def test_get_user_for_token_returns_user_when_valid():
     db.query.return_value.filter.return_value.first.return_value = user
     token = create_auth_token(user_id=user.id, role="basic")
 
-    with patch("app.services.auth_service.redis_client") as mock_redis:
-        mock_redis.exists.return_value = 0
+    with patch("app.services.auth_service.kv_store") as mock_kv:
+        mock_kv.exists.return_value = False
         result = get_user_for_token(db, token)
 
     assert result == user
@@ -128,8 +128,8 @@ def test_get_user_for_token_returns_none_when_revoked():
     db.query.return_value.filter.return_value.first.return_value = user
     token = create_auth_token(user_id=user.id, role="basic")
 
-    with patch("app.services.auth_service.redis_client") as mock_redis:
-        mock_redis.exists.return_value = 1
+    with patch("app.services.auth_service.kv_store") as mock_kv:
+        mock_kv.exists.return_value = True
         result = get_user_for_token(db, token)
 
     assert result is None
@@ -137,7 +137,7 @@ def test_get_user_for_token_returns_none_when_revoked():
 
 def test_get_user_for_token_returns_none_for_invalid_token():
     db = MagicMock()
-    with patch("app.services.auth_service.redis_client"):
+    with patch("app.services.auth_service.kv_store"):
         result = get_user_for_token(db, "not.a.valid.token")
 
     assert result is None

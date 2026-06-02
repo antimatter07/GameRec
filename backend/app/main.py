@@ -1,16 +1,13 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from app.config import settings
+from app.core.rate_limiter import limiter
 from app.routers import auth, users, games, library, recommendations, feedback, admin, play_queue, journal
 from app.services import auth_service
-
-# TODO: Replace with the user-aware key function from app.core.rate_limiter
-limiter = Limiter(key_func=get_remote_address)
 
 app = FastAPI(
     title="Video Game Recommender API",

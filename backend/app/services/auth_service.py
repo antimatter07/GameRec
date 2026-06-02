@@ -6,10 +6,10 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.core.google_oauth import GoogleTokenError, verify_google_access_token
-from app.core.redis_client import redis_client
 from app.core.security import create_auth_token, decode_auth_token, verify_password
 from app.models.auth_identity import AuthIdentity
 from app.models.user import User, UserRole
+from app.services import kv_store
 
 AUTH_COOKIE_NAME = "auth_token"
 AUTH_COOKIE_PATH = "/api"
@@ -49,9 +49,10 @@ def set_auth_cookie(response, token: str) -> None:
         value=token,
         httponly=True,
         secure=settings.APP_ENV == "production",
-        samesite="lax",
+        samesite=settings.COOKIE_SAMESITE,
         max_age=_AUTH_COOKIE_MAX_AGE_SECONDS,
         path=AUTH_COOKIE_PATH,
+        domain=settings.COOKIE_DOMAIN or None,
     )
 
 
@@ -60,7 +61,8 @@ def clear_auth_cookie(response) -> None:
         key=AUTH_COOKIE_NAME,
         path=AUTH_COOKIE_PATH,
         secure=settings.APP_ENV == "production",
-        samesite="lax",
+        samesite=settings.COOKIE_SAMESITE,
+        domain=settings.COOKIE_DOMAIN or None,
     )
 
 
@@ -70,9 +72,10 @@ def set_csrf_cookie(response, csrf_token: str) -> None:
         value=csrf_token,
         httponly=False,
         secure=settings.APP_ENV == "production",
-        samesite="lax",
+        samesite=settings.COOKIE_SAMESITE,
         max_age=_AUTH_COOKIE_MAX_AGE_SECONDS,
         path=CSRF_COOKIE_PATH,
+        domain=settings.COOKIE_DOMAIN or None,
     )
 
 
@@ -81,7 +84,8 @@ def clear_csrf_cookie(response) -> None:
         key=CSRF_COOKIE_NAME,
         path=CSRF_COOKIE_PATH,
         secure=settings.APP_ENV == "production",
-        samesite="lax",
+        samesite=settings.COOKIE_SAMESITE,
+        domain=settings.COOKIE_DOMAIN or None,
     )
 
 
@@ -98,14 +102,14 @@ def revoke_auth_token(token: str) -> None:
         return
 
     ttl = max(1, int(exp) - int(datetime.now(timezone.utc).timestamp()))
-    redis_client.setex(_revoked_token_key(jti), ttl, "1")
+    kv_store.set_text(_revoked_token_key(jti), "1", ttl_seconds=ttl)
 
 
 def is_auth_token_revoked(payload: dict) -> bool:
     jti = payload.get("jti")
     if not jti:
         return True
-    return redis_client.exists(_revoked_token_key(jti)) == 1
+    return kv_store.exists(_revoked_token_key(jti))
 
 
 def get_user_for_token(db: Session, token: str) -> User | None:

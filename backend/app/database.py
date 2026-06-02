@@ -1,12 +1,18 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
+from sqlalchemy.pool import NullPool
 
 from app.config import settings
 
-engine = create_engine(
-    settings.DATABASE_URL,
-    # TODO: Tune pool settings for production (pool_size, max_overflow, pool_timeout)
-)
+engine_kwargs = {
+    "pool_pre_ping": True,
+    "pool_recycle": 300,
+}
+
+if settings.APP_RUNTIME == "lambda":
+    engine_kwargs["poolclass"] = NullPool
+
+engine = create_engine(settings.DATABASE_URL, **engine_kwargs)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

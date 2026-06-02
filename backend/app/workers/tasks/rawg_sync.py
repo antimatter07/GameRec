@@ -1,4 +1,3 @@
-import json
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
@@ -8,6 +7,7 @@ from app.config import settings
 from app.database import SessionLocal
 from app.models.game import Game
 from app.models.rawg_sync_state import RawgSeenGame, RawgSyncState
+from app.services import kv_store
 from app.services.game_filter import normalize_game_payload, passes_game_filters
 from app.utils.rawg_client import RAWGQuotaExceeded, RAWGRetryableError, rawg_client
 from app.workers.celery_app import celery_app
@@ -35,8 +35,7 @@ def sync_games(self, page_start: int = 1, page_end: int = 10):
     )
 
 
-@celery_app.task(name="rawg_sync.sync_catalog", bind=True, max_retries=3)
-def sync_catalog(self, max_requests: int | None = None):
+def run_sync_catalog(max_requests: int | None = None, retry_task: Any | None = None) -> dict[str, Any]:
     """
     Resume the monthly catalog fill. Most requests go to list-page discovery; the
     leftover budget enriches accepted games with full descriptions.
@@ -46,19 +45,27 @@ def sync_catalog(self, max_requests: int | None = None):
     discovery = _run_discovery(
         pass_names=BACKFILL_PASSES,
         max_requests=discovery_budget,
-        retry_task=self,
+        retry_task=retry_task,
     )
 
     remaining = budget - discovery["requests_used"]
     if remaining > 0 and discovery["status"] == "success":
-        enrichment = _run_enrichment(max_requests=remaining, retry_task=self)
+        enrichment = _run_enrichment(max_requests=remaining, retry_task=retry_task)
         discovery["enrichment"] = enrichment
         discovery["requests_used"] += enrichment["requests_used"]
     return discovery
 
 
-@celery_app.task(name="rawg_sync.sync_recent_releases", bind=True, max_retries=3)
-def sync_recent_releases(self, max_requests: int | None = None, days_back: int = 60):
+@celery_app.task(name="rawg_sync.sync_catalog", bind=True, max_retries=3)
+def sync_catalog(self, max_requests: int | None = None):
+    return run_sync_catalog(max_requests, retry_task=self)
+
+
+def run_sync_recent_releases(
+    max_requests: int | None = None,
+    days_back: int = 60,
+    retry_task: Any | None = None,
+) -> dict[str, Any]:
     """
     Fetch newly released games using list-page discovery only.
     """
@@ -67,20 +74,28 @@ def sync_recent_releases(self, max_requests: int | None = None, days_back: int =
         max_requests=max_requests or settings.RAWG_RECENT_REQUEST_BUDGET,
         days_back=days_back,
         reset_completed=True,
-        retry_task=self,
+        retry_task=retry_task,
+    )
+
+
+@celery_app.task(name="rawg_sync.sync_recent_releases", bind=True, max_retries=3)
+def sync_recent_releases(self, max_requests: int | None = None, days_back: int = 60):
+    return run_sync_recent_releases(max_requests, days_back, retry_task=self)
+
+
+def run_enrich_known_games(max_requests: int | None = None, retry_task: Any | None = None) -> dict[str, Any]:
+    return _run_enrichment(
+        max_requests=max_requests or settings.RAWG_DETAIL_REFRESH_REQUEST_BUDGET,
+        retry_task=retry_task,
     )
 
 
 @celery_app.task(name="rawg_sync.enrich_known_games", bind=True, max_retries=3)
 def enrich_known_games(self, max_requests: int | None = None):
-    return _run_enrichment(
-        max_requests=max_requests or settings.RAWG_DETAIL_REFRESH_REQUEST_BUDGET,
-        retry_task=self,
-    )
+    return run_enrich_known_games(max_requests, retry_task=self)
 
 
-@celery_app.task(name="rawg_sync.sync_game_details", bind=True, max_retries=3)
-def sync_game_details(self, rawg_id: int):
+def run_sync_game_details(rawg_id: int) -> dict[str, Any]:
     """
     Refresh detail metadata for an already-known game.
     """
@@ -96,14 +111,19 @@ def sync_game_details(self, rawg_id: int):
         _apply_game_payload(game, payload)
         db.commit()
         return {"status": "updated", "rawg_id": rawg_id}
-    except RAWGRetryableError as exc:
-        db.rollback()
-        raise self.retry(exc=exc, countdown=60)
     except Exception:
         db.rollback()
         raise
     finally:
         db.close()
+
+
+@celery_app.task(name="rawg_sync.sync_game_details", bind=True, max_retries=3)
+def sync_game_details(self, rawg_id: int):
+    try:
+        return run_sync_game_details(rawg_id)
+    except RAWGRetryableError as exc:
+        raise self.retry(exc=exc, countdown=60)
 
 
 def _run_discovery(
@@ -412,10 +432,7 @@ def _ensure_budget(stats: dict[str, Any], max_requests: int) -> None:
 
 def _write_status(payload: dict[str, Any]) -> None:
     try:
-        import redis as redis_lib
-
-        r = redis_lib.from_url(settings.REDIS_URL)
-        r.set(PIPELINE_STATUS_KEY, json.dumps(payload))
+        kv_store.set_json(PIPELINE_STATUS_KEY, payload)
     except Exception:
         pass
 

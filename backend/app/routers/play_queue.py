@@ -14,6 +14,7 @@ from app.schemas.play_queue import (
     QueueSuggestionStateOut,
 )
 from app.services import play_queue_service
+from app.services import task_queue
 from app.services.queue_suggestion_service import adopt_queue_suggestion, ensure_queue_suggestion, get_queue_suggestion_state
 
 router = APIRouter()
@@ -65,8 +66,7 @@ def ensure_queue_suggestion_for_user(
     state, should_enqueue, suggestion_id = ensure_queue_suggestion(current_user.id, payload.trigger_source, db)
     if should_enqueue and suggestion_id is not None:
         try:
-            from app.workers.tasks.recommendation import generate_queue_suggestion
-            generate_queue_suggestion.delay(suggestion_id, current_user.id)
+            task_queue.enqueue_queue_suggestion(suggestion_id, current_user.id)
         except Exception:
             pass
     return state
