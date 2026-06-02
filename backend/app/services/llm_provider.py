@@ -16,19 +16,34 @@ class GeminiProvider:
     """Thin wrapper around Gemini structured generation for backend AI flows."""
 
     def __init__(self, api_key: str, model_name: str) -> None:
-        """Store the API key and model name used for structured generations."""
+        """Initialize the service object.
+
+        Stores provider configuration required by later service calls.
+
+        Args:
+            api_key: Gemini API key used to authenticate provider requests.
+            model_name: Optional LLM model override. Defaults to the configured Gemini model.
+
+        Returns:
+            None."""
         self.api_key = api_key
         self.model_name = model_name
 
     def generate_structured(self, *, system_prompt: str, user_prompt: str, schema: type[T]) -> T:
-        """
-        Call Gemini and coerce the response into the requested Pydantic schema.
+        """Generate structured.
 
-        The caller supplies the system and user prompts plus the expected JSON
-        schema. The provider asks Gemini for JSON-only output, validates the
-        payload, and raises ``LLMProviderError`` if the model cannot produce a
-        safe structured response.
-        """
+        Produces AI-backed content and validates it before storage or return.
+
+        Args:
+            system_prompt: System-level instructions that constrain the model response.
+            user_prompt: User-facing prompt content sent to the model.
+            schema: Pydantic model used to validate structured provider output.
+
+        Returns:
+            T produced by the operation.
+
+        Raises:
+            LLMProviderError: When the configured LLM provider fails or returns invalid output."""
         if not self.api_key:
             raise LLMProviderError("GEMINI_API_KEY is not configured.")
 
@@ -71,7 +86,15 @@ class GeminiProvider:
 
 
 def get_default_llm_provider(model_name: str | None = None) -> GeminiProvider:
-    """Return the default Gemini provider configured for the app."""
+    """Get default LLM provider.
+
+    Loads the requested service state and applies the missing-resource behavior expected by API callers.
+
+    Args:
+        model_name: Optional LLM model override. Defaults to the configured Gemini model.
+
+    Returns:
+        GeminiProvider produced by the operation."""
     return GeminiProvider(
         api_key=settings.GEMINI_API_KEY,
         model_name=model_name or settings.AI_PICKS_MODEL,

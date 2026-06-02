@@ -31,13 +31,30 @@ class QueueSuggestionSelection(BaseModel):
 
 
 def compute_queue_fingerprint(entry_ids: list[int]) -> str:
-    """Hash the queue's current entry order so cached suggestions stay scoped."""
+    """Compute queue fingerprint.
+
+    Aggregates source data for recommendation and AI workflows.
+
+    Args:
+        entry_ids: Ordered queue entry IDs used to compute a fingerprint.
+
+    Returns:
+        String value produced by the operation."""
     raw = ",".join(str(entry_id) for entry_id in entry_ids)
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
 def _load_queue_rows(db: Session, user_id: int) -> list[PlayQueueEntry]:
-    """Load the user's queue entries with their underlying game details."""
+    """Load queue rows.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        user_id: ID of the user whose data should be read or modified.
+
+    Returns:
+        List of matching records or serialized service objects."""
     return (
         db.query(PlayQueueEntry)
         .filter(PlayQueueEntry.user_id == user_id)
@@ -48,7 +65,17 @@ def _load_queue_rows(db: Session, user_id: int) -> list[PlayQueueEntry]:
 
 
 def _latest_for_fingerprint(db: Session, user_id: int, queue_fingerprint: str) -> QueueSuggestion | None:
-    """Return the newest suggestion generated for the current queue snapshot."""
+    """Load the latest for fingerprint.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        user_id: ID of the user whose data should be read or modified.
+        queue_fingerprint: Stable fingerprint representing the current queue order.
+
+    Returns:
+        QueueSuggestion | None when a matching value is available; otherwise None."""
     return (
         db.query(QueueSuggestion)
         .options(joinedload(QueueSuggestion.items).joinedload(QueueSuggestionItem.entry).joinedload(LibraryEntry.game))
@@ -62,7 +89,16 @@ def _latest_for_fingerprint(db: Session, user_id: int, queue_fingerprint: str) -
 
 
 def _latest_overall(db: Session, user_id: int) -> QueueSuggestion | None:
-    """Return the newest queue suggestion regardless of its fingerprint."""
+    """Load the latest overall.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        user_id: ID of the user whose data should be read or modified.
+
+    Returns:
+        QueueSuggestion | None when a matching value is available; otherwise None."""
     return (
         db.query(QueueSuggestion)
         .options(joinedload(QueueSuggestion.items).joinedload(QueueSuggestionItem.entry).joinedload(LibraryEntry.game))
@@ -73,7 +109,17 @@ def _latest_overall(db: Session, user_id: int) -> QueueSuggestion | None:
 
 
 def _latest_overall_with_status(db: Session, user_id: int, status: str) -> QueueSuggestion | None:
-    """Return the newest queue suggestion with the requested lifecycle status."""
+    """Load the latest overall with status.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        user_id: ID of the user whose data should be read or modified.
+        status: status value used by the operation.
+
+    Returns:
+        QueueSuggestion | None when a matching value is available; otherwise None."""
     return (
         db.query(QueueSuggestion)
         .options(joinedload(QueueSuggestion.items).joinedload(QueueSuggestionItem.entry).joinedload(LibraryEntry.game))
@@ -94,7 +140,19 @@ def _state_from_suggestion(
     can_generate: bool,
     detail: str | None,
 ) -> dict:
-    """Normalize a suggestion row into the API state payload."""
+    """State from suggestion.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        suggestion: suggestion value used by the operation.
+        is_stale: is stale value used by the operation.
+        is_generating: is generating value used by the operation.
+        can_generate: can generate value used by the operation.
+        detail: detail value used by the operation.
+
+    Returns:
+        Dictionary containing serialized service state and metadata."""
     return {
         "suggestion": suggestion,
         "is_stale": is_stale,
@@ -106,7 +164,15 @@ def _state_from_suggestion(
 
 
 def _normalize_game_name(name: str) -> str:
-    """Normalize game names so echoed LLM values can be validated robustly."""
+    """Normalize game name.
+
+    Converts external or user-provided text into the canonical form used for comparison and persistence.
+
+    Args:
+        name: Display name or normalized name used for matching.
+
+    Returns:
+        String value produced by the operation."""
     return " ".join(name.casefold().split())
 
 
@@ -114,7 +180,19 @@ def _validate_selection(
     selection: QueueSuggestionSelection,
     queue_rows: list[PlayQueueEntry],
 ) -> QueueSuggestionSelection:
-    """Ensure Gemini returned a complete, duplicate-free queue reorder."""
+    """Validate selection.
+
+    Normalizes and checks incoming values before they are used in database writes or AI workflows.
+
+    Args:
+        selection: AI-selected queue suggestion candidate to validate.
+        queue_rows: Current queue entries used as suggestion context.
+
+    Returns:
+        QueueSuggestionSelection produced by the operation.
+
+    Raises:
+        ValueError: When supplied input cannot be validated or mapped to application data."""
     if not selection.overall_explanation.strip():
         raise ValueError("Queue suggestion is missing an overall explanation.")
     queue_size = len(queue_rows)
@@ -156,7 +234,15 @@ def _validate_selection(
 
 
 def _build_prompt(queue_rows: list[PlayQueueEntry]) -> str:
-    """Build the prompt that asks Gemini to improve the queue play order."""
+    """Build prompt.
+
+    Aggregates source data for recommendation and AI workflows.
+
+    Args:
+        queue_rows: Current queue entries used as suggestion context.
+
+    Returns:
+        String value produced by the operation."""
     queue_lines = [f"{row.position}. {row.entry.game.name}" for row in queue_rows]
 
     return (
@@ -204,7 +290,16 @@ def _build_prompt(queue_rows: list[PlayQueueEntry]) -> str:
 
 
 def _generate_selection_once(queue_rows: list[PlayQueueEntry], *, stricter: bool) -> QueueSuggestionSelection:
-    """Request one structured queue reorder proposal from the LLM provider."""
+    """Generate selection once.
+
+    Produces AI-backed content and validates it before storage or return.
+
+    Args:
+        queue_rows: Current queue entries used as suggestion context.
+        stricter: Whether to apply stricter validation on a retry attempt.
+
+    Returns:
+        QueueSuggestionSelection produced by the operation."""
     provider = get_default_llm_provider(settings.QUEUE_SUGGESTION_MODEL)
     user_prompt = _build_prompt(queue_rows)
     if stricter:
@@ -229,12 +324,16 @@ def _generate_selection_once(queue_rows: list[PlayQueueEntry], *, stricter: bool
 
 
 def get_queue_suggestion_state(user_id: int, db: Session) -> dict:
-    """
-    Return the current queue-suggestion state for the UI.
+    """Get queue suggestion state.
 
-    The state tells the client whether a suggestion exists, whether it is
-    stale, and whether the user can generate a new AI suggested play order.
-    """
+    Loads the requested service state and applies the missing-resource behavior expected by API callers.
+
+    Args:
+        user_id: ID of the user whose data should be read or modified.
+        db: SQLAlchemy database session used to query or persist application data.
+
+    Returns:
+        Dictionary containing serialized service state and metadata."""
     if not settings.GEMINI_API_KEY:
         return _state_from_suggestion(
             None,
@@ -324,12 +423,17 @@ def get_queue_suggestion_state(user_id: int, db: Session) -> dict:
 
 
 def ensure_queue_suggestion(user_id: int, trigger_source: str, db: Session) -> tuple[dict, bool, int | None]:
-    """
-    Ensure there is a pending queue suggestion for the current queue snapshot.
+    """Ensure queue suggestion.
 
-    Returns the latest state plus a flag indicating whether the caller should
-    enqueue a background generation job.
-    """
+    Performs the service operation behind a stable module-level interface.
+
+    Args:
+        user_id: ID of the user whose data should be read or modified.
+        trigger_source: String describing what action requested the suggestion.
+        db: SQLAlchemy database session used to query or persist application data.
+
+    Returns:
+        tuple[dict, bool, int | None] when a matching value is available; otherwise None."""
     state = get_queue_suggestion_state(user_id, db)
     if not state["can_generate"]:
         return state, False, None
@@ -354,12 +458,20 @@ def ensure_queue_suggestion(user_id: int, trigger_source: str, db: Session) -> t
 
 
 def generate_queue_suggestion_for_user(suggestion_id: int, user_id: int, db: Session) -> QueueSuggestion:
-    """
-    Populate a pending queue suggestion with an LLM-generated play order.
+    """Generate queue suggestion for user.
 
-    The worker validates that the queue has not changed, asks Gemini for a
-    structured reorder, stores each suggested move, and marks the batch ready.
-    """
+    Produces AI-backed content and validates it before storage or return.
+
+    Args:
+        suggestion_id: ID of the queue suggestion row to process.
+        user_id: ID of the user whose data should be read or modified.
+        db: SQLAlchemy database session used to query or persist application data.
+
+    Returns:
+        QueueSuggestion produced by the operation.
+
+    Raises:
+        ValueError: When supplied input cannot be validated or mapped to application data."""
     suggestion = (
         db.query(QueueSuggestion)
         .options(joinedload(QueueSuggestion.items))
@@ -409,7 +521,19 @@ def generate_queue_suggestion_for_user(suggestion_id: int, user_id: int, db: Ses
 
 
 def adopt_queue_suggestion(user_id: int, db: Session) -> dict:
-    """Apply the latest ready AI suggested play order to the user's queue."""
+    """Adopt queue suggestion.
+
+    Performs the service operation behind a stable module-level interface.
+
+    Args:
+        user_id: ID of the user whose data should be read or modified.
+        db: SQLAlchemy database session used to query or persist application data.
+
+    Returns:
+        Dictionary containing serialized service state and metadata.
+
+    Raises:
+        ValueError: When supplied input cannot be validated or mapped to application data."""
     queue_rows = _load_queue_rows(db, user_id)
     if len(queue_rows) < _MIN_QUEUE_ITEMS:
         raise ValueError("Your queue is too small to adopt an AI suggested order.")

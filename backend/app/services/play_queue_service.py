@@ -10,6 +10,16 @@ QUEUEABLE_STATUSES = {LibraryStatus.BACKLOG, LibraryStatus.REPLAYING}
 
 
 def _load_queue(db: Session, user_id: int) -> list[PlayQueueEntry]:
+    """Load queue.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        user_id: ID of the user whose data should be read or modified.
+
+    Returns:
+        List of matching records or serialized service objects."""
     return (
         db.query(PlayQueueEntry)
         .filter(PlayQueueEntry.user_id == user_id)
@@ -22,14 +32,47 @@ def _load_queue(db: Session, user_id: int) -> list[PlayQueueEntry]:
 
 
 def _to_out(rows: list[PlayQueueEntry]) -> dict:
+    """Serialize out.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        rows: rows value used by the operation.
+
+    Returns:
+        Dictionary containing serialized service state and metadata."""
     return {"total": len(rows), "entries": rows}
 
 
 def get_queue(db: Session, user_id: int) -> dict:
+    """Get queue.
+
+    Loads the requested service state and applies the missing-resource behavior expected by API callers.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        user_id: ID of the user whose data should be read or modified.
+
+    Returns:
+        Dictionary containing serialized service state and metadata."""
     return _to_out(_load_queue(db, user_id))
 
 
 def enqueue(db: Session, user_id: int, payload: PlayQueueEnqueue) -> dict:
+    """Enqueue.
+
+    Performs the service operation behind a stable module-level interface.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        user_id: ID of the user whose data should be read or modified.
+        payload: Validated input payload for the operation.
+
+    Returns:
+        Dictionary containing serialized service state and metadata.
+
+    Raises:
+        HTTPException: When the resource is missing or the user cannot perform the operation."""
     entry = (
         db.query(LibraryEntry)
         .filter(LibraryEntry.id == payload.entry_id, LibraryEntry.user_id == user_id)
@@ -65,6 +108,20 @@ def enqueue(db: Session, user_id: int, payload: PlayQueueEnqueue) -> dict:
 
 
 def dequeue(db: Session, user_id: int, entry_id: int) -> None:
+    """Remove.
+
+    Verifies ownership or existence, removes the target record, and commits the change.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        user_id: ID of the user whose data should be read or modified.
+        entry_id: ID of the library or queue entry being modified.
+
+    Returns:
+        None.
+
+    Raises:
+        HTTPException: When the resource is missing or the user cannot perform the operation."""
     queue_entry = (
         db.query(PlayQueueEntry)
         .filter(PlayQueueEntry.user_id == user_id, PlayQueueEntry.entry_id == entry_id)
@@ -90,10 +147,17 @@ def dequeue(db: Session, user_id: int, entry_id: int) -> None:
 
 
 def remove_entry_from_queue(db: Session, user_id: int, entry_id: int) -> dict:
-    """
-    Remove a library entry from the queue, if present, and return the new head as
-    a start candidate without mutating that candidate's status.
-    """
+    """Remove entry from queue.
+
+    Verifies ownership or existence, removes the target record, and commits the change.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        user_id: ID of the user whose data should be read or modified.
+        entry_id: ID of the library or queue entry being modified.
+
+    Returns:
+        Dictionary containing serialized service state and metadata."""
     queue_entry = (
         db.query(PlayQueueEntry)
         .filter(PlayQueueEntry.user_id == user_id, PlayQueueEntry.entry_id == entry_id)
@@ -127,6 +191,20 @@ def remove_entry_from_queue(db: Session, user_id: int, entry_id: int) -> dict:
 
 
 def reorder(db: Session, user_id: int, payload: PlayQueueReorder) -> dict:
+    """Reorder.
+
+    Performs the service operation behind a stable module-level interface.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        user_id: ID of the user whose data should be read or modified.
+        payload: Validated input payload for the operation.
+
+    Returns:
+        Dictionary containing serialized service state and metadata.
+
+    Raises:
+        HTTPException: When the resource is missing or the user cannot perform the operation."""
     current = (
         db.query(PlayQueueEntry)
         .filter(PlayQueueEntry.user_id == user_id)
@@ -158,13 +236,17 @@ def reorder(db: Session, user_id: int, payload: PlayQueueReorder) -> dict:
 
 
 def advance_queue_after_completion(db: Session, user_id: int, completed_entry_id: int) -> dict:
-    """
-    Called after a library entry is marked 'completed'.
-    If the entry was in the queue:
-      - Remove it from the queue
-      - Promote the new head to 'playing' only if its status is 'backlog'
-    Returns metadata for the API response.
-    """
+    """Advance queue after completion.
+
+    Performs the service operation behind a stable module-level interface.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        user_id: ID of the user whose data should be read or modified.
+        completed_entry_id: completed entry id value used by the operation.
+
+    Returns:
+        Dictionary containing serialized service state and metadata."""
     result = remove_entry_from_queue(db, user_id, completed_entry_id)
     db.commit()
     return {

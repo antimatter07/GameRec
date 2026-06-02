@@ -9,6 +9,12 @@ EXCLUDED_TAG_SLUGS = {"soundtrack", "demo", "dlc", "expansion"}
 
 
 def _load_allowlist() -> set[str]:
+    """Load allowlist.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Returns:
+        set[str] produced by the operation."""
     try:
         with open(ALLOWLIST_PATH, encoding="utf-8") as fh:
             payload = json.load(fh)
@@ -29,6 +35,15 @@ ALLOWLIST = _load_allowlist()
 
 
 def normalize_game_payload(raw: dict[str, Any]) -> dict[str, Any]:
+    """Normalize game payload.
+
+    Converts external or user-provided text into the canonical form used for comparison and persistence.
+
+    Args:
+        raw: RAWG API payload or game-like dictionary to normalize or evaluate.
+
+    Returns:
+        Dictionary containing serialized service state and metadata."""
     platforms = []
     for entry in raw.get("platforms") or []:
         if isinstance(entry, dict) and isinstance(entry.get("platform"), dict):
@@ -86,6 +101,15 @@ def normalize_game_payload(raw: dict[str, Any]) -> dict[str, Any]:
 
 
 def passes_game_filters(raw: dict[str, Any]) -> tuple[bool, str]:
+    """Evaluate whether game filters.
+
+    Evaluates service rules and returns a boolean or reason code without mutating application state.
+
+    Args:
+        raw: RAWG API payload or game-like dictionary to normalize or evaluate.
+
+    Returns:
+        Tuple containing the primary result and related status metadata."""
     game = normalize_game_payload(raw)
     rawg_id = game.get("id") or game.get("rawg_id")
     slug = game.get("slug")
@@ -124,6 +148,15 @@ def passes_game_filters(raw: dict[str, Any]) -> tuple[bool, str]:
 
 
 def needs_detail_for_filter(raw: dict[str, Any]) -> bool:
+    """Determine whether detail for filter.
+
+    Evaluates service rules and returns a boolean or reason code without mutating application state.
+
+    Args:
+        raw: RAWG API payload or game-like dictionary to normalize or evaluate.
+
+    Returns:
+        True when the condition is met; otherwise False."""
     game = normalize_game_payload(raw)
     if _strong_keep_reason(game):
         return True
@@ -135,11 +168,29 @@ def needs_detail_for_filter(raw: dict[str, Any]) -> bool:
 
 
 def needs_screenshots_for_filter(raw: dict[str, Any]) -> bool:
+    """Determine whether screenshots for filter.
+
+    Evaluates service rules and returns a boolean or reason code without mutating application state.
+
+    Args:
+        raw: RAWG API payload or game-like dictionary to normalize or evaluate.
+
+    Returns:
+        True when the condition is met; otherwise False."""
     game = normalize_game_payload(raw)
     return not game.get("screenshots") and _metadata_anchor_count(game) < 2
 
 
 def _metadata_anchor_count(game: dict[str, Any]) -> int:
+    """Metadata anchor count.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        game: Game model or normalized game dictionary to inspect.
+
+    Returns:
+        Integer value produced by the operation."""
     anchors = [
         bool(game.get("description")),
         bool(game.get("background_image")),
@@ -154,6 +205,15 @@ def _metadata_anchor_count(game: dict[str, Any]) -> int:
 
 
 def _strong_keep_reason(game: dict[str, Any]) -> str | None:
+    """Strong keep reason.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        game: Game model or normalized game dictionary to inspect.
+
+    Returns:
+        str | None when a matching value is available; otherwise None."""
     metacritic = _int_or_none(game.get("metacritic"))
     added = _int_or_none(game.get("added"))
     ratings_count = _int_or_none(game.get("ratings_count")) or 0
@@ -176,6 +236,16 @@ def _strong_keep_reason(game: dict[str, Any]) -> str | None:
 
 
 def _is_zero_traction(game: dict[str, Any], metadata_anchor_count: int) -> bool:
+    """Check zero traction.
+
+    Evaluates service rules and returns a boolean or reason code without mutating application state.
+
+    Args:
+        game: Game model or normalized game dictionary to inspect.
+        metadata_anchor_count: metadata anchor count value used by the operation.
+
+    Returns:
+        True when the condition is met; otherwise False."""
     ratings_count = _int_or_none(game.get("ratings_count")) or 0
     added = _int_or_none(game.get("added")) or 0
     playtime = _int_or_none(game.get("playtime")) or 0
@@ -190,10 +260,29 @@ def _is_zero_traction(game: dict[str, Any], metadata_anchor_count: int) -> bool:
 
 
 def _is_allowlisted(rawg_id: Any, slug: Any) -> bool:
+    """Check allowlisted.
+
+    Evaluates service rules and returns a boolean or reason code without mutating application state.
+
+    Args:
+        rawg_id: RAWG game identifier used for allowlist matching.
+        slug: Slug used for normalized matching.
+
+    Returns:
+        True when the condition is met; otherwise False."""
     return str(rawg_id).lower() in ALLOWLIST or (slug is not None and str(slug).lower() in ALLOWLIST)
 
 
 def _parse_date(value: Any) -> date | None:
+    """Parse date.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        value: Value to store or transform.
+
+    Returns:
+        date | None when a matching value is available; otherwise None."""
     if isinstance(value, date):
         return value
     if not value:
@@ -205,6 +294,15 @@ def _parse_date(value: Any) -> date | None:
 
 
 def _int_or_none(value: Any) -> int | None:
+    """Parse or none.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        value: Value to store or transform.
+
+    Returns:
+        int | None when a matching value is available; otherwise None."""
     try:
         return int(value) if value is not None else None
     except (TypeError, ValueError):
@@ -212,6 +310,15 @@ def _int_or_none(value: Any) -> int | None:
 
 
 def _float_or_none(value: Any) -> float | None:
+    """Parse or none.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        value: Value to store or transform.
+
+    Returns:
+        float | None when a matching value is available; otherwise None."""
     try:
         return float(value) if value is not None else None
     except (TypeError, ValueError):
@@ -219,4 +326,13 @@ def _float_or_none(value: Any) -> float | None:
 
 
 def _slugify(value: Any) -> str:
+    """Create a slug for.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        value: Value to store or transform.
+
+    Returns:
+        String value produced by the operation."""
     return str(value or "").strip().lower().replace(" ", "-")

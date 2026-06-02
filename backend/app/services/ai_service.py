@@ -16,13 +16,16 @@ _STATUS_WEIGHTS: dict[LibraryStatus, float] = {
 
 
 def generate_game_dna(user: User, db: Session) -> dict:
-    """
-    Build the premium Game DNA summary from the user's library history.
+    """Generate game dna.
 
-    This powers the premium game-taste feature by turning a user's tracked and
-    rated games into weighted genre, tag, and era signals, then shaping those
-    signals into a human-readable summary plus a confidence estimate.
-    """
+    Produces AI-backed content and validates it before storage or return.
+
+    Args:
+        user: Authenticated user model associated with the operation.
+        db: SQLAlchemy database session used to query or persist application data.
+
+    Returns:
+        Dictionary containing serialized service state and metadata."""
     entries: list[LibraryEntry] = (
         db.query(LibraryEntry)
         .options(joinedload(LibraryEntry.game))
@@ -116,16 +119,17 @@ def generate_game_dna(user: User, db: Session) -> dict:
 
 
 def generate_explanations(user: User, items: list[RecommendationItem], db: Session) -> list[str]:
-    """
-    Generate premium LLM explanations for a recommendation batch.
+    """Generate explanations.
 
-    Each returned string explains why the matching game fits the user's taste
-    profile, and the result order always matches the incoming recommendation
-    items.
+    Produces AI-backed content and validates it before storage or return.
 
-    Requires ANTHROPIC_API_KEY to be set in settings.  Returns empty strings
-    for all items when the key is absent so callers can safely ignore the result.
-    """
+    Args:
+        user: Authenticated user model associated with the operation.
+        items: Recommendation items to enrich with generated text.
+        db: SQLAlchemy database session used to query or persist application data.
+
+    Returns:
+        List of matching records or serialized service objects."""
     from app.config import settings
 
     if not settings.ANTHROPIC_API_KEY:

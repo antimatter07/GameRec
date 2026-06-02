@@ -25,18 +25,19 @@ _TOP_N = 20
 
 
 def build_user_taste_profile(user_id: int, db: Session) -> np.ndarray:
-    """
-    Aggregate the user's library into a normalized taste-profile vector.
+    """Build user taste profile.
 
-    Rated games contribute more strongly than un-rated games, and tracked
-    status still provides signal when a rating is absent. The resulting vector
-    is used by the cosine-similarity recommender and is cached best-effort in
-    Redis for repeat requests.
+    Aggregates source data for recommendation and AI workflows.
 
-    Raises ValueError when the user has no library entries that have been
-    vectorised yet (i.e., build_vectors.py has not been run, or the user has
-    not added any games).
-    """
+    Args:
+        user_id: ID of the user whose data should be read or modified.
+        db: SQLAlchemy database session used to query or persist application data.
+
+    Returns:
+        NumPy vector representing the computed recommendation features.
+
+    Raises:
+        ValueError: When supplied input cannot be validated or mapped to application data."""
     entries: list[LibraryEntry] = (
         db.query(LibraryEntry)
         .options(joinedload(LibraryEntry.game))
@@ -93,7 +94,16 @@ def build_user_taste_profile(user_id: int, db: Session) -> np.ndarray:
 
 
 def _feedback_adjustments(user_id: int, db: Session) -> tuple[set[int], dict[str, float], dict[str, float]]:
-    """Build exact suppressions and lightweight metadata boosts/penalties."""
+    """Feedback adjustments.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        user_id: ID of the user whose data should be read or modified.
+        db: SQLAlchemy database session used to query or persist application data.
+
+    Returns:
+        Tuple containing the primary result and related status metadata."""
     feedback_rows = (
         db.query(RecommendationFeedback)
         .join(RecommendationFeedback.item)
@@ -107,6 +117,17 @@ def _feedback_adjustments(user_id: int, db: Session) -> tuple[set[int], dict[str
     tag_adjustments: dict[str, float] = {}
 
     def bump(target: dict[str, float], name: str | None, delta: float) -> None:
+        """Bump.
+
+        Performs the service operation behind a stable module-level interface.
+
+        Args:
+            target: target value used by the operation.
+            name: Display name or normalized name used for matching.
+            delta: delta value used by the operation.
+
+        Returns:
+            None."""
         if name:
             target[name.lower()] = target.get(name.lower(), 0.0) + delta
 
@@ -129,6 +150,18 @@ def _feedback_adjustments(user_id: int, db: Session) -> tuple[set[int], dict[str
 
 
 def _apply_feedback_score(game: Game, base_score: float, genre_adjustments: dict[str, float], tag_adjustments: dict[str, float]) -> float:
+    """Apply feedback score.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        game: Game model or normalized game dictionary to inspect.
+        base_score: Original recommendation score before feedback adjustments are applied.
+        genre_adjustments: Per-genre score adjustments derived from user feedback.
+        tag_adjustments: Per-tag score adjustments derived from user feedback.
+
+    Returns:
+        Floating-point value produced by the operation."""
     score = base_score
     for genre in (game.genres or []):
         score += genre_adjustments.get((genre.get("name") or "").lower(), 0.0)
@@ -139,14 +172,19 @@ def _apply_feedback_score(game: Game, base_score: float, genre_adjustments: dict
 
 
 def compute_recommendations(user_id: int, db: Session) -> Recommendation:
-    """
-    Generate and persist the core cosine-similarity recommendation batch.
+    """Compute recommendations.
 
-    This is the non-LLM recommendation path for games: it compares the user's
-    taste vector to every vectorised game, filters out owned titles, keeps the
-    strongest matches, and stores the batch for later display and AI-enhanced
-    follow-up tasks.
-    """
+    Aggregates source data for recommendation and AI workflows.
+
+    Args:
+        user_id: ID of the user whose data should be read or modified.
+        db: SQLAlchemy database session used to query or persist application data.
+
+    Returns:
+        Recommendation produced by the operation.
+
+    Raises:
+        ValueError: When supplied input cannot be validated or mapped to application data."""
     taste_vec = build_user_taste_profile(user_id, db)
 
     # IDs of games the user already owns / has tracked
@@ -222,11 +260,16 @@ def compute_recommendations(user_id: int, db: Session) -> Recommendation:
 
 
 def get_or_generate(user_id: int, db: Session) -> Recommendation:
-    """Return a cached recommendation batch or generate a fresh one.
+    """Get or generate.
 
-    The recommendation feed is cached for a short window so repeated requests
-    reuse the same batch unless the cache has aged out.
-    """
+    Returns a fresh cached result when possible and falls back to generating new data when the cache is stale.
+
+    Args:
+        user_id: ID of the user whose data should be read or modified.
+        db: SQLAlchemy database session used to query or persist application data.
+
+    Returns:
+        Recommendation produced by the operation."""
     cutoff = datetime.now(timezone.utc) - _RECOMMENDATION_TTL
 
     recent: Recommendation | None = (

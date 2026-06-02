@@ -35,6 +35,20 @@ _NOTE_STATUSES = {"open", "done", "archived"}
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
 def _load_session(db: Session, session_id: int, user_id: int) -> SessionLog:
+    """Load session.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        session_id: ID of the play session to load or modify.
+        user_id: ID of the user whose data should be read or modified.
+
+    Returns:
+        SessionLog produced by the operation.
+
+    Raises:
+        HTTPException: When the resource is missing or the user cannot perform the operation."""
     session = db.query(SessionLog).filter(SessionLog.id == session_id).first()
     if not session:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
@@ -44,6 +58,15 @@ def _load_session(db: Session, session_id: int, user_id: int) -> SessionLog:
 
 
 def _session_to_out(s: SessionLog) -> SessionLogOut:
+    """Session to out.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        s: Session log model to serialize.
+
+    Returns:
+        SessionLogOut produced by the operation."""
     game = s.game
     return SessionLogOut(
         id=s.id,
@@ -65,6 +88,15 @@ def _session_to_out(s: SessionLog) -> SessionLogOut:
 
 
 def _note_to_out(note: PlaythroughNote) -> PlaythroughNoteOut:
+    """Note to out.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        note: note value used by the operation.
+
+    Returns:
+        PlaythroughNoteOut produced by the operation."""
     game = note.game
     return PlaythroughNoteOut(
         id=note.id,
@@ -87,6 +119,16 @@ def _note_to_out(note: PlaythroughNote) -> PlaythroughNoteOut:
 
 
 def _fetch_with_game(db: Session, session_id: int) -> SessionLog:
+    """Fetch with game.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        session_id: ID of the play session to load or modify.
+
+    Returns:
+        SessionLog produced by the operation."""
     return (
         db.query(SessionLog)
         .filter(SessionLog.id == session_id)
@@ -96,6 +138,16 @@ def _fetch_with_game(db: Session, session_id: int) -> SessionLog:
 
 
 def _fetch_note_with_game(db: Session, note_id: int) -> PlaythroughNote | None:
+    """Fetch note with game.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        note_id: ID of the playthrough note to load or modify.
+
+    Returns:
+        PlaythroughNote | None when a matching value is available; otherwise None."""
     return (
         db.query(PlaythroughNote)
         .filter(PlaythroughNote.id == note_id)
@@ -105,6 +157,16 @@ def _fetch_note_with_game(db: Session, note_id: int) -> PlaythroughNote | None:
 
 
 def _rating_to_out(r: GameRating, game: Game | None) -> MultiAxisRatingOut:
+    """Rating to out.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        r: Rating model to serialize.
+        game: Game model or normalized game dictionary to inspect.
+
+    Returns:
+        MultiAxisRatingOut produced by the operation."""
     return MultiAxisRatingOut(
         id=r.id,
         user_id=r.user_id,
@@ -123,6 +185,18 @@ def _rating_to_out(r: GameRating, game: Game | None) -> MultiAxisRatingOut:
 
 
 def _validate_note_kind(kind: str) -> str:
+    """Validate note kind.
+
+    Normalizes and checks incoming values before they are used in database writes or AI workflows.
+
+    Args:
+        kind: Raw note kind value to validate.
+
+    Returns:
+        String value produced by the operation.
+
+    Raises:
+        HTTPException: When the resource is missing or the user cannot perform the operation."""
     if kind not in _NOTE_KINDS:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -132,6 +206,18 @@ def _validate_note_kind(kind: str) -> str:
 
 
 def _validate_note_status(status_value: str) -> str:
+    """Validate note status.
+
+    Normalizes and checks incoming values before they are used in database writes or AI workflows.
+
+    Args:
+        status_value: Raw status value to validate.
+
+    Returns:
+        String value produced by the operation.
+
+    Raises:
+        HTTPException: When the resource is missing or the user cannot perform the operation."""
     if status_value not in _NOTE_STATUSES:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -147,6 +233,21 @@ def _resolve_library_entry(
     game_id: int,
     library_entry_id: int | None,
 ) -> LibraryEntry | None:
+    """Resolve library entry.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        user_id: ID of the user whose data should be read or modified.
+        game_id: ID of the game to read, update, or associate with the operation.
+        library_entry_id: library entry id value used by the operation.
+
+    Returns:
+        LibraryEntry | None when a matching value is available; otherwise None.
+
+    Raises:
+        HTTPException: When the resource is missing or the user cannot perform the operation."""
     if library_entry_id is None:
         return None
     linked_entry = (
@@ -175,6 +276,20 @@ def _create_follow_up_note(
     session_log_id: int,
     title: str | None,
 ) -> PlaythroughNote | None:
+    """Create follow up note.
+
+    Validates the input, persists the relevant model changes, and returns the updated service representation.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        user_id: ID of the user whose data should be read or modified.
+        game_id: ID of the game to read, update, or associate with the operation.
+        library_entry_id: library entry id value used by the operation.
+        session_log_id: session log id value used by the operation.
+        title: Game title to normalize or inspect.
+
+    Returns:
+        PlaythroughNote | None when a matching value is available; otherwise None."""
     if not title:
         return None
 
@@ -200,6 +315,20 @@ def _create_follow_up_note(
 # ─── Session CRUD ─────────────────────────────────────────────────────────────
 
 def create_session(db: Session, user_id: int, payload: SessionLogCreate) -> SessionLogOut:
+    """Create session.
+
+    Validates the input, persists the relevant model changes, and returns the updated service representation.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        user_id: ID of the user whose data should be read or modified.
+        payload: Validated input payload for the operation.
+
+    Returns:
+        SessionLogOut produced by the operation.
+
+    Raises:
+        HTTPException: When the resource is missing or the user cannot perform the operation."""
     game = db.query(Game).filter(Game.id == payload.game_id).first()
     if not game:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Game not found")
@@ -257,6 +386,19 @@ def list_sessions(
     page: int = 1,
     per_page: int = 20,
 ) -> dict:
+    """List sessions.
+
+    Builds the database query, applies caller-provided filters, and returns the requested slice of results.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        user_id: ID of the user whose data should be read or modified.
+        game_id: ID of the game to read, update, or associate with the operation. Defaults to None.
+        page: One-based page number to return. Defaults to 1.
+        per_page: Maximum number of records to return per page. Defaults to 20.
+
+    Returns:
+        Dictionary containing serialized service state and metadata."""
     query = (
         db.query(SessionLog)
         .filter(SessionLog.user_id == user_id)
@@ -280,6 +422,20 @@ def list_sessions(
 # ─── Scratchpad CRUD ──────────────────────────────────────────────────────────
 
 def create_note(db: Session, user_id: int, payload: PlaythroughNoteCreate) -> PlaythroughNoteOut:
+    """Create note.
+
+    Validates the input, persists the relevant model changes, and returns the updated service representation.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        user_id: ID of the user whose data should be read or modified.
+        payload: Validated input payload for the operation.
+
+    Returns:
+        PlaythroughNoteOut produced by the operation.
+
+    Raises:
+        HTTPException: When the resource is missing or the user cannot perform the operation."""
     game = db.query(Game).filter(Game.id == payload.game_id).first()
     if not game:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Game not found")
@@ -329,6 +485,23 @@ def list_notes(
     page: int = 1,
     per_page: int = 50,
 ) -> PaginatedPlaythroughNotesOut:
+    """List notes.
+
+    Builds the database query, applies caller-provided filters, and returns the requested slice of results.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        user_id: ID of the user whose data should be read or modified.
+        game_id: ID of the game to read, update, or associate with the operation. Defaults to None.
+        status_value: Raw status value to validate. Defaults to None.
+        kind: Raw note kind value to validate. Defaults to None.
+        pinned: pinned value used by the operation. Defaults to None.
+        remind_next_session: remind next session value used by the operation. Defaults to None.
+        page: One-based page number to return. Defaults to 1.
+        per_page: Maximum number of records to return per page. Defaults to 50.
+
+    Returns:
+        PaginatedPlaythroughNotesOut produced by the operation."""
     if status_value is not None:
         _validate_note_status(status_value)
     if kind is not None:
@@ -372,6 +545,21 @@ def update_note(
     note_id: int,
     payload: PlaythroughNoteUpdate,
 ) -> PlaythroughNoteOut:
+    """Update note.
+
+    Applies validated field changes to an existing record and commits the updated state.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        user_id: ID of the user whose data should be read or modified.
+        note_id: ID of the playthrough note to load or modify.
+        payload: Validated input payload for the operation.
+
+    Returns:
+        PlaythroughNoteOut produced by the operation.
+
+    Raises:
+        HTTPException: When the resource is missing or the user cannot perform the operation."""
     note = db.query(PlaythroughNote).filter(PlaythroughNote.id == note_id).first()
     if not note:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Note not found")
@@ -405,6 +593,20 @@ def update_note(
 
 
 def delete_note(db: Session, user_id: int, note_id: int) -> None:
+    """Delete note.
+
+    Verifies ownership or existence, removes the target record, and commits the change.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        user_id: ID of the user whose data should be read or modified.
+        note_id: ID of the playthrough note to load or modify.
+
+    Returns:
+        None.
+
+    Raises:
+        HTTPException: When the resource is missing or the user cannot perform the operation."""
     note = db.query(PlaythroughNote).filter(PlaythroughNote.id == note_id).first()
     if not note:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Note not found")
@@ -417,6 +619,18 @@ def delete_note(db: Session, user_id: int, note_id: int) -> None:
 def update_session(
     db: Session, user_id: int, session_id: int, payload: SessionLogUpdate
 ) -> SessionLogOut:
+    """Update session.
+
+    Applies validated field changes to an existing record and commits the updated state.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        user_id: ID of the user whose data should be read or modified.
+        session_id: ID of the play session to load or modify.
+        payload: Validated input payload for the operation.
+
+    Returns:
+        SessionLogOut produced by the operation."""
     session = _load_session(db, session_id, user_id)
     updates = payload.model_dump(exclude_unset=True)
     # Normalise empty emotions list to None
@@ -430,12 +644,35 @@ def update_session(
 
 
 def delete_session(db: Session, user_id: int, session_id: int) -> None:
+    """Delete session.
+
+    Verifies ownership or existence, removes the target record, and commits the change.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        user_id: ID of the user whose data should be read or modified.
+        session_id: ID of the play session to load or modify.
+
+    Returns:
+        None."""
     session = _load_session(db, session_id, user_id)
     db.delete(session)
     db.commit()
 
 
 def get_feed(db: Session, user_id: int, page: int = 1, per_page: int = 20) -> dict:
+    """Get feed.
+
+    Loads the requested service state and applies the missing-resource behavior expected by API callers.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        user_id: ID of the user whose data should be read or modified.
+        page: One-based page number to return. Defaults to 1.
+        per_page: Maximum number of records to return per page. Defaults to 20.
+
+    Returns:
+        Dictionary containing serialized service state and metadata."""
     query = (
         db.query(SessionLog)
         .filter(SessionLog.user_id == user_id)
@@ -456,6 +693,16 @@ def get_feed(db: Session, user_id: int, page: int = 1, per_page: int = 20) -> di
 # ─── Stats ────────────────────────────────────────────────────────────────────
 
 def get_stats(db: Session, user_id: int) -> JournalStats:
+    """Get stats.
+
+    Loads the requested service state and applies the missing-resource behavior expected by API callers.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        user_id: ID of the user whose data should be read or modified.
+
+    Returns:
+        JournalStats produced by the operation."""
     all_sessions = (
         db.query(SessionLog)
         .filter(SessionLog.user_id == user_id)
@@ -539,6 +786,16 @@ def get_stats(db: Session, user_id: int) -> JournalStats:
         last_7.append(DailyHoursItem(day=label, hours=round(daily_minutes.get(label, 0.0), 1)))
 
     def pct_change(current: float, previous: float) -> float:
+        """Pct change.
+
+        Performs the service operation behind a stable module-level interface.
+
+        Args:
+            current: current value used by the operation.
+            previous: previous value used by the operation.
+
+        Returns:
+            Floating-point value produced by the operation."""
         if previous == 0:
             return 100.0 if current > 0 else 0.0
         return round(((current - previous) / previous) * 100, 1)
@@ -591,6 +848,21 @@ def get_stats(db: Session, user_id: int) -> JournalStats:
 def upsert_rating(
     db: Session, user_id: int, game_id: int, payload: MultiAxisRatingUpsert
 ) -> MultiAxisRatingOut:
+    """Create or update rating.
+
+    Validates the input, persists the relevant model changes, and returns the updated service representation.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        user_id: ID of the user whose data should be read or modified.
+        game_id: ID of the game to read, update, or associate with the operation.
+        payload: Validated input payload for the operation.
+
+    Returns:
+        MultiAxisRatingOut produced by the operation.
+
+    Raises:
+        HTTPException: When the resource is missing or the user cannot perform the operation."""
     game = db.query(Game).filter(Game.id == game_id).first()
     if not game:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Game not found")
@@ -623,6 +895,20 @@ def upsert_rating(
 
 
 def get_rating(db: Session, user_id: int, game_id: int) -> MultiAxisRatingOut:
+    """Get rating.
+
+    Loads the requested service state and applies the missing-resource behavior expected by API callers.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        user_id: ID of the user whose data should be read or modified.
+        game_id: ID of the game to read, update, or associate with the operation.
+
+    Returns:
+        MultiAxisRatingOut produced by the operation.
+
+    Raises:
+        HTTPException: When the resource is missing or the user cannot perform the operation."""
     rating = (
         db.query(GameRating)
         .filter(GameRating.user_id == user_id, GameRating.game_id == game_id)
@@ -635,6 +921,16 @@ def get_rating(db: Session, user_id: int, game_id: int) -> MultiAxisRatingOut:
 
 
 def get_all_ratings(db: Session, user_id: int) -> list[MultiAxisRatingOut]:
+    """Get all ratings.
+
+    Loads the requested service state and applies the missing-resource behavior expected by API callers.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        user_id: ID of the user whose data should be read or modified.
+
+    Returns:
+        List of matching records or serialized service objects."""
     ratings = (
         db.query(GameRating)
         .filter(GameRating.user_id == user_id)
@@ -653,6 +949,19 @@ def get_emotion_stats(
     game_id: int | None = None,
     genre: str | None = None,
 ) -> EmotionStats:
+    """Get emotion stats.
+
+    Loads the requested service state and applies the missing-resource behavior expected by API callers.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        user_id: ID of the user whose data should be read or modified.
+        period: period value used by the operation. Defaults to '30d'.
+        game_id: ID of the game to read, update, or associate with the operation. Defaults to None.
+        genre: Optional genre slug or name used to filter games. Defaults to None.
+
+    Returns:
+        EmotionStats produced by the operation."""
     now = datetime.now(timezone.utc)
     if period == "7d":
         start = now - timedelta(days=7)
@@ -812,6 +1121,15 @@ def get_emotion_stats(
 # ─── Streak helpers ───────────────────────────────────────────────────────────
 
 def _compute_streaks(session_dates: list[date]) -> tuple[int, int]:
+    """Compute streaks.
+
+    Aggregates source data for recommendation and AI workflows.
+
+    Args:
+        session_dates: session dates value used by the operation.
+
+    Returns:
+        Tuple containing the primary result and related status metadata."""
     if not session_dates:
         return 0, 0
 

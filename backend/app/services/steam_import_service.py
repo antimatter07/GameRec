@@ -64,6 +64,15 @@ class MatchCandidate:
 
 
 def normalize_game_title(title: str) -> str:
+    """Normalize game title.
+
+    Converts external or user-provided text into the canonical form used for comparison and persistence.
+
+    Args:
+        title: Game title to normalize or inspect.
+
+    Returns:
+        String value produced by the operation."""
     lowered = title.lower()
     lowered = lowered.replace("&", " and ")
     lowered = lowered.replace("™", " ").replace("®", " ")
@@ -78,6 +87,15 @@ def normalize_game_title(title: str) -> str:
 
 
 def sequel_tokens(title: str) -> set[int]:
+    """Sequel tokens.
+
+    Performs the service operation behind a stable module-level interface.
+
+    Args:
+        title: Game title to normalize or inspect.
+
+    Returns:
+        set[int] produced by the operation."""
     normalized = normalize_game_title(title)
     tokens: set[int] = set()
     for token in normalized.split():
@@ -89,12 +107,32 @@ def sequel_tokens(title: str) -> set[int]:
 
 
 def _has_sequel_conflict(steam_title: str, candidate_title: str) -> bool:
+    """Check whether sequel conflict.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        steam_title: Steam game title being matched.
+        candidate_title: Candidate game title being compared.
+
+    Returns:
+        True when the condition is met; otherwise False."""
     steam_numbers = sequel_tokens(steam_title)
     candidate_numbers = sequel_tokens(candidate_title)
     return bool(steam_numbers and candidate_numbers and steam_numbers != candidate_numbers)
 
 
 def _score_candidate(steam_title: str, candidate_title: str) -> float:
+    """Score candidate.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        steam_title: Steam game title being matched.
+        candidate_title: Candidate game title being compared.
+
+    Returns:
+        Floating-point value produced by the operation."""
     if _has_sequel_conflict(steam_title, candidate_title):
         return 0.0
 
@@ -112,6 +150,15 @@ def _score_candidate(steam_title: str, candidate_title: str) -> float:
 
 
 def _best_by_popularity(games: list[Game]) -> Game:
+    """Select the best by popularity.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        games: Candidate game records considered by the matching algorithm.
+
+    Returns:
+        Game produced by the operation."""
     return max(
         games,
         key=lambda game: (
@@ -128,6 +175,18 @@ def _build_result(
     entry: LibraryEntry | None = None,
     reason: str | None = None,
 ) -> SteamImportGameResult:
+    """Build result.
+
+    Aggregates source data for recommendation and AI workflows.
+
+    Args:
+        steam_game: Steam library game returned by the Steam API client.
+        candidate: AI pick candidate or game candidate to resolve. Defaults to None.
+        entry: entry value used by the operation. Defaults to None.
+        reason: reason value used by the operation. Defaults to None.
+
+    Returns:
+        SteamImportGameResult produced by the operation."""
     return SteamImportGameResult(
         steam_app_id=steam_game.appid,
         steam_name=steam_game.name,
@@ -139,6 +198,18 @@ def _build_result(
 
 
 def _find_match(db: Session, steam_game: SteamOwnedGame, games: list[Game], exact_index: dict[str, list[Game]]) -> MatchCandidate | None:
+    """Find match.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        steam_game: Steam library game returned by the Steam API client.
+        games: Candidate game records considered by the matching algorithm.
+        exact_index: exact index value used by the operation.
+
+    Returns:
+        MatchCandidate | None when a matching value is available; otherwise None."""
     external = (
         db.query(GameExternalId)
         .options(joinedload(GameExternalId.game))
@@ -167,12 +238,32 @@ def _find_match(db: Session, steam_game: SteamOwnedGame, games: list[Game], exac
 
 
 def _steam_datetime(timestamp: int | None) -> datetime | None:
+    """Convert a Steam timestamp to datetime.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        timestamp: Unix timestamp value returned by Steam.
+
+    Returns:
+        datetime | None when a matching value is available; otherwise None."""
     if not timestamp:
         return None
     return datetime.fromtimestamp(int(timestamp), tz=timezone.utc)
 
 
 def _apply_steam_metadata(entry: LibraryEntry, steam_game: SteamOwnedGame, confidence: float) -> None:
+    """Apply steam metadata.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        entry: entry value used by the operation.
+        steam_game: Steam library game returned by the Steam API client.
+        confidence: Match confidence score assigned to the imported library entry.
+
+    Returns:
+        None."""
     entry.steam_app_id = steam_game.appid
     entry.steam_playtime_forever_minutes = steam_game.playtime_forever
     entry.steam_playtime_2weeks_minutes = steam_game.playtime_2weeks
@@ -183,6 +274,17 @@ def _apply_steam_metadata(entry: LibraryEntry, steam_game: SteamOwnedGame, confi
 
 
 def _ensure_external_id(db: Session, game_id: int, steam_app_id: int) -> None:
+    """Ensure external ID.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        game_id: ID of the game to read, update, or associate with the operation.
+        steam_app_id: Steam application ID associated with the game.
+
+    Returns:
+        None."""
     existing = (
         db.query(GameExternalId)
         .filter(GameExternalId.provider == STEAM_PROVIDER, GameExternalId.external_id == str(steam_app_id))
@@ -194,6 +296,21 @@ def _ensure_external_id(db: Session, game_id: int, steam_app_id: int) -> None:
 
 
 def import_steam_library(db: Session, user_id: int, steam_profile: str, client: SteamClient | None = None) -> dict:
+    """Import steam library.
+
+    Performs the service operation behind a stable module-level interface.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        user_id: ID of the user whose data should be read or modified.
+        steam_profile: Steam vanity URL, profile URL, or Steam ID to import from.
+        client: Optional Steam API client instance. Defaults to the production client.
+
+    Returns:
+        Dictionary containing serialized service state and metadata.
+
+    Raises:
+        HTTPException: When the resource is missing or the user cannot perform the operation."""
     steam = client or SteamClient()
     try:
         steam_id = steam.resolve_steam_id(steam_profile)

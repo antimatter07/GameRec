@@ -22,6 +22,26 @@ def list_games(
     library_state: Literal["all", "saved", "not_saved"] = "all",
     sort: Literal["rating_desc", "released_desc", "name_asc", "playtime_asc"] = "rating_desc",
 ) -> PaginatedGames:
+    """List games.
+
+    Builds the database query, applies caller-provided filters, and returns the requested slice of results.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        user_id: ID of the user whose data should be read or modified.
+        page: One-based page number to return. Defaults to 1.
+        page_size: Maximum number of records to return per page. Defaults to 20.
+        search: Optional text used to filter records by name or other searchable fields. Defaults to None.
+        genre: Optional genre slug or name used to filter games. Defaults to None.
+        platform: Optional platform slug or name used to filter games. Defaults to None.
+        year: Optional release year used to filter games. Defaults to None.
+        min_rating: Optional minimum rating threshold used to filter games. Defaults to None.
+        max_hours: Optional maximum playtime threshold used to filter games. Defaults to None.
+        library_state: Library inclusion filter for the current user. Defaults to "all".
+        sort: Sort mode used to order returned records. Defaults to 'rating_desc'.
+
+    Returns:
+        PaginatedGames produced by the operation."""
     query = db.query(Game)
 
     if search:
@@ -70,6 +90,19 @@ def list_games(
 
 
 def get_game_by_id(db: Session, game_id: int) -> Game:
+    """Get game by ID.
+
+    Loads the requested service state and applies the missing-resource behavior expected by API callers.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        game_id: ID of the game to read, update, or associate with the operation.
+
+    Returns:
+        Game produced by the operation.
+
+    Raises:
+        HTTPException: When the resource is missing or the user cannot perform the operation."""
     game = db.query(Game).filter(Game.id == game_id).first()
     if not game:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Game not found")

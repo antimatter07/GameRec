@@ -98,17 +98,42 @@ class DroppedAIPick:
 
 
 def _dossier_cache_key(user_id: int) -> str:
-    """Build the Redis cache key for a user's generated taste dossier."""
+    """Dossier cache key.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        user_id: ID of the user whose data should be read or modified.
+
+    Returns:
+        String value produced by the operation."""
     return f"ai_picks:dossier:{user_id}"
 
 
 def _dirty_cache_key(user_id: int) -> str:
-    """Build the Redis key used to mark a dossier as stale."""
+    """Dirty cache key.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        user_id: ID of the user whose data should be read or modified.
+
+    Returns:
+        String value produced by the operation."""
     return f"ai_picks:dirty:{user_id}"
 
 
 def _truncate(text: str | None, limit: int = 120) -> str:
-    """Trim long user-provided text snippets for compact LLM prompts."""
+    """Truncate.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        text: text value used by the operation.
+        limit: Maximum number of records or characters to process. Defaults to 120.
+
+    Returns:
+        String value produced by the operation."""
     if not text:
         return ""
     trimmed = " ".join(text.split())
@@ -118,21 +143,45 @@ def _truncate(text: str | None, limit: int = 120) -> str:
 
 
 def _entry_weight(entry: LibraryEntry) -> float:
-    """Return the weight a library entry should contribute to taste analysis."""
+    """Entry weight.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        entry: entry value used by the operation.
+
+    Returns:
+        Floating-point value produced by the operation."""
     if entry.rating is not None:
         return float(entry.rating)
     return _STATUS_WEIGHTS.get(entry.status, 2.0)
 
 
 def _era_label(year: int | None) -> str | None:
-    """Convert a release year into a decade label for taste clustering."""
+    """Era label.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        year: Optional release year used to filter games.
+
+    Returns:
+        str | None when a matching value is available; otherwise None."""
     if not year:
         return None
     return f"{(year // 10) * 10}s"
 
 
 def _length_bucket(hours: float | None) -> str:
-    """Bucket a game length into a coarse label the LLM can reason about."""
+    """Length bucket.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        hours: hours value used by the operation.
+
+    Returns:
+        String value produced by the operation."""
     if hours is None:
         return "medium"
     if hours < 10:
@@ -145,7 +194,15 @@ def _length_bucket(hours: float | None) -> str:
 
 
 def invalidate_ai_picks_cache(user_id: int) -> None:
-    """Mark AI Picks as stale after library, rating, or journal changes."""
+    """Invalidate ai picks cache.
+
+    Performs the service operation behind a stable module-level interface.
+
+    Args:
+        user_id: ID of the user whose data should be read or modified.
+
+    Returns:
+        None."""
     try:
         ttl_seconds = max(int(_CACHE_TTL.total_seconds()), 60)
         kv_store.delete(_dossier_cache_key(user_id))
@@ -155,7 +212,15 @@ def invalidate_ai_picks_cache(user_id: int) -> None:
 
 
 def _clear_dirty_flag(user_id: int) -> None:
-    """Clear the stale marker after a fresh AI Picks batch is generated."""
+    """Clear dirty flag.
+
+    Updates response or storage state while keeping cookie and cache settings centralized.
+
+    Args:
+        user_id: ID of the user whose data should be read or modified.
+
+    Returns:
+        None."""
     try:
         kv_store.delete(_dirty_cache_key(user_id))
     except Exception:
@@ -163,7 +228,15 @@ def _clear_dirty_flag(user_id: int) -> None:
 
 
 def _is_dirty(user_id: int) -> bool:
-    """Return whether the user's cached taste dossier should be regenerated."""
+    """Check dirty.
+
+    Evaluates service rules and returns a boolean or reason code without mutating application state.
+
+    Args:
+        user_id: ID of the user whose data should be read or modified.
+
+    Returns:
+        True when the condition is met; otherwise False."""
     try:
         return kv_store.exists(_dirty_cache_key(user_id))
     except Exception:
@@ -171,7 +244,15 @@ def _is_dirty(user_id: int) -> bool:
 
 
 def _load_cached_dossier(user_id: int) -> TasteDossier | None:
-    """Load a previously generated taste dossier from Redis, if available."""
+    """Load cached dossier.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        user_id: ID of the user whose data should be read or modified.
+
+    Returns:
+        TasteDossier | None when a matching value is available; otherwise None."""
     try:
         payload = kv_store.get_text(_dossier_cache_key(user_id))
         if not payload:
@@ -184,7 +265,16 @@ def _load_cached_dossier(user_id: int) -> TasteDossier | None:
 
 
 def _store_cached_dossier(user_id: int, dossier: TasteDossier) -> None:
-    """Persist a generated taste dossier to Redis for reuse within the TTL."""
+    """Store cached dossier.
+
+    Persists cached service state using the configured key-value backend.
+
+    Args:
+        user_id: ID of the user whose data should be read or modified.
+        dossier: dossier value used by the operation.
+
+    Returns:
+        None."""
     try:
         kv_store.set_text(
             _dossier_cache_key(user_id),
@@ -196,13 +286,19 @@ def _store_cached_dossier(user_id: int, dossier: TasteDossier) -> None:
 
 
 def build_compact_taste_summary(user_id: int, db: Session) -> CompactTasteSummary:
-    """
-    Summarize all explicit player signals before the LLM turn.
+    """Build compact taste summary.
 
-    The compact summary blends library status, ratings, journal notes, and
-    review text into a small structured object that is cheap to cache and safe
-    to hand to the downstream Gemini dossier generator.
-    """
+    Aggregates source data for recommendation and AI workflows.
+
+    Args:
+        user_id: ID of the user whose data should be read or modified.
+        db: SQLAlchemy database session used to query or persist application data.
+
+    Returns:
+        CompactTasteSummary produced by the operation.
+
+    Raises:
+        ValueError: When supplied input cannot be validated or mapped to application data."""
     entries: list[LibraryEntry] = (
         db.query(LibraryEntry)
         .options(joinedload(LibraryEntry.game))
@@ -351,13 +447,17 @@ def build_compact_taste_summary(user_id: int, db: Session) -> CompactTasteSummar
 
 
 def build_taste_dossier(user_id: int, db: Session, *, force_refresh: bool = False) -> tuple[CompactTasteSummary, TasteDossier]:
-    """
-    Turn the compact player summary into the richer AI Picks dossier.
+    """Build taste dossier.
 
-    The compact summary is always computed first so the service can validate
-    the user's available taste signal, then the LLM expands that summary into a
-    more expressive dossier used for candidate scoring and pick generation.
-    """
+    Aggregates source data for recommendation and AI workflows.
+
+    Args:
+        user_id: ID of the user whose data should be read or modified.
+        db: SQLAlchemy database session used to query or persist application data.
+        force_refresh: Whether to ignore cached values and rebuild fresh state. Defaults to False.
+
+    Returns:
+        Tuple containing the primary result and related status metadata."""
     compact_summary = build_compact_taste_summary(user_id, db)
     if not force_refresh:
         cached = _load_cached_dossier(user_id)
@@ -381,7 +481,15 @@ def build_taste_dossier(user_id: int, db: Session, *, force_refresh: bool = Fals
 
 
 def _proposal_prompt(dossier: TasteDossier) -> str:
-    """Format the taste dossier for LLM-native game proposal generation."""
+    """Proposal prompt.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        dossier: dossier value used by the operation.
+
+    Returns:
+        String value produced by the operation."""
     return (
         f"Recommend exactly {settings.AI_PICKS_MAX_CANDIDATES} real, commercially released video games for this player.\n"
         "Use exact game titles that are likely to exist in a RAWG-backed game catalog.\n"
@@ -393,7 +501,18 @@ def _proposal_prompt(dossier: TasteDossier) -> str:
 
 
 def _validate_proposal(proposal: AIPicksProposal) -> AIPicksProposal:
-    """Reject malformed AI Picks proposal payloads before title resolution."""
+    """Validate proposal.
+
+    Normalizes and checks incoming values before they are used in database writes or AI workflows.
+
+    Args:
+        proposal: proposal value used by the operation.
+
+    Returns:
+        AIPicksProposal produced by the operation.
+
+    Raises:
+        ValueError: When supplied input cannot be validated or mapped to application data."""
     if not proposal.taste_summary.strip():
         raise ValueError("Missing taste summary from AI Picks response.")
     if not proposal.candidates:
@@ -407,7 +526,16 @@ def _validate_proposal(proposal: AIPicksProposal) -> AIPicksProposal:
 
 
 def _generate_proposal_once(dossier: TasteDossier, *, stricter: bool = False) -> AIPicksProposal:
-    """Ask Gemini for title-first AI Picks proposals."""
+    """Generate proposal once.
+
+    Produces AI-backed content and validates it before storage or return.
+
+    Args:
+        dossier: dossier value used by the operation.
+        stricter: Whether to apply stricter validation on a retry attempt. Defaults to False.
+
+    Returns:
+        AIPicksProposal produced by the operation."""
     provider = get_default_llm_provider()
     user_prompt = _proposal_prompt(dossier)
     if stricter:
@@ -426,7 +554,15 @@ def _generate_proposal_once(dossier: TasteDossier, *, stricter: bool = False) ->
 
 
 def _normalized_slug(value: str | None) -> str:
-    """Normalize an LLM-provided slug enough for exact slug lookup."""
+    """Normalized slug.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        value: Value to store or transform.
+
+    Returns:
+        String value produced by the operation."""
     if not value:
         return ""
     return value.strip().lower()
@@ -438,7 +574,18 @@ def _resolve_candidate(
     exact_title_index: dict[str, list[Game]],
     slug_index: dict[str, Game],
 ) -> tuple[Game | None, float | None, str]:
-    """Resolve one LLM-proposed title to a strict local Postgres game match."""
+    """Resolve candidate.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        candidate: AI pick candidate or game candidate to resolve.
+        games: Candidate game records considered by the matching algorithm.
+        exact_title_index: exact title index value used by the operation.
+        slug_index: slug index value used by the operation.
+
+    Returns:
+        tuple[Game | None, float | None, str] when a matching value is available; otherwise None."""
     slug = _normalized_slug(candidate.slug)
     if slug and slug in slug_index:
         return slug_index[slug], 100.0, "exact_slug"
@@ -468,12 +615,17 @@ def resolve_ai_pick_candidates(
     proposal: AIPicksProposal,
     db: Session,
 ) -> tuple[list[ResolvedAIPick], list[DroppedAIPick]]:
-    """
-    Resolve LLM-proposed titles against the local catalog.
+    """Resolve ai pick candidates.
 
-    Only resolved, unowned, non-duplicate games are eligible for storage. Missing
-    Postgres rows are dropped because the UI needs the local Game metadata.
-    """
+    Performs the service operation behind a stable module-level interface.
+
+    Args:
+        user_id: ID of the user whose data should be read or modified.
+        proposal: proposal value used by the operation.
+        db: SQLAlchemy database session used to query or persist application data.
+
+    Returns:
+        Tuple containing the primary result and related status metadata."""
     owned_game_ids = {
         entry.game_id
         for entry in db.query(LibraryEntry).filter(LibraryEntry.user_id == user_id).all()
@@ -510,14 +662,20 @@ def resolve_ai_pick_candidates(
 
 
 def generate_ai_picks_for_recommendation(recommendation_id: int, user_id: int, db: Session) -> Recommendation:
-    """
-    Populate a pending AI Picks recommendation with Postgres-resolved LLM proposals.
+    """Generate ai picks for recommendation.
 
-    This is the production path for the LLM-native recommendations surface: it
-    gathers the user's taste dossier, asks the LLM for game titles, resolves
-    them against the local catalog, stores the grounded result, and clears the
-    stale marker.
-    """
+    Produces AI-backed content and validates it before storage or return.
+
+    Args:
+        recommendation_id: ID of the recommendation batch to enrich or refresh.
+        user_id: ID of the user whose data should be read or modified.
+        db: SQLAlchemy database session used to query or persist application data.
+
+    Returns:
+        Recommendation produced by the operation.
+
+    Raises:
+        ValueError: When supplied input cannot be validated or mapped to application data."""
     recommendation = (
         db.query(Recommendation)
         .filter(
@@ -600,7 +758,16 @@ def generate_ai_picks_for_recommendation(recommendation_id: int, user_id: int, d
 
 
 def _latest_ai_picks_query(user_id: int, db: Session):
-    """Return the newest AI Picks recommendation query for a user."""
+    """Load the latest ai picks query.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        user_id: ID of the user whose data should be read or modified.
+        db: SQLAlchemy database session used to query or persist application data.
+
+    Returns:
+        Service result produced by the operation."""
     return (
         db.query(Recommendation)
         .options(joinedload(Recommendation.items).joinedload(RecommendationItem.game))
@@ -613,7 +780,16 @@ def _latest_ai_picks_query(user_id: int, db: Session):
 
 
 def _is_stale(recommendation: Recommendation | None, user_id: int) -> bool:
-    """Decide whether the current AI Picks recommendation should be refreshed."""
+    """Check stale.
+
+    Evaluates service rules and returns a boolean or reason code without mutating application state.
+
+    Args:
+        recommendation: recommendation value used by the operation.
+        user_id: ID of the user whose data should be read or modified.
+
+    Returns:
+        True when the condition is met; otherwise False."""
     if recommendation is None:
         return True
     if recommendation.status != RecommendationStatus.READY:
@@ -627,12 +803,16 @@ def _is_stale(recommendation: Recommendation | None, user_id: int) -> bool:
 
 
 def get_ai_picks_state(user_id: int, db: Session) -> dict[str, Any]:
-    """
-    Return the current AI Picks state for the UI.
+    """Get ai picks state.
 
-    The payload includes the latest recommendation, whether it is stale, and
-    whether the user can request a refresh.
-    """
+    Loads the requested service state and applies the missing-resource behavior expected by API callers.
+
+    Args:
+        user_id: ID of the user whose data should be read or modified.
+        db: SQLAlchemy database session used to query or persist application data.
+
+    Returns:
+        Dictionary containing serialized service state and metadata."""
     recommendation = _latest_ai_picks_query(user_id, db).first()
     stale = _is_stale(recommendation, user_id)
 
@@ -663,13 +843,19 @@ def get_ai_picks_state(user_id: int, db: Session) -> dict[str, Any]:
 
 
 def request_ai_picks_refresh(user_id: int, db: Session) -> tuple[Recommendation, bool]:
-    """
-    Create a pending AI Picks recommendation and signal whether to enqueue it.
+    """Request ai picks refresh.
 
-    The API layer uses the boolean return value to decide whether a Celery job
-    should be dispatched immediately. A user-initiated refresh always creates a
-    new batch unless another refresh is already pending.
-    """
+    Performs the service operation behind a stable module-level interface.
+
+    Args:
+        user_id: ID of the user whose data should be read or modified.
+        db: SQLAlchemy database session used to query or persist application data.
+
+    Returns:
+        Tuple containing the primary result and related status metadata.
+
+    Raises:
+        ValueError: When supplied input cannot be validated or mapped to application data."""
     if not settings.GEMINI_API_KEY:
         raise ValueError("AI Picks is not configured yet. Add GEMINI_API_KEY to enable it.")
 

@@ -14,12 +14,33 @@ TASK_RAWG_ENRICH_KNOWN = "rawg_sync.enrich_known_games"
 
 
 def _sqs_client():
+    """Sqs client.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Returns:
+        Service result produced by the operation."""
     import boto3
 
     return boto3.client("sqs", region_name=settings.AWS_REGION)
 
 
 def _send_sqs(queue_url: str, task_name: str, payload: dict[str, Any], delay_seconds: int = 0) -> str | None:
+    """Send sqs.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        queue_url: SQS queue URL used to dispatch the task.
+        task_name: Canonical task name to enqueue.
+        payload: Validated input payload for the operation.
+        delay_seconds: Optional queue delay in seconds before the task becomes visible. Defaults to 0.
+
+    Returns:
+        str | None when a matching value is available; otherwise None.
+
+    Raises:
+        RuntimeError: When required infrastructure or configuration is unavailable."""
     if not queue_url:
         raise RuntimeError(f"Missing SQS queue URL for task {task_name}")
     response = _sqs_client().send_message(
@@ -31,6 +52,21 @@ def _send_sqs(queue_url: str, task_name: str, payload: dict[str, Any], delay_sec
 
 
 def _enqueue(task_name: str, payload: dict[str, Any], queue_url: str, delay_seconds: int = 0) -> str | None:
+    """Enqueue.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        task_name: Canonical task name to enqueue.
+        payload: Validated input payload for the operation.
+        queue_url: SQS queue URL used to dispatch the task.
+        delay_seconds: Optional queue delay in seconds before the task becomes visible. Defaults to 0.
+
+    Returns:
+        str | None when a matching value is available; otherwise None.
+
+    Raises:
+        ValueError: When supplied input cannot be validated or mapped to application data."""
     if settings.TASK_BACKEND == "sqs":
         return _send_sqs(queue_url, task_name, payload, delay_seconds)
 
@@ -59,6 +95,15 @@ def _enqueue(task_name: str, payload: dict[str, Any], queue_url: str, delay_seco
 
 
 def enqueue_precompute_for_user(user_id: int) -> str | None:
+    """Enqueue precompute for user.
+
+    Dispatches a background task through the configured queue backend.
+
+    Args:
+        user_id: ID of the user whose data should be read or modified.
+
+    Returns:
+        str | None when a matching value is available; otherwise None."""
     return _enqueue(
         TASK_PRECOMPUTE_FOR_USER,
         {"user_id": user_id},
@@ -67,6 +112,15 @@ def enqueue_precompute_for_user(user_id: int) -> str | None:
 
 
 def enqueue_ai_explanations(recommendation_id: int) -> str | None:
+    """Enqueue ai explanations.
+
+    Dispatches a background task through the configured queue backend.
+
+    Args:
+        recommendation_id: ID of the recommendation batch to enrich or refresh.
+
+    Returns:
+        str | None when a matching value is available; otherwise None."""
     return _enqueue(
         TASK_GENERATE_AI_EXPLANATIONS,
         {"recommendation_id": recommendation_id},
@@ -75,6 +129,16 @@ def enqueue_ai_explanations(recommendation_id: int) -> str | None:
 
 
 def enqueue_ai_picks(recommendation_id: int, user_id: int) -> str | None:
+    """Enqueue ai picks.
+
+    Dispatches a background task through the configured queue backend.
+
+    Args:
+        recommendation_id: ID of the recommendation batch to enrich or refresh.
+        user_id: ID of the user whose data should be read or modified.
+
+    Returns:
+        str | None when a matching value is available; otherwise None."""
     return _enqueue(
         TASK_GENERATE_AI_PICKS,
         {"recommendation_id": recommendation_id, "user_id": user_id},
@@ -83,6 +147,16 @@ def enqueue_ai_picks(recommendation_id: int, user_id: int) -> str | None:
 
 
 def enqueue_queue_suggestion(suggestion_id: int, user_id: int) -> str | None:
+    """Enqueue queue suggestion.
+
+    Dispatches a background task through the configured queue backend.
+
+    Args:
+        suggestion_id: ID of the queue suggestion row to process.
+        user_id: ID of the user whose data should be read or modified.
+
+    Returns:
+        str | None when a matching value is available; otherwise None."""
     return _enqueue(
         TASK_GENERATE_QUEUE_SUGGESTION,
         {"suggestion_id": suggestion_id, "user_id": user_id},
@@ -91,6 +165,16 @@ def enqueue_queue_suggestion(suggestion_id: int, user_id: int) -> str | None:
 
 
 def enqueue_hltb_game(game_id: int, delay_seconds: int = 0) -> str | None:
+    """Enqueue hltb game.
+
+    Dispatches a background task through the configured queue backend.
+
+    Args:
+        game_id: ID of the game to read, update, or associate with the operation.
+        delay_seconds: Optional queue delay in seconds before the task becomes visible. Defaults to 0.
+
+    Returns:
+        str | None when a matching value is available; otherwise None."""
     return _enqueue(
         TASK_ENRICH_GAME_HLTB,
         {"game_id": game_id},
@@ -100,6 +184,16 @@ def enqueue_hltb_game(game_id: int, delay_seconds: int = 0) -> str | None:
 
 
 def enqueue_rawg_recent(max_requests: int, days_back: int) -> str | None:
+    """Enqueue rawg recent.
+
+    Dispatches a background task through the configured queue backend.
+
+    Args:
+        max_requests: Maximum number of external API requests the task may use.
+        days_back: Number of days of recent releases to inspect.
+
+    Returns:
+        str | None when a matching value is available; otherwise None."""
     return _enqueue(
         TASK_RAWG_RECENT,
         {"max_requests": max_requests, "days_back": days_back},
@@ -108,6 +202,15 @@ def enqueue_rawg_recent(max_requests: int, days_back: int) -> str | None:
 
 
 def enqueue_rawg_enrich_known(max_requests: int) -> str | None:
+    """Enqueue rawg enrich known.
+
+    Dispatches a background task through the configured queue backend.
+
+    Args:
+        max_requests: Maximum number of external API requests the task may use.
+
+    Returns:
+        str | None when a matching value is available; otherwise None."""
     return _enqueue(
         TASK_RAWG_ENRICH_KNOWN,
         {"max_requests": max_requests},

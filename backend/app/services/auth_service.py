@@ -20,7 +20,17 @@ _REVOKED_TOKEN_PREFIX = "revoked_token:"
 
 
 def authenticate_user(db: Session, email: str, password: str) -> User | None:
-    """Return the User if credentials are valid, otherwise None."""
+    """Authenticate user.
+
+    Performs the service operation behind a stable module-level interface.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        email: Email address used to identify the user account.
+        password: Plain-text password supplied during authentication.
+
+    Returns:
+        User | None when a matching value is available; otherwise None."""
     user = db.query(User).filter(User.email == email).first()
     if not user or not user.is_active:
         return None
@@ -32,18 +42,52 @@ def authenticate_user(db: Session, email: str, password: str) -> User | None:
 
 
 def _revoked_token_key(jti: str) -> str:
+    """Revoked token key.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        jti: JWT ID claim used to identify a revoked token.
+
+    Returns:
+        String value produced by the operation."""
     return f"{_REVOKED_TOKEN_PREFIX}{jti}"
 
 
 def generate_csrf_token() -> str:
+    """Generate csrf token.
+
+    Produces AI-backed content and validates it before storage or return.
+
+    Returns:
+        String value produced by the operation."""
     return secrets.token_urlsafe(32)
 
 
 def issue_auth_token(user: User) -> str:
+    """Issue auth token.
+
+    Performs the service operation behind a stable module-level interface.
+
+    Args:
+        user: Authenticated user model associated with the operation.
+
+    Returns:
+        String value produced by the operation."""
     return create_auth_token(user.id, str(user.role))
 
 
 def set_auth_cookie(response, token: str) -> None:
+    """Set auth cookie.
+
+    Updates response or storage state while keeping cookie and cache settings centralized.
+
+    Args:
+        response: FastAPI response object whose cookies should be updated.
+        token: JWT or opaque token value to validate, revoke, or store.
+
+    Returns:
+        None."""
     response.set_cookie(
         key=AUTH_COOKIE_NAME,
         value=token,
@@ -57,6 +101,15 @@ def set_auth_cookie(response, token: str) -> None:
 
 
 def clear_auth_cookie(response) -> None:
+    """Clear auth cookie.
+
+    Updates response or storage state while keeping cookie and cache settings centralized.
+
+    Args:
+        response: FastAPI response object whose cookies should be updated.
+
+    Returns:
+        None."""
     response.delete_cookie(
         key=AUTH_COOKIE_NAME,
         path=AUTH_COOKIE_PATH,
@@ -67,6 +120,16 @@ def clear_auth_cookie(response) -> None:
 
 
 def set_csrf_cookie(response, csrf_token: str) -> None:
+    """Set csrf cookie.
+
+    Updates response or storage state while keeping cookie and cache settings centralized.
+
+    Args:
+        response: FastAPI response object whose cookies should be updated.
+        csrf_token: CSRF token value to write into the response cookie.
+
+    Returns:
+        None."""
     response.set_cookie(
         key=CSRF_COOKIE_NAME,
         value=csrf_token,
@@ -80,6 +143,15 @@ def set_csrf_cookie(response, csrf_token: str) -> None:
 
 
 def clear_csrf_cookie(response) -> None:
+    """Clear csrf cookie.
+
+    Updates response or storage state while keeping cookie and cache settings centralized.
+
+    Args:
+        response: FastAPI response object whose cookies should be updated.
+
+    Returns:
+        None."""
     response.delete_cookie(
         key=CSRF_COOKIE_NAME,
         path=CSRF_COOKIE_PATH,
@@ -90,7 +162,15 @@ def clear_csrf_cookie(response) -> None:
 
 
 def revoke_auth_token(token: str) -> None:
-    """Blacklist a JWT by jti until its natural expiry so logout invalidates it."""
+    """Revoke auth token.
+
+    Performs the service operation behind a stable module-level interface.
+
+    Args:
+        token: JWT or opaque token value to validate, revoke, or store.
+
+    Returns:
+        None."""
     try:
         payload = decode_auth_token(token)
     except Exception:
@@ -106,6 +186,15 @@ def revoke_auth_token(token: str) -> None:
 
 
 def is_auth_token_revoked(payload: dict) -> bool:
+    """Check auth token revoked.
+
+    Evaluates service rules and returns a boolean or reason code without mutating application state.
+
+    Args:
+        payload: Validated input payload for the operation.
+
+    Returns:
+        True when the condition is met; otherwise False."""
     jti = payload.get("jti")
     if not jti:
         return True
@@ -113,6 +202,16 @@ def is_auth_token_revoked(payload: dict) -> bool:
 
 
 def get_user_for_token(db: Session, token: str) -> User | None:
+    """Get user for token.
+
+    Loads the requested service state and applies the missing-resource behavior expected by API callers.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        token: JWT or opaque token value to validate, revoke, or store.
+
+    Returns:
+        User | None when a matching value is available; otherwise None."""
     try:
         payload = decode_auth_token(token)
     except Exception:
@@ -128,7 +227,16 @@ def get_user_for_token(db: Session, token: str) -> User | None:
 
 
 def _derive_display_name(db: Session, email: str) -> str:
-    """Derive a unique display_name from the email local-part, appending a counter on collision."""
+    """Derive display name.
+
+    Encapsulates reusable service-layer logic used by the public functions in this module.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        email: Email address used to identify the user account.
+
+    Returns:
+        String value produced by the operation."""
     base = email.split("@", 1)[0][:90] or "user"
     candidate, n = base, 1
     while db.query(User).filter(User.display_name == candidate).first():
@@ -138,7 +246,19 @@ def _derive_display_name(db: Session, email: str) -> str:
 
 
 def login_with_google(db: Session, id_token_str: str) -> User:
-    """Verify a Google access token and return the matching local user."""
+    """Log in with google.
+
+    Performs the service operation behind a stable module-level interface.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        id_token_str: Google identity token string returned by the OAuth flow.
+
+    Returns:
+        User produced by the operation.
+
+    Raises:
+        ValueError: When supplied input cannot be validated or mapped to application data."""
     try:
         claims = verify_google_access_token(id_token_str)
     except GoogleTokenError as exc:

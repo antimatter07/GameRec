@@ -15,6 +15,18 @@ def list_users(
     page_size: int,
     search: str | None = None,
 ) -> list[User]:
+    """List users.
+
+    Builds the database query, applies caller-provided filters, and returns the requested slice of results.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        page: One-based page number to return. Defaults to 1.
+        page_size: Maximum number of records to return per page.
+        search: Optional text used to filter records by name or other searchable fields. Defaults to None.
+
+    Returns:
+        List of matching records or serialized service objects."""
     query = db.query(User)
     if search:
         pattern = f"%{search}%"
@@ -30,6 +42,21 @@ def update_user_role(
     role: UserRole,
     current_user_id: int,
 ) -> User:
+    """Update user role.
+
+    Applies validated field changes to an existing record and commits the updated state.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        user_id: ID of the user whose data should be read or modified.
+        role: Role value to apply to the selected user.
+        current_user_id: current user id value used by the operation.
+
+    Returns:
+        User produced by the operation.
+
+    Raises:
+        HTTPException: When the resource is missing or the user cannot perform the operation."""
     if user_id == current_user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -45,6 +72,15 @@ def update_user_role(
 
 
 def get_metrics(db: Session) -> dict:
+    """Get metrics.
+
+    Loads the requested service state and applies the missing-resource behavior expected by API callers.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+
+    Returns:
+        Dictionary containing serialized service state and metadata."""
     active_cutoff = datetime.now(timezone.utc) - timedelta(days=30)
 
     total_users   = db.query(func.count(User.id)).scalar() or 0
