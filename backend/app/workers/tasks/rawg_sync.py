@@ -23,9 +23,16 @@ class RequestBudgetExceeded(RuntimeError):
 
 @celery_app.task(name="rawg_sync.sync_games", bind=True, max_retries=3)
 def sync_games(self, page_start: int = 1, page_end: int = 10):
-    """
-    Backward-compatible admin trigger for a bounded popular-games discovery pass.
-    """
+    """Synchronize games.
+
+    Celery task entrypoint that delegates to the synchronous runner and lets Celery handle scheduling semantics.
+
+    Args:
+        page_start: First RAWG page to process for the bounded sync task. Defaults to 1.
+        page_end: Last RAWG page to process for the bounded sync task. Defaults to 10.
+
+    Returns:
+        Task result returned by the delegated runner, if any."""
     return _run_discovery(
         pass_names=("popular_added",),
         max_requests=max(1, page_end - page_start + 1),
@@ -36,10 +43,16 @@ def sync_games(self, page_start: int = 1, page_end: int = 10):
 
 
 def run_sync_catalog(max_requests: int | None = None, retry_task: Any | None = None) -> dict[str, Any]:
-    """
-    Resume the monthly catalog fill. Most requests go to list-page discovery; the
-    leftover budget enriches accepted games with full descriptions.
-    """
+    """Run sync catalog.
+
+    Runs RAWG discovery first, then spends any remaining budget on detail enrichment for already accepted games.
+
+    Args:
+        max_requests: Maximum number of external API requests the run may use. Defaults to None.
+        retry_task: Optional bound Celery task used to schedule retries for retryable failures. Defaults to None.
+
+    Returns:
+        Dictionary containing response data or task status metadata."""
     budget = max_requests or settings.RAWG_MONTHLY_REQUEST_BUDGET
     discovery_budget = max(1, int(budget * settings.RAWG_DISCOVERY_BUDGET_RATIO))
     discovery = _run_discovery(
@@ -58,6 +71,15 @@ def run_sync_catalog(max_requests: int | None = None, retry_task: Any | None = N
 
 @celery_app.task(name="rawg_sync.sync_catalog", bind=True, max_retries=3)
 def sync_catalog(self, max_requests: int | None = None):
+    """Synchronize catalog.
+
+    Celery task entrypoint that delegates to the synchronous runner and lets Celery handle scheduling semantics.
+
+    Args:
+        max_requests: Maximum number of external API requests the run may use. Defaults to None.
+
+    Returns:
+        Task result returned by the delegated runner, if any."""
     return run_sync_catalog(max_requests, retry_task=self)
 
 
@@ -66,9 +88,17 @@ def run_sync_recent_releases(
     days_back: int = 60,
     retry_task: Any | None = None,
 ) -> dict[str, Any]:
-    """
-    Fetch newly released games using list-page discovery only.
-    """
+    """Run sync recent releases.
+
+    Runs a recent-release discovery pass without requiring the monthly catalog checkpoints to be reset manually.
+
+    Args:
+        max_requests: Maximum number of external API requests the run may use. Defaults to None.
+        days_back: Number of recent days to include for recent-release discovery. Defaults to 60.
+        retry_task: Optional bound Celery task used to schedule retries for retryable failures. Defaults to None.
+
+    Returns:
+        Dictionary containing response data or task status metadata."""
     return _run_discovery(
         pass_names=("recent_releases",),
         max_requests=max_requests or settings.RAWG_RECENT_REQUEST_BUDGET,
@@ -80,10 +110,30 @@ def run_sync_recent_releases(
 
 @celery_app.task(name="rawg_sync.sync_recent_releases", bind=True, max_retries=3)
 def sync_recent_releases(self, max_requests: int | None = None, days_back: int = 60):
+    """Synchronize recent releases.
+
+    Celery task entrypoint that delegates to the synchronous runner and lets Celery handle scheduling semantics.
+
+    Args:
+        max_requests: Maximum number of external API requests the run may use. Defaults to None.
+        days_back: Number of recent days to include for recent-release discovery. Defaults to 60.
+
+    Returns:
+        Task result returned by the delegated runner, if any."""
     return run_sync_recent_releases(max_requests, days_back, retry_task=self)
 
 
 def run_enrich_known_games(max_requests: int | None = None, retry_task: Any | None = None) -> dict[str, Any]:
+    """Run enrich known games.
+
+    Runs RAWG detail enrichment for catalog games that are missing descriptions.
+
+    Args:
+        max_requests: Maximum number of external API requests the run may use. Defaults to None.
+        retry_task: Optional bound Celery task used to schedule retries for retryable failures. Defaults to None.
+
+    Returns:
+        Dictionary containing response data or task status metadata."""
     return _run_enrichment(
         max_requests=max_requests or settings.RAWG_DETAIL_REFRESH_REQUEST_BUDGET,
         retry_task=retry_task,
@@ -92,13 +142,28 @@ def run_enrich_known_games(max_requests: int | None = None, retry_task: Any | No
 
 @celery_app.task(name="rawg_sync.enrich_known_games", bind=True, max_retries=3)
 def enrich_known_games(self, max_requests: int | None = None):
+    """Enrich known games.
+
+    Celery task entrypoint that delegates to the synchronous runner and lets Celery handle scheduling semantics.
+
+    Args:
+        max_requests: Maximum number of external API requests the run may use. Defaults to None.
+
+    Returns:
+        Task result returned by the delegated runner, if any."""
     return run_enrich_known_games(max_requests, retry_task=self)
 
 
 def run_sync_game_details(rawg_id: int) -> dict[str, Any]:
-    """
-    Refresh detail metadata for an already-known game.
-    """
+    """Run sync game details.
+
+    Refreshes RAWG detail metadata for one already-known game and persists the normalized result.
+
+    Args:
+        rawg_id: RAWG game identifier to fetch or synchronize.
+
+    Returns:
+        Dictionary containing response data or task status metadata."""
     db = SessionLocal()
     try:
         game = db.query(Game).filter(Game.rawg_id == rawg_id).first()
@@ -120,6 +185,18 @@ def run_sync_game_details(rawg_id: int) -> dict[str, Any]:
 
 @celery_app.task(name="rawg_sync.sync_game_details", bind=True, max_retries=3)
 def sync_game_details(self, rawg_id: int):
+    """Synchronize game details.
+
+    Celery task entrypoint that delegates to the synchronous runner and lets Celery handle scheduling semantics.
+
+    Args:
+        rawg_id: RAWG game identifier to fetch or synchronize.
+
+    Returns:
+        Task result returned by the delegated runner, if any.
+
+    Raises:
+        RAWGRetryableError: When RAWG returns a transient failure and Celery schedules a retry."""
     try:
         return run_sync_game_details(rawg_id)
     except RAWGRetryableError as exc:
@@ -135,6 +212,25 @@ def _run_discovery(
     reset_completed: bool = False,
     retry_task: Any | None = None,
 ) -> dict[str, Any]:
+    """Run discovery.
+
+    Resumes RAWG list-page discovery from durable checkpoints and records
+    accepted, rejected, duplicate, and budget status.
+
+    Args:
+        pass_names: RAWG catalog pass names to run in order.
+        max_requests: Maximum number of external API requests the run may use.
+        days_back: Number of recent days to include for recent-release discovery. Defaults to 60.
+        page_override: Optional page number that overrides the persisted checkpoint. Defaults to None.
+        max_pages: Optional maximum number of pages to process in this run. Defaults to None.
+        reset_completed: Whether to reopen a completed sync checkpoint before processing. Defaults to False.
+        retry_task: Optional bound Celery task used to schedule retries for retryable failures. Defaults to None.
+
+    Returns:
+        Dictionary containing response data or task status metadata.
+
+    Raises:
+        RAWGRetryableError: When RAWG returns a transient failure and Celery schedules a retry."""
     db = SessionLocal()
     stats: dict[str, Any] = _initial_stats(phase="discovery")
     _write_status(stats)
@@ -216,6 +312,19 @@ def _run_discovery(
 
 
 def _run_enrichment(max_requests: int, retry_task: Any | None = None) -> dict[str, Any]:
+    """Run enrichment.
+
+    Fetches RAWG detail payloads for known games until the enrichment queue or request budget is exhausted.
+
+    Args:
+        max_requests: Maximum number of external API requests the run may use.
+        retry_task: Optional bound Celery task used to schedule retries for retryable failures. Defaults to None.
+
+    Returns:
+        Dictionary containing response data or task status metadata.
+
+    Raises:
+        RAWGRetryableError: When RAWG returns a transient failure and Celery schedules a retry."""
     db = SessionLocal()
     stats: dict[str, Any] = _initial_stats(phase="enrichment")
     _write_status(stats)
@@ -273,6 +382,19 @@ def _process_discovery_item(
     pass_name: str,
     stats: dict[str, Any],
 ) -> None:
+    """Process discovery item.
+
+    Deduplicates a RAWG list item, applies catalog filters, records the seen
+    decision, and inserts accepted games into the local catalog.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        item: RAWG list payload item to process.
+        pass_name: Named RAWG catalog pass that determines filter parameters.
+        stats: Mutable sync statistics dictionary for the current run.
+
+    Returns:
+        None."""
     rawg_id = item["id"]
     game = db.query(Game).filter(Game.rawg_id == rawg_id).first()
     if game is not None:
@@ -310,6 +432,20 @@ def _record_seen(
     reason: str,
     source_pass: str,
 ) -> None:
+    """Record seen.
+
+    Upserts the RAWG seen-game record so accepted items are tracked and rejected
+    items can be skipped until their recheck window expires.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        rawg_id: RAWG game identifier to fetch or synchronize.
+        accepted: Whether the RAWG item passed filters and was accepted into the catalog.
+        reason: Reason code explaining why a RAWG item was accepted, rejected, or stopped.
+        source_pass: RAWG catalog pass that produced the item.
+
+    Returns:
+        None."""
     now = datetime.now(timezone.utc)
     seen = db.get(RawgSeenGame, rawg_id)
     if seen is None:
@@ -324,6 +460,17 @@ def _record_seen(
 
 
 def _apply_game_payload(game: Game, payload: dict[str, Any]) -> None:
+    """Apply game payload.
+
+    Copies normalized RAWG fields onto a `Game` model and refreshes its sync
+    timestamp.
+
+    Args:
+        game: Game model being updated or serialized.
+        payload: Normalized payload or status data used by the operation.
+
+    Returns:
+        None."""
     game.name = payload["name"]
     game.slug = payload["slug"]
     game.description = payload.get("description")
@@ -341,6 +488,16 @@ def _apply_game_payload(game: Game, payload: dict[str, Any]) -> None:
 
 
 def _game_to_payload(game: Game) -> dict[str, Any]:
+    """Serialize to payload.
+
+    Converts a `Game` model into the payload shape expected by RAWG
+    normalization and merge helpers.
+
+    Args:
+        game: Game model being updated or serialized.
+
+    Returns:
+        Dictionary containing response data or task status metadata."""
     return {
         "id": game.rawg_id,
         "name": game.name,
@@ -360,6 +517,18 @@ def _game_to_payload(game: Game) -> dict[str, Any]:
 
 
 def _ensure_unique_slug(db: Session, payload: dict[str, Any], rawg_id: int) -> None:
+    """Ensure unique slug.
+
+    Ensures the normalized payload slug does not collide with a different RAWG
+    game already stored in the catalog.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        payload: Normalized payload or status data used by the operation.
+        rawg_id: RAWG game identifier to fetch or synchronize.
+
+    Returns:
+        None."""
     slug = payload.get("slug") or f"rawg-{rawg_id}"
     existing = db.query(Game.rawg_id).filter(Game.slug == slug).first()
     if existing and existing[0] != rawg_id:
@@ -368,6 +537,17 @@ def _ensure_unique_slug(db: Session, payload: dict[str, Any], rawg_id: int) -> N
 
 
 def _get_or_create_state(db: Session, pass_name: str) -> RawgSyncState:
+    """Get or create state.
+
+    Loads the durable checkpoint for a RAWG pass or creates a fresh checkpoint
+    starting at page one.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        pass_name: Named RAWG catalog pass that determines filter parameters.
+
+    Returns:
+        RawgSyncState produced by the operation."""
     state = db.get(RawgSyncState, pass_name)
     if state is None:
         state = RawgSyncState(pass_name=pass_name, next_page=1, completed=False)
@@ -377,6 +557,17 @@ def _get_or_create_state(db: Session, pass_name: str) -> RawgSyncState:
 
 
 def _mark_completed(state: RawgSyncState, stats: dict[str, Any]) -> None:
+    """Mark completed.
+
+    Marks a RAWG pass checkpoint as complete and stores the successful request
+    count for observability.
+
+    Args:
+        state: RAWG sync checkpoint row to update.
+        stats: Mutable sync statistics dictionary for the current run.
+
+    Returns:
+        None."""
     state.completed = True
     state.last_success_at = datetime.now(timezone.utc)
     state.last_error = None
@@ -385,6 +576,18 @@ def _mark_completed(state: RawgSyncState, stats: dict[str, Any]) -> None:
 
 
 def _mark_stopped(state: RawgSyncState, stats: dict[str, Any], reason: str) -> None:
+    """Mark stopped.
+
+    Records a budget, quota, or other stop reason without advancing the pass to
+    a completed state.
+
+    Args:
+        state: RAWG sync checkpoint row to update.
+        stats: Mutable sync statistics dictionary for the current run.
+        reason: Reason code explaining why a RAWG item was accepted, rejected, or stopped.
+
+    Returns:
+        None."""
     stats["status"] = "stopped"
     stats["stop_reason"] = reason
     state.completed = False
@@ -395,6 +598,18 @@ def _mark_stopped(state: RawgSyncState, stats: dict[str, Any], reason: str) -> N
 
 
 def _record_error(db: Session, stats: dict[str, Any], exc: Exception) -> None:
+    """Record error.
+
+    Stores error status on the current run and checkpoint so the admin status
+    endpoint can report the failed pass.
+
+    Args:
+        db: SQLAlchemy database session used to query or persist application data.
+        stats: Mutable sync statistics dictionary for the current run.
+        exc: Exception that should be recorded in sync status.
+
+    Returns:
+        None."""
     stats["status"] = "error"
     stats["stop_reason"] = str(exc)
     current_pass = stats.get("current_pass")
@@ -409,6 +624,16 @@ def _record_error(db: Session, stats: dict[str, Any], exc: Exception) -> None:
 
 
 def _initial_stats(phase: str) -> dict[str, Any]:
+    """Initialize stats.
+
+    Creates the standard status dictionary written to the RAWG pipeline status
+    cache during discovery and enrichment runs.
+
+    Args:
+        phase: Pipeline phase name used to initialize status metadata.
+
+    Returns:
+        Dictionary containing response data or task status metadata."""
     return {
         "last_run": datetime.now(timezone.utc).isoformat(),
         "phase": phase,
@@ -426,11 +651,35 @@ def _initial_stats(phase: str) -> dict[str, Any]:
 
 
 def _ensure_budget(stats: dict[str, Any], max_requests: int) -> None:
+    """Ensure budget.
+
+    Checks the current request count against the run budget before another RAWG
+    request is attempted.
+
+    Args:
+        stats: Mutable sync statistics dictionary for the current run.
+        max_requests: Maximum number of external API requests the run may use.
+
+    Returns:
+        None.
+
+    Raises:
+        RequestBudgetExceeded: When the run has used its configured request budget."""
     if stats["requests_used"] >= max_requests:
         raise RequestBudgetExceeded("request_budget_exhausted")
 
 
 def _write_status(payload: dict[str, Any]) -> None:
+    """Write status.
+
+    Writes best-effort RAWG pipeline status to the configured key-value store
+    without failing the sync when the cache backend is unavailable.
+
+    Args:
+        payload: Normalized payload or status data used by the operation.
+
+    Returns:
+        None."""
     try:
         kv_store.set_json(PIPELINE_STATUS_KEY, payload)
     except Exception:
@@ -438,6 +687,16 @@ def _write_status(payload: dict[str, Any]) -> None:
 
 
 def _parse_date(value: Any) -> date | None:
+    """Parse date.
+
+    Converts RAWG date values into `date` objects while treating missing or
+    malformed values as unknown.
+
+    Args:
+        value: Raw date-like value to parse.
+
+    Returns:
+        date | None when data is available; otherwise None."""
     if isinstance(value, date):
         return value
     if not value:
@@ -449,6 +708,16 @@ def _parse_date(value: Any) -> date | None:
 
 
 def _as_aware_utc(value: datetime) -> datetime:
+    """Convert aware UTC.
+
+    Converts naive or timezone-aware datetimes into timezone-aware UTC values
+    for checkpoint comparisons.
+
+    Args:
+        value: Datetime value to normalize.
+
+    Returns:
+        datetime produced by the operation."""
     if value.tzinfo is None:
         return value.replace(tzinfo=timezone.utc)
     return value.astimezone(timezone.utc)

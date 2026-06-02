@@ -6,12 +6,15 @@ logger = logging.getLogger(__name__)
 
 
 def run_precompute_for_user(user_id: int) -> None:
-    """
-    Recompute the cosine-similarity recommendation batch after library changes.
+    """Run precompute for user.
 
-    This keeps the standard game recommendation feed warm in the background so
-    the next request can usually return a ready batch immediately.
-    """
+    Recomputes a user recommendation batch and invalidates cached AI-derived taste summaries after library changes.
+
+    Args:
+        user_id: ID of the user whose background work should run.
+
+    Returns:
+        None."""
     from app.database import SessionLocal
     from app.services import recommendation_service
 
@@ -43,13 +46,29 @@ def run_precompute_for_user(user_id: int) -> None:
 
 @celery_app.task(name="recommendation.precompute_for_user")
 def precompute_for_user(user_id: int) -> None:
+    """Precompute for user.
+
+    Celery task entrypoint that delegates to the synchronous runner and lets Celery handle scheduling semantics.
+
+    Args:
+        user_id: ID of the user whose background work should run.
+
+    Returns:
+        None."""
     run_precompute_for_user(user_id)
 
 
 def run_generate_ai_picks(recommendation_id: int, user_id: int) -> None:
-    """
-    Generate the LLM-native AI Picks batch for a pending recommendation row.
-    """
+    """Run generate AI picks.
+
+    Generates an AI Picks recommendation batch and marks the row failed if generation cannot complete.
+
+    Args:
+        recommendation_id: ID of the recommendation batch to enrich or update.
+        user_id: ID of the user whose background work should run.
+
+    Returns:
+        None."""
     from app.database import SessionLocal
     from app.models.recommendation import Recommendation, RecommendationKind, RecommendationStatus
     from app.services.ai_picks_service import generate_ai_picks_for_recommendation
@@ -84,13 +103,30 @@ def run_generate_ai_picks(recommendation_id: int, user_id: int) -> None:
 
 @celery_app.task(name="recommendation.generate_ai_picks")
 def generate_ai_picks(recommendation_id: int, user_id: int) -> None:
+    """Generate ai picks.
+
+    Celery task entrypoint that delegates to the synchronous runner and lets Celery handle scheduling semantics.
+
+    Args:
+        recommendation_id: ID of the recommendation batch to enrich or update.
+        user_id: ID of the user whose background work should run.
+
+    Returns:
+        None."""
     run_generate_ai_picks(recommendation_id, user_id)
 
 
 def run_generate_queue_suggestion(suggestion_id: int, user_id: int) -> None:
-    """
-    Generate the LLM-based suggested play order for a pending queue request.
-    """
+    """Run generate queue suggestion.
+
+    Generates an AI queue ordering suggestion and stores failure metadata on the suggestion row when needed.
+
+    Args:
+        suggestion_id: ID of the queue suggestion row to generate.
+        user_id: ID of the user whose background work should run.
+
+    Returns:
+        None."""
     from app.database import SessionLocal
     from app.models.queue_suggestion import QueueSuggestion
     from app.services.queue_suggestion_service import generate_queue_suggestion_for_user
@@ -121,16 +157,29 @@ def run_generate_queue_suggestion(suggestion_id: int, user_id: int) -> None:
 
 @celery_app.task(name="queue.generate_suggestion")
 def generate_queue_suggestion(suggestion_id: int, user_id: int) -> None:
+    """Generate queue suggestion.
+
+    Celery task entrypoint that delegates to the synchronous runner and lets Celery handle scheduling semantics.
+
+    Args:
+        suggestion_id: ID of the queue suggestion row to generate.
+        user_id: ID of the user whose background work should run.
+
+    Returns:
+        None."""
     run_generate_queue_suggestion(suggestion_id, user_id)
 
 
 def run_generate_ai_explanations(recommendation_id: int) -> None:
-    """
-    Populate premium LLM explanations for an existing recommendation batch.
+    """Run generate AI explanations.
 
-    The task runs after the cosine-similarity batch is already stored so the
-    API response is not blocked while the explanations are generated.
-    """
+    Loads a stored recommendation batch, generates premium explanations, and writes them onto recommendation items.
+
+    Args:
+        recommendation_id: ID of the recommendation batch to enrich or update.
+
+    Returns:
+        None."""
     from sqlalchemy.orm import joinedload
 
     from app.database import SessionLocal
@@ -176,4 +225,13 @@ def run_generate_ai_explanations(recommendation_id: int) -> None:
 
 @celery_app.task(name="recommendation.generate_ai_explanations")
 def generate_ai_explanations(recommendation_id: int) -> None:
+    """Generate ai explanations.
+
+    Celery task entrypoint that delegates to the synchronous runner and lets Celery handle scheduling semantics.
+
+    Args:
+        recommendation_id: ID of the recommendation batch to enrich or update.
+
+    Returns:
+        None."""
     run_generate_ai_explanations(recommendation_id)

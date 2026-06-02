@@ -32,6 +32,19 @@ _STEAM_ID_RE = re.compile(r"^\d{17}$")
 
 
 def extract_steam_identifier(value: str) -> str:
+    """Extract a Steam profile identifier.
+
+    Accepts SteamID64 values and common Steam profile URL forms, normalizing
+    them to an identifier for later Steam Web API resolution.
+
+    Args:
+        value: Raw user-provided Steam profile value to parse.
+
+    Returns:
+        SteamID64 or vanity identifier extracted from the input.
+
+    Raises:
+        SteamProfileNotFoundError: When a Steam profile identifier cannot be parsed or resolved."""
     raw = value.strip()
     if not raw:
         raise SteamProfileNotFoundError("Enter a SteamID64 or Steam profile URL.")
@@ -55,15 +68,50 @@ def extract_steam_identifier(value: str) -> str:
 
 class SteamClient:
     def __init__(self, api_key: str | None = None, base_url: str | None = None, timeout: float = 15.0):
+        """Initialize the client.
+
+        Stores endpoint, credential, and timeout configuration used by subsequent client calls.
+
+        Args:
+            api_key: Optional API key override. Defaults to the configured service API key.
+            base_url: Optional API base URL override. Defaults to application settings.
+            timeout: HTTP request timeout in seconds. Defaults to 15.0.
+
+        Returns:
+            None."""
         self.api_key = api_key if api_key is not None else settings.STEAM_API_KEY
         self.base_url = (base_url if base_url is not None else settings.STEAM_API_BASE_URL).rstrip("/")
         self.timeout = timeout
 
     def _require_key(self) -> None:
+        """Require a configured Steam API key.
+
+        Verifies that Steam imports are configured before making outbound
+        requests that would otherwise fail with ambiguous provider errors.
+
+        Returns:
+            None.
+
+        Raises:
+            SteamAPIError: When the Steam Web API is unavailable, misconfigured, or returns invalid data."""
         if not self.api_key:
             raise SteamAPIError("Steam import is not configured. Set STEAM_API_KEY.")
 
     def _get(self, path: str, params: dict) -> dict:
+        """Send a GET request to the Steam Web API.
+
+        Adds authentication and JSON format parameters, performs the HTTP
+        request, and maps transport or decoding failures to `SteamAPIError`.
+
+        Args:
+            path: API path to request, relative to the configured base URL.
+            params: Query parameters to send with the API request.
+
+    Returns:
+            Decoded Steam Web API JSON response.
+
+        Raises:
+            SteamAPIError: When the Steam Web API is unavailable, misconfigured, or returns invalid data."""
         self._require_key()
         try:
             response = httpx.get(
@@ -79,6 +127,19 @@ class SteamClient:
             raise SteamAPIError("Steam API returned an unreadable response.") from exc
 
     def resolve_steam_id(self, steam_profile: str) -> str:
+        """Resolve steam ID.
+
+        Converts a SteamID64 or vanity profile input into a canonical SteamID64
+        using the Steam vanity resolution endpoint when needed.
+
+        Args:
+            steam_profile: Steam vanity URL, profile URL, or Steam ID to resolve.
+
+    Returns:
+            Canonical SteamID64 for the supplied profile.
+
+        Raises:
+            SteamProfileNotFoundError: When a Steam profile identifier cannot be parsed or resolved."""
         identifier = extract_steam_identifier(steam_profile)
         if _STEAM_ID_RE.match(identifier):
             return identifier
@@ -90,6 +151,20 @@ class SteamClient:
         return str(response["steamid"])
 
     def ensure_public_profile(self, steam_id: str) -> dict:
+        """Ensure public profile.
+
+        Loads the Steam player summary and verifies that the community profile
+        is public before library import continues.
+
+        Args:
+            steam_id: SteamID64 value used for Steam Web API requests.
+
+    Returns:
+            Steam player summary payload for the public profile.
+
+        Raises:
+            SteamProfileNotFoundError: When a Steam profile identifier cannot be parsed or resolved.
+            SteamProfilePrivateError: When the Steam profile or owned-games library is private."""
         payload = self._get("/ISteamUser/GetPlayerSummaries/v2/", {"steamids": steam_id})
         players = (payload.get("response") or {}).get("players") or []
         if not players:
@@ -101,6 +176,18 @@ class SteamClient:
         return player
 
     def get_owned_games(self, steam_id: str) -> list[SteamOwnedGame]:
+        """Get owned games.
+
+        Performs the external API request, validates the response, and returns normalized response data.
+
+        Args:
+            steam_id: SteamID64 value used for Steam Web API requests.
+
+        Returns:
+            List of normalized result objects.
+
+        Raises:
+            SteamProfilePrivateError: When the Steam profile or owned-games library is private."""
         payload = self._get(
             "/IPlayerService/GetOwnedGames/v1/",
             {

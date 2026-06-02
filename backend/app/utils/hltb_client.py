@@ -22,17 +22,16 @@ HLTB_RATE_LIMIT_SLEEP = 1.5
 
 
 async def fetch_hltb(title: str) -> dict | None:
-    """
-    Search HLTB for *title* and return playtime data if a confident match is found.
+    """Fetch HowLongToBeat playtime data.
 
-    Returns a dict with keys:
-        main          – main story hours (float | None)
-        main_extra    – main story + extras hours (float | None)
-        completionist – completionist hours (float | None)
+    Searches HowLongToBeat asynchronously, fuzzy-matches the best result, and
+    returns playtime hours only when confidence is high enough.
 
-    Returns None if no result is found or if the best match scores below
-    HLTB_CONFIDENCE_THRESHOLD (to avoid false positives from similar titles).
-    """
+    Args:
+        title: Game title to search or normalize.
+
+    Returns:
+        dict | None when data is available; otherwise None."""
     try:
         results = await HowLongToBeat().async_search(title)
     except Exception as exc:
@@ -56,7 +55,16 @@ async def fetch_hltb(title: str) -> dict | None:
     logger.debug("HLTB match: %r → %r (score=%d)", title, best.game_name, score)
 
     def _hours(val: float) -> float | None:
-        """Convert HLTB value to hours; return None for sentinel -1 values."""
+        """Convert an HLTB hour value.
+
+        Treats HLTB sentinel and empty values as missing data while preserving
+        positive playtime estimates as floats.
+
+        Args:
+            val: Raw HLTB hour value to normalize.
+
+        Returns:
+            float | None when data is available; otherwise None."""
         return float(val) if val and val > 0 else None
 
     return {

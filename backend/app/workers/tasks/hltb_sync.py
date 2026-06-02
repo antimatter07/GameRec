@@ -19,12 +19,15 @@ logger = logging.getLogger(__name__)
 
 
 def run_enrich_game_hltb(game_id: int) -> None:
-    """
-    Fetch HLTB playtime data for a single game and persist it to the DB.
+    """Run enrich game hltb.
 
-    Sets hltb_synced_at regardless of whether a confident match was found so
-    that enrich_all_hltb() does not keep re-queuing the same game on every run.
-    """
+    Fetches HLTB playtime data for one game, stores any confident match, and stamps the sync timestamp either way.
+
+    Args:
+        game_id: Application game ID to enrich.
+
+    Returns:
+        None."""
     db = SessionLocal()
     try:
         game = db.get(Game, game_id)
@@ -59,6 +62,19 @@ def run_enrich_game_hltb(game_id: int) -> None:
 
 @celery_app.task(name="hltb_sync.enrich_game_hltb", bind=True, max_retries=3)
 def enrich_game_hltb(self, game_id: int):
+    """Enrich game hltb.
+
+    Celery task entrypoint that delegates to the synchronous runner and retries
+    transient HLTB or database failures.
+
+    Args:
+        game_id: Application game ID to enrich.
+
+    Returns:
+        Task result returned by the delegated runner, if any.
+
+    Raises:
+        Exception: When Celery schedules a retry for the failed enrichment run."""
     try:
         run_enrich_game_hltb(game_id)
     except Exception as exc:
@@ -67,13 +83,12 @@ def enrich_game_hltb(self, game_id: int):
 
 @celery_app.task(name="hltb_sync.enrich_all_hltb")
 def enrich_all_hltb() -> int:
-    """
-    Dispatch enrich_game_hltb tasks for every game that has not yet been enriched
-    (hltb_synced_at IS NULL). Tasks are staggered 2 seconds apart via countdown
-    to stay within HLTB's unofficial rate limits.
+    """Enrich all hltb.
 
-    Returns the number of games enqueued.
-    """
+    Finds games without HLTB sync timestamps and enqueues staggered enrichment jobs for them.
+
+    Returns:
+        Integer value produced by the operation."""
     db = SessionLocal()
     try:
         game_ids = (
