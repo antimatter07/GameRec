@@ -18,6 +18,7 @@ BACKFILL_PASSES = ("popular_added", "metacritic", "high_rating")
 
 
 class RequestBudgetExceeded(RuntimeError):
+    """Raised when a RAWG sync run reaches its configured request budget."""
     pass
 
 

@@ -5,13 +5,15 @@ from app.models.user import UserRole
 
 
 def get_rate_limit_key(request):
-    """
-    Use authenticated user ID as the rate-limit key when available,
-    falling back to IP address for unauthenticated requests.
+    """Get rate limit key.
 
-    TODO: Extract the User from request.state (set it in a middleware or
-          auth dependency) and return f"user:{user.id}"
-    """
+    Returns the request IP address currently used by SlowAPI to bucket rate-limited callers.
+
+    Args:
+        request: Incoming FastAPI request object.
+
+    Returns:
+        Rate-limit key string."""
     return get_remote_address(request)
 
 
@@ -19,7 +21,15 @@ limiter = Limiter(key_func=get_rate_limit_key)
 
 
 def get_rate_limit(role: UserRole) -> str:
-    """Return the SlowAPI limit string for the given user role."""
+    """Get rate limit.
+
+    Maps a user role to the configured SlowAPI rate-limit string.
+
+    Args:
+        role: User role whose request limit should be selected.
+
+    Returns:
+        SlowAPI-compatible limit string."""
     from app.config import settings  # local import to avoid circular dependency
 
     limits = {

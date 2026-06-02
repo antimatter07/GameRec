@@ -9,6 +9,7 @@ JournalNoteStatus = str
 # ─── Session Logs ─────────────────────────────────────────────────────────────
 
 class SessionLogCreate(BaseModel):
+    """Request schema for creating a journal play session."""
     game_id:          int
     library_entry_id: int | None       = None
     ended_at:         datetime | None  = None
@@ -21,6 +22,7 @@ class SessionLogCreate(BaseModel):
 
 
 class SessionLogUpdate(BaseModel):
+    """Request schema for updating journal play session fields."""
     ended_at:         datetime | None  = None
     duration_minutes: int | None       = Field(None, ge=1)
     notes:            str | None       = None
@@ -30,6 +32,7 @@ class SessionLogUpdate(BaseModel):
 
 
 class SessionLogOut(BaseModel):
+    """Response schema for a journal play session with derived game fields."""
     id:               int
     user_id:          int
     game_id:          int
@@ -51,6 +54,7 @@ class SessionLogOut(BaseModel):
 
 
 class PaginatedSessionsOut(BaseModel):
+    """Paginated response schema for journal sessions."""
     items:    list[SessionLogOut]
     total:    int
     page:     int
@@ -61,6 +65,7 @@ class PaginatedSessionsOut(BaseModel):
 # ─── Scratchpad Notes ─────────────────────────────────────────────────────────
 
 class PlaythroughNoteCreate(BaseModel):
+    """Request schema for creating a playthrough note."""
     game_id:             int
     library_entry_id:    int | None = None
     session_log_id:      int | None = None
@@ -73,6 +78,7 @@ class PlaythroughNoteCreate(BaseModel):
 
 
 class PlaythroughNoteUpdate(BaseModel):
+    """Request schema for updating a playthrough note."""
     kind:                JournalNoteKind | None = None
     title:               str | None = Field(None, min_length=1, max_length=255)
     body:                str | None = None
@@ -82,6 +88,7 @@ class PlaythroughNoteUpdate(BaseModel):
 
 
 class PlaythroughNoteOut(BaseModel):
+    """Response schema for a playthrough note with derived game fields."""
     id:                  int
     user_id:             int
     game_id:             int
@@ -103,6 +110,7 @@ class PlaythroughNoteOut(BaseModel):
 
 
 class PaginatedPlaythroughNotesOut(BaseModel):
+    """Paginated response schema for playthrough notes."""
     items:    list[PlaythroughNoteOut]
     total:    int
     page:     int
@@ -113,16 +121,19 @@ class PaginatedPlaythroughNotesOut(BaseModel):
 # ─── Stats ────────────────────────────────────────────────────────────────────
 
 class TopGenreItem(BaseModel):
+    """Response schema for playtime grouped by genre."""
     genre: str
     hours: float
 
 
 class DailyHoursItem(BaseModel):
+    """Response schema for playtime grouped by weekday."""
     day:   str    # short weekday name: "Mon", "Tue", …
     hours: float
 
 
 class JournalStats(BaseModel):
+    """Response schema containing aggregate journal and emotion statistics."""
     total_hours_all_time:      float
     total_hours_this_month:    float
     total_hours_this_week:     float
@@ -147,6 +158,7 @@ class JournalStats(BaseModel):
 # ─── Multi-Axis Ratings ───────────────────────────────────────────────────────
 
 class MultiAxisRatingUpsert(BaseModel):
+    """Request schema for creating or updating multi-axis game ratings."""
     story:      float | None = Field(None, ge=0, le=5)
     gameplay:   float | None = Field(None, ge=0, le=5)
     visuals:    float | None = Field(None, ge=0, le=5)
@@ -155,6 +167,7 @@ class MultiAxisRatingUpsert(BaseModel):
 
 
 class MultiAxisRatingOut(BaseModel):
+    """Response schema for a multi-axis game rating."""
     id:               int
     user_id:          int
     game_id:          int
@@ -175,12 +188,14 @@ class MultiAxisRatingOut(BaseModel):
 # ─── Emotion Stats ────────────────────────────────────────────────────────────
 
 class EmotionFrequencyItem(BaseModel):
+    """Response schema for one emotion frequency bucket."""
     emotion:       str
     session_count: int
     percentage:    float
 
 
 class EmotionGameCorrelation(BaseModel):
+    """Response schema for emotion patterns associated with a game."""
     game_id:          int
     game_title:       str
     cover_url:        str | None
@@ -189,6 +204,7 @@ class EmotionGameCorrelation(BaseModel):
 
 
 class EmotionGenreCorrelation(BaseModel):
+    """Response schema for emotion patterns associated with a genre."""
     genre:             str
     dominant_emotion:  str
     session_count:     int
@@ -196,11 +212,13 @@ class EmotionGenreCorrelation(BaseModel):
 
 
 class EmotionMonthlyBucket(BaseModel):
+    """Response schema for monthly emotion frequency data."""
     month:     str
     frequency: list[EmotionFrequencyItem]
 
 
 class EmotionStats(BaseModel):
+    """Response schema containing detailed journal emotion analytics."""
     period:                       str
     total_sessions_with_emotions: int
     total_sessions:               int

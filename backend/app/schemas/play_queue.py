@@ -6,6 +6,7 @@ from app.schemas.library import LibraryEntryOut
 
 
 class PlayQueueEntryOut(BaseModel):
+    """Response schema for one play queue entry."""
     id:       int
     entry_id: int
     position: int
@@ -16,23 +17,28 @@ class PlayQueueEntryOut(BaseModel):
 
 
 class PlayQueueOut(BaseModel):
+    """Response schema for the current ordered play queue."""
     total:   int
     entries: list[PlayQueueEntryOut]
 
 
 class PlayQueueEnqueue(BaseModel):
+    """Request schema for adding a library entry to the play queue."""
     entry_id: int
 
 
 class PlayQueueReorder(BaseModel):
+    """Request schema for submitting a complete play queue ordering."""
     ordered_entry_ids: list[int]
 
 
 class QueueSuggestionEnsureIn(BaseModel):
+    """Request schema for creating or refreshing a queue suggestion."""
     trigger_source: str = "queue_tab"
 
 
 class QueueSuggestionItemOut(BaseModel):
+    """Response schema for one item in an AI queue suggestion."""
     id:                 int
     entry_id:           int
     original_position:  int
@@ -44,6 +50,7 @@ class QueueSuggestionItemOut(BaseModel):
 
 
 class QueueSuggestionOut(BaseModel):
+    """Response schema for an AI-generated queue suggestion batch."""
     id:                  int
     queue_fingerprint:   str
     status:              str
@@ -59,6 +66,7 @@ class QueueSuggestionOut(BaseModel):
 
 
 class QueueSuggestionStateOut(BaseModel):
+    """Response schema describing current queue suggestion state."""
     suggestion:    QueueSuggestionOut | None
     is_stale:      bool
     is_generating: bool

@@ -7,6 +7,7 @@ from app.schemas.game import GameListOut
 
 
 class RecommendationItemOut(BaseModel):
+    """Response schema for one ranked recommendation item."""
     id:          int
     rank:        int
     score:       float        # cosine similarity 0–1, shown as match %
@@ -19,6 +20,7 @@ class RecommendationItemOut(BaseModel):
 
 
 class RecommendationOut(BaseModel):
+    """Response schema for a recommendation batch with ranked items."""
     id:           int
     generated_at: datetime
     kind:         str
@@ -31,6 +33,7 @@ class RecommendationOut(BaseModel):
 
 
 class AIPicksStateOut(BaseModel):
+    """Response schema for the current AI Picks lifecycle state."""
     recommendation: RecommendationOut | None
     is_stale: bool
     can_refresh: bool
@@ -39,6 +42,7 @@ class AIPicksStateOut(BaseModel):
 
 
 class FeedbackCreate(BaseModel):
+    """Request schema for recommendation helpfulness feedback."""
     item_id:    int
     is_helpful: bool
 
@@ -46,10 +50,7 @@ class FeedbackCreate(BaseModel):
 # --- Premium-only schemas ---
 
 class GameDNAOut(BaseModel):
-    """
-    Taste profile analysis for premium users.
-    TODO: Finalize the exact shape once ai_service.generate_game_dna() is implemented.
-    """
+    """Response schema for premium Game DNA summary data."""
     top_genres:  list[dict]  # [{"name": "RPG", "weight": 0.42}, ...]
     top_tags:    list[dict]  # [{"name": "Open World", "weight": 0.38}, ...]
     preferred_era: str | None  # e.g. "2000s – early 2010s"

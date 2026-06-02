@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 
 class GameOut(BaseModel):
-    """Full game detail — used on the game detail page."""
+    """Detailed game response schema used by game detail endpoints."""
     id:               int
     rawg_id:          int
     name:             str
@@ -29,7 +29,7 @@ class GameOut(BaseModel):
 
 
 class GameListOut(BaseModel):
-    """Lightweight game info — used in list/catalog views and nested in other schemas."""
+    """Compact game response schema used by catalog lists and nested responses."""
     id:               int
     name:             str
     slug:             str
@@ -45,6 +45,7 @@ class GameListOut(BaseModel):
 
 
 class PaginatedGames(BaseModel):
+    """Paginated catalog response containing compact game records."""
     total:     int
     page:      int
     page_size: int

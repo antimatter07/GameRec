@@ -3,44 +3,69 @@ from app.models.user import User, UserRole
 
 
 def is_premium_or_admin(user: User) -> bool:
-    """Return whether the user is allowed to use premium-tier features."""
+    """Check premium or admin access.
+
+    Returns whether the user has a premium-capable role.
+
+    Args:
+        user: User model whose role should be checked.
+
+    Returns:
+        True when the user is premium or admin; otherwise False."""
     return user.role in (UserRole.PREMIUM, UserRole.ADMIN)
 
 
 def is_admin(user: User) -> bool:
-    """Return whether the user has admin privileges."""
+    """Check admin access.
+
+    Returns whether the user has the admin role.
+
+    Args:
+        user: User model whose role should be checked.
+
+    Returns:
+        True when the user is an admin; otherwise False."""
     return user.role == UserRole.ADMIN
 
 
 def can_access_ai_features(user: User) -> bool:
-    """
-    Gate for premium AI-enhanced recommendations and Game DNA.
+    """Check AI feature access.
 
-    TODO: Extend to check subscription expiry, feature flags, A/B tests, etc.
-    """
+    Central feature gate for premium AI recommendations and Game DNA.
+
+    Args:
+        user: User model whose feature access should be checked.
+
+    Returns:
+        True when the user can access premium AI features; otherwise False."""
     return is_premium_or_admin(user)
 
 
 def can_access_ai_picks(user: User) -> bool:
-    """
-    Gate for the LLM-native AI Picks surface.
+    """Check AI Picks access.
 
-    This gate is intentionally separate from the premium AI feature gate so
-    the product can be enabled for everyone or restricted later through
-    configuration without changing the route layer.
-    """
+    Applies the AI Picks premium setting before falling back to role-based access.
+
+    Args:
+        user: User model whose feature access should be checked.
+
+    Returns:
+        True when the user can access AI Picks; otherwise False."""
     if not settings.AI_PICKS_REQUIRE_PREMIUM:
         return True
     return is_premium_or_admin(user)
 
 
 def can_access_queue_suggestions(user: User) -> bool:
-    """
-    Gate for AI suggested play-order access.
+    """Check queue suggestion access.
 
-    This is kept separate from AI Picks so launch access can differ and the
-    feature can later become premium-only through configuration alone.
-    """
+    Applies the queue suggestion premium setting before falling back to role-based access.
+
+    Args:
+        user: User model whose feature access should be checked.
+
+    Returns:
+        True when the user can access AI queue suggestions; otherwise False."""
     if not settings.QUEUE_SUGGESTION_REQUIRE_PREMIUM:
         return True
     return is_premium_or_admin(user)

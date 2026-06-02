@@ -6,14 +6,23 @@ GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
 
 
 class GoogleTokenError(Exception):
+    """Raised when Google OAuth token verification cannot complete successfully."""
     pass
 
 
 def verify_google_access_token(access_token: str) -> dict:
-    """
-    Call Google's userinfo endpoint to validate an access_token and return user claims.
-    Returns dict with: sub, email, email_verified, name, picture.
-    """
+    """Verify a Google access token.
+
+    Calls Google userinfo, verifies required account claims, and returns normalized Google profile claims.
+
+    Args:
+        access_token: Google OAuth access token to verify.
+
+    Returns:
+        Google userinfo claims dictionary.
+
+    Raises:
+        GoogleTokenError: When Google OAuth is unavailable or the token claims are invalid."""
     if not settings.GOOGLE_CLIENT_ID:
         raise GoogleTokenError("Google OAuth is not configured on this server")
     try:

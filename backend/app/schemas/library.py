@@ -7,6 +7,7 @@ from app.schemas.game import GameListOut
 
 
 class LibraryEntryCreate(BaseModel):
+    """Request schema for adding a game to a user library."""
     game_id: int
     status:  LibraryStatus        = LibraryStatus.WISHLIST
     rating:  float | None         = Field(None, ge=1, le=5)
@@ -14,12 +15,14 @@ class LibraryEntryCreate(BaseModel):
 
 
 class LibraryEntryUpdate(BaseModel):
+    """Request schema for changing library status, rating, or review fields."""
     status: LibraryStatus | None  = None
     rating: float | None          = Field(None, ge=1, le=5)
     review: str | None            = None
 
 
 class LibraryEntryOut(BaseModel):
+    """Response schema for a library entry with nested game details."""
     id:         int
     game:       GameListOut
     status:     LibraryStatus
@@ -32,6 +35,7 @@ class LibraryEntryOut(BaseModel):
 
 
 class PaginatedLibraryEntries(BaseModel):
+    """Paginated response schema for user library entries."""
     total:     int
     page:      int
     page_size: int
@@ -39,6 +43,7 @@ class PaginatedLibraryEntries(BaseModel):
 
 
 class LibraryStats(BaseModel):
+    """Response schema containing aggregate library counts and rating statistics."""
     total_games: int
     by_status:   dict[str, int]   # {"playing": 3, "completed": 10, ...}
     avg_rating:  float | None
@@ -47,6 +52,7 @@ class LibraryStats(BaseModel):
 
 
 class PrioritizedBacklogItem(BaseModel):
+    """Response schema for one scored backlog recommendation item."""
     entry_id:       int
     game:           GameListOut
     playtime_hours: float | None  # hltb_main_hours if set, else RAWG playtime, else None
@@ -58,11 +64,13 @@ class PrioritizedBacklogItem(BaseModel):
 
 
 class PrioritizedBacklogOut(BaseModel):
+    """Response schema for prioritized backlog results."""
     total:   int
     results: list[PrioritizedBacklogItem]
 
 
 class LibraryEntryUpdateOut(BaseModel):
+    """Response schema for library updates and any queue side effects."""
     entry:         LibraryEntryOut
     queue_removed: bool               = False
     next_game_candidate: LibraryEntryOut | None = None
@@ -73,10 +81,12 @@ class LibraryEntryUpdateOut(BaseModel):
 
 
 class SteamImportRequest(BaseModel):
+    """Request schema for importing a public Steam library."""
     steam_profile: str = Field(..., min_length=1, max_length=255)
 
 
 class SteamImportGameResult(BaseModel):
+    """Response schema for one Steam import match or skipped game."""
     steam_app_id: int
     steam_name: str
     game: GameListOut | None = None
@@ -86,6 +96,7 @@ class SteamImportGameResult(BaseModel):
 
 
 class SteamImportResponse(BaseModel):
+    """Response schema summarizing a Steam library import run."""
     steam_id: str
     profile_name: str | None = None
     added: list[SteamImportGameResult]
