@@ -6,6 +6,7 @@ import { useAuthStore } from './store/authStore';
 // Pages — lazy-loaded for better code splitting
 import LoginPage          from './pages/auth/LoginPage';
 import RegisterPage       from './pages/auth/RegisterPage';
+import LandingPage        from './pages/landing/LandingPage';
 import CatalogPage        from './pages/games/CatalogPage';
 import GameDetailPage     from './pages/games/GameDetailPage';
 import LibraryPage        from './pages/library/LibraryPage';
@@ -36,6 +37,7 @@ function AdminRoute() {
 
 export const router = createBrowserRouter([
   // --- Public routes ---
+  { path: '/',         element: <LandingPage /> },
   { path: '/login',    element: <LoginPage /> },
   { path: '/register', element: <RegisterPage /> },
 
@@ -46,7 +48,6 @@ export const router = createBrowserRouter([
       {
         element: <AppLayout />,
         children: [
-          { index: true,                    element: <Navigate to="/games" replace /> },
           { path: '/games',                 element: <CatalogPage /> },
           { path: '/games/:gameId',         element: <GameDetailPage /> },
           { path: '/library',               element: <LibraryPage /> },
