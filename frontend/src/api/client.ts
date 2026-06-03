@@ -2,8 +2,10 @@ import axios from 'axios';
 import type { AxiosError } from 'axios';
 import { useAuthStore } from '../store/authStore';
 
+const apiBaseURL = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? 'http://localhost:8000/api' : '/api');
+
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api',
+  baseURL: apiBaseURL,
   withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });
@@ -36,12 +38,17 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const url = error.config?.url ?? '';
-    const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/google') || url.includes('/auth/logout');
+    const isAuthEndpoint =
+      url.includes('/auth/login') ||
+      url.includes('/auth/google') ||
+      url.includes('/auth/logout') ||
+      url.includes('/users/me');
 
     if (error.response?.status === 401 && !isAuthEndpoint) {
       useAuthStore.getState().logout();
       const currentPath = window.location.pathname;
-      if (currentPath !== '/login' && currentPath !== '/register') {
+      const publicPaths = ['/', '/login', '/register'];
+      if (!publicPaths.includes(currentPath)) {
         window.location.href = '/login';
       }
     }

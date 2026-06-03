@@ -126,6 +126,12 @@ const queryClient = new QueryClient({
   },
 });
 
+const PUBLIC_PATHS = new Set(['/', '/login', '/register']);
+
+function isPublicPath(pathname: string) {
+  return PUBLIC_PATHS.has(pathname);
+}
+
 function AuthBootstrap() {
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const hasStarted = useRef(false);
@@ -133,6 +139,11 @@ function AuthBootstrap() {
   useEffect(() => {
     if (hasStarted.current) return;
     hasStarted.current = true;
+
+    if (isPublicPath(window.location.pathname)) {
+      setIsBootstrapping(false);
+      return;
+    }
 
     async function bootstrap() {
       const { setUser, logout } = useAuthStore.getState();
