@@ -38,22 +38,37 @@
 .footer span:first-child {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
   color: var(--landing-text);
   font-weight: 800;
   letter-spacing: 0;
 }
 
 .brandMark {
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   display: inline-grid;
   place-items: center;
   flex: 0 0 auto;
-  border: 1px solid var(--landing-border-strong);
-  border-radius: var(--mantine-radius-sm);
-  background: color-mix(in oklch, var(--mantine-color-ember-5) 18%, var(--landing-bg));
-  color: var(--mantine-color-ember-3);
+}
+
+.brandMark img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.28));
+}
+
+.brandLogoTitle {
+  width: 146px;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.28));
+}
+
+.siteHeader .brandMark {
+  display: none;
 }
 
 .siteNav {
@@ -769,8 +784,12 @@
   }
 
   .brandMark {
-    width: 34px;
-    height: 34px;
+    width: 32px;
+    height: 32px;
+  }
+
+  .brandLogoTitle {
+    width: 132px;
   }
 
   .signInLink {

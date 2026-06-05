@@ -1,12 +1,12 @@
 import {
   IconArrowRight,
-  IconBook2,
-  IconDeviceGamepad2,
   IconListCheck,
   IconSparkles,
 } from '@tabler/icons-react';
 import { Link } from 'react-router';
 import heroArt from '../../assets/landing/hero_art_landing_transparent.png';
+import logoMark from '../../assets/logo/gamerec-logo-transparent.png';
+import logoTitle from '../../assets/logo/gamerec-logo-title-transparent.png';
 import gameRadarIcon from '../../assets/landing/icons/game-radar-icon-transparent.png';
 import journalIcon from '../../assets/landing/icons/journal-icon-transparent.png';
 import playerGraphIcon from '../../assets/landing/icons/player-graph-icon-transparent.png';
@@ -65,7 +65,7 @@ const steps = [
 function BrandMark() {
   return (
     <span className={classes.brandMark} aria-hidden="true">
-      <IconDeviceGamepad2 size={20} stroke={1.9} />
+      <img src={logoMark} alt="" />
     </span>
   );
 }
@@ -113,8 +113,8 @@ export default function LandingPage() {
     <main className={classes.page}>
       <header className={classes.siteHeader}>
         <Link to="/" className={classes.brandLink} aria-label="GameRec home">
+          <img src={logoTitle} alt="" className={classes.brandLogoTitle} aria-hidden="true" />
           <BrandMark />
-          <span>GameRec</span>
         </Link>
         <nav className={classes.siteNav} aria-label="Landing page navigation">
           <a href="#features">Features</a>
@@ -226,7 +226,10 @@ export default function LandingPage() {
       </section>
 
       <footer className={classes.footer}>
-        <span><IconBook2 size={15} stroke={1.8} /> GameRec</span>
+        <span>
+          <BrandMark />
+          GameRec
+        </span>
         <span>Personal game discovery and backlog planning.</span>
       </footer>
     </main>

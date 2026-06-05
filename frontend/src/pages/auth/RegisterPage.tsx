@@ -3,7 +3,7 @@ import { Anchor, Button, Container, Divider, Paper, PasswordInput, Text, TextInp
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { Link } from 'react-router';
-import { IconDeviceGamepad2 } from '@tabler/icons-react';
+import logoTitle from '../../assets/logo/gamerec-logo-title-transparent.png';
 import { useAuth } from '../../hooks/useAuth';
 import { GoogleSignInButton } from '../../components/GoogleSignInButton';
 import classes from './AuthPages.module.css';
@@ -33,10 +33,7 @@ export default function RegisterPage() {
     <div className={classes.page}>
       <Container size={440} className={classes.shell}>
         <div className={classes.brand}>
-          <span className={classes.brandMark}>
-            <IconDeviceGamepad2 size={21} stroke={1.9} />
-          </span>
-          <Text fw={800} size="lg">GameRec</Text>
+          <img src={logoTitle} alt="GameRec" className={classes.brandLogo} />
         </div>
         <Title ta="center" className={classes.title}>Create an account</Title>
         <Text c="dimmed" size="sm" ta="center" mt={6} className={classes.subtitle}>

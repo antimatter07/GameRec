@@ -26,42 +26,26 @@
 .brandLink {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
   min-width: 0;
+  min-height: 42px;
   color: var(--mantine-color-gray-0);
 }
 
-.brandMark {
-  display: grid;
-  place-items: center;
+.brandLogoTitle {
+  width: 126px;
+  height: auto;
+  display: block;
+  flex: 0 0 auto;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.28));
+}
+
+.brandLogoMark {
   width: 34px;
   height: 34px;
-  flex-shrink: 0;
-  border: 1px solid rgba(212, 103, 77, 0.28);
-  border-radius: var(--mantine-radius-sm);
-  background: rgba(212, 103, 77, 0.12);
-  color: var(--mantine-color-ember-4);
-}
-
-.brandText {
-  min-width: 0;
-}
-
-.brandName {
-  color: var(--mantine-color-gray-0);
-  font-size: 0.98rem;
-  font-weight: 800;
-  letter-spacing: 0;
-  line-height: 1.1;
-}
-
-.brandSub {
-  color: var(--mantine-color-dimmed);
-  font-size: 0.66rem;
-  font-weight: 600;
-  letter-spacing: 0.4px;
-  line-height: 1.2;
-  text-transform: uppercase;
+  display: none;
+  flex: 0 0 auto;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.28));
 }
 
 .userTarget {
@@ -122,12 +106,21 @@
 }
 
 @media (max-width: 48em) {
-  .brandSub,
   .userName {
     display: none;
   }
 
   .headerInner {
     padding-inline: var(--mantine-spacing-sm);
+  }
+}
+
+@media (max-width: 30em) {
+  .brandLogoTitle {
+    display: none;
+  }
+
+  .brandLogoMark {
+    display: block;
   }
 }

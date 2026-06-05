@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react';
 import { Avatar, Group, Menu, Text, UnstyledButton } from '@mantine/core';
-import { IconDeviceGamepad2, IconLogout, IconUser } from '@tabler/icons-react';
+import { IconLogout, IconUser } from '@tabler/icons-react';
 import { Link } from 'react-router';
+import logoMark from '../../assets/logo/gamerec-logo-transparent.png';
+import logoTitle from '../../assets/logo/gamerec-logo-title-transparent.png';
 import { useAuth } from '../../hooks/useAuth';
 import { useAuthStore } from '../../store/authStore';
 import classes from './AppLayout.module.css';
@@ -17,14 +19,9 @@ export function AppHeader({ mobileToggle }: { mobileToggle?: ReactNode }) {
     <Group h="100%" justify="space-between" className={classes.headerInner} wrap="nowrap">
       <Group gap="sm" wrap="nowrap" miw={0}>
         {mobileToggle}
-        <Link to="/games" className={classes.brandLink}>
-          <span className={classes.brandMark}>
-            <IconDeviceGamepad2 size={19} stroke={1.9} />
-          </span>
-          <span className={classes.brandText}>
-            <span className={classes.brandName}>GameRec</span>
-            
-          </span>
+        <Link to="/games" className={classes.brandLink} aria-label="GameRec home">
+          <img src={logoTitle} alt="" className={classes.brandLogoTitle} aria-hidden="true" />
+          <img src={logoMark} alt="" className={classes.brandLogoMark} aria-hidden="true" />
         </Link>
       </Group>
 
