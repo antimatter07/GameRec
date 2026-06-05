@@ -3,11 +3,14 @@ import {
   IconBook2,
   IconDeviceGamepad2,
   IconListCheck,
-  IconNotebook,
   IconSparkles,
-  IconStar,
 } from '@tabler/icons-react';
 import { Link } from 'react-router';
+import heroArt from '../../assets/landing/hero_art_landing_transparent.png';
+import gameRadarIcon from '../../assets/landing/icons/game-radar-icon-transparent.png';
+import journalIcon from '../../assets/landing/icons/journal-icon-transparent.png';
+import playerGraphIcon from '../../assets/landing/icons/player-graph-icon-transparent.png';
+import starIcon from '../../assets/landing/icons/star-icon-transparent.png';
 import classes from './LandingPage.module.css';
 
 const posterCards = [
@@ -17,32 +20,38 @@ const posterCards = [
   { title: 'Iron Orchard', meta: 'Tactical challenge', tone: 'blue' },
 ];
 
-const queueItems = [
-  { title: 'Ashen Gate', status: 'Tonight', note: '40 min session' },
-  { title: 'Low Tide Signal', status: 'Weekend', note: 'Exploration mood' },
-  { title: 'Iron Orchard', status: 'Later', note: 'Needs focus' },
-];
-
 const features = [
   {
     title: 'Taste-aware recommendations',
     body: 'See picks shaped by the games you finish, abandon, rate, save, and write about.',
-    fragment: 'reason',
+    icon: gameRadarIcon,
+    iconAlt: '',
+    signal: 'Game radar',
+    accent: 'radar',
   },
   {
-    title: 'Track your entire library',
-    body: 'Keep playing, paused, wishlist, completed, and retired games in one calm view.',
-    fragment: 'library',
+    title: 'Understand your player pattern',
+    body: 'Spot the genres, moods, session lengths, and pacing you keep returning to.',
+    icon: playerGraphIcon,
+    iconAlt: '',
+    signal: 'Taste graph',
+    accent: 'graph',
   },
   {
-    title: 'Plan your play queue',
-    body: 'Turn vague intention into a short list that respects your time and current mood.',
-    fragment: 'queue',
+    title: 'Keep ratings useful',
+    body: 'Turn stars, saves, and completions into memory instead of another static list.',
+    icon: starIcon,
+    iconAlt: '',
+    signal: 'Library memory',
+    accent: 'star',
   },
   {
     title: 'Journal every play session',
     body: 'Capture why a game stayed with you, where you stopped, and what to return to next.',
-    fragment: 'journal',
+    icon: journalIcon,
+    iconAlt: '',
+    signal: 'Session journal',
+    accent: 'journal',
   },
 ];
 
@@ -90,105 +99,11 @@ function ReasonPanel({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function LaptopMockup() {
+function FeatureIconStage({ feature }: { feature: (typeof features)[number] }) {
   return (
-    <div className={classes.laptopFrame} aria-label="GameRec recommendation dashboard preview">
-      <div className={classes.laptopTopBar}>
-        <span><BrandMark /> GameRec</span>
-        <span className={classes.windowDots} aria-hidden="true"><i /><i /><i /></span>
-      </div>
-      <div className={classes.dashboardGrid}>
-        <aside className={classes.mockNav} aria-label="Preview navigation">
-          <span className={classes.mockNavActive}>Library</span>
-          <span>Recommendations</span>
-          <span>Play queue</span>
-          <span>Journal</span>
-        </aside>
-        <section className={classes.mockMain} aria-label="Preview recommendation content">
-          <div className={classes.mockHeader}>
-            <p>Tonight's strongest pick</p>
-            <h2>A playable roadmap for the mood you are in.</h2>
-          </div>
-          <div className={classes.heroPickGrid}>
-            <div className={classes.featuredPoster} aria-hidden="true">
-              <span>Ashen Gate</span>
-            </div>
-            <ReasonPanel compact />
-          </div>
-          <div className={classes.posterRail} aria-label="Preview library covers">
-            {posterCards.map((poster) => (
-              <PosterCard key={poster.title} {...poster} />
-            ))}
-          </div>
-        </section>
-      </div>
-    </div>
-  );
-}
-
-function PhoneMockup() {
-  return (
-    <aside className={classes.phoneFrame} aria-label="GameRec mobile play queue preview">
-      <div className={classes.phoneNotch} aria-hidden="true" />
-      <div className={classes.phoneHeader}>
-        <strong>Play Queue</strong>
-        <span>3 ready</span>
-      </div>
-      <ol className={classes.phoneQueue}>
-        {queueItems.map((item, index) => (
-          <li key={item.title}>
-            <span className={classes.queueNumber}>{index + 1}</span>
-            <span>
-              <strong>{item.title}</strong>
-              <small>{item.note}</small>
-            </span>
-            <em>{item.status}</em>
-          </li>
-        ))}
-      </ol>
-      <div className={classes.journalPreview}>
-        <span><IconNotebook size={14} stroke={1.9} /> Journal note</span>
-        <p>Stopped after the tower shortcut. Next session: return before the storm area.</p>
-      </div>
-    </aside>
-  );
-}
-
-function FeatureFragment({ type }: { type: string }) {
-  if (type === 'reason') {
-    return (
-      <div className={classes.fragmentReason}>
-        <span><IconStar size={13} /> Similar taste signal</span>
-        <strong>Slow-burn mystery, short enough to finish</strong>
-      </div>
-    );
-  }
-
-  if (type === 'queue') {
-    return (
-      <div className={classes.fragmentQueue}>
-        <span>Tonight</span>
-        <span>Weekend</span>
-        <span>Low focus</span>
-      </div>
-    );
-  }
-
-  if (type === 'journal') {
-    return (
-      <div className={classes.fragmentJournal}>
-        <span>Session note</span>
-        <p>Worth continuing because the world is opening up, not because it is next on the list.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className={classes.fragmentLibrary}>
-      <i />
-      <i />
-      <i />
-      <i />
+    <div className={`${classes.featureIconStage} ${classes[`featureIcon_${feature.accent}`]}`}>
+      <img src={feature.icon} alt={feature.iconAlt} aria-hidden="true" loading="lazy" />
+      <span>{feature.signal}</span>
     </div>
   );
 }
@@ -226,8 +141,12 @@ export default function LandingPage() {
         </div>
 
         <div className={classes.heroVisual}>
-          <LaptopMockup />
-          <PhoneMockup />
+          <img
+            className={classes.heroArt}
+            src={heroArt}
+            alt="A stylized game discovery scene with game cards, a controller, a radar interface, ratings, player signals, and a journal."
+            fetchPriority="high"
+          />
         </div>
       </section>
 
@@ -251,7 +170,7 @@ export default function LandingPage() {
         <div className={classes.featureGrid}>
           {features.map((feature) => (
             <article className={classes.featureItem} key={feature.title}>
-              <FeatureFragment type={feature.fragment} />
+              <FeatureIconStage feature={feature} />
               <div>
                 <h3>{feature.title}</h3>
                 <p>{feature.body}</p>
