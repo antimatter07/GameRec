@@ -65,7 +65,7 @@ const steps = [
 function BrandMark() {
   return (
     <span className={classes.brandMark} aria-hidden="true">
-      <img src={logoMark} alt="" />
+      <img src={logoMark} alt="" width="784" height="784" />
     </span>
   );
 }
@@ -102,7 +102,7 @@ function ReasonPanel({ compact = false }: { compact?: boolean }) {
 function FeatureIconStage({ feature }: { feature: (typeof features)[number] }) {
   return (
     <div className={`${classes.featureIconStage} ${classes[`featureIcon_${feature.accent}`]}`}>
-      <img src={feature.icon} alt={feature.iconAlt} aria-hidden="true" loading="lazy" />
+      <img src={feature.icon} alt={feature.iconAlt} width="1254" height="1254" aria-hidden="true" loading="lazy" />
       <span>{feature.signal}</span>
     </div>
   );
@@ -113,7 +113,14 @@ export default function LandingPage() {
     <main className={classes.page}>
       <header className={classes.siteHeader}>
         <Link to="/" className={classes.brandLink} aria-label="GameRec home">
-          <img src={logoTitle} alt="" className={classes.brandLogoTitle} aria-hidden="true" />
+          <img
+            src={logoTitle}
+            alt=""
+            className={classes.brandLogoTitle}
+            width="1086"
+            height="362"
+            aria-hidden="true"
+          />
           <BrandMark />
         </Link>
         <nav className={classes.siteNav} aria-label="Landing page navigation">
@@ -145,6 +152,8 @@ export default function LandingPage() {
             className={classes.heroArt}
             src={heroArt}
             alt="A stylized game discovery scene with game cards, a controller, a radar interface, ratings, player signals, and a journal."
+            width="1672"
+            height="941"
             fetchPriority="high"
           />
         </div>

@@ -89,8 +89,8 @@ class Settings(BaseSettings):
     RAWG_REJECT_RECHECK_DAYS: int = 90
 
     # Steam Web API — get your key at steamcommunity.com/dev/apikey
-    STEAM_API_KEY: str = ""
-    STEAM_API_BASE_URL: str = "https://api.steampowered.com"
+    STEAM_API_KEY: str = _AWS_PARAMETER_VALUES.get("STEAM_API_KEY", "")
+    STEAM_API_BASE_URL: str = _AWS_PARAMETER_VALUES.get("STEAM_API_BASE_URL", "https://api.steampowered.com")
 
     # LLM for premium AI features (Anthropic Claude)
     ANTHROPIC_API_KEY: str = _AWS_PARAMETER_VALUES.get("ANTHROPIC_API_KEY", "")

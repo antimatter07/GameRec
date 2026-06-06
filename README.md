@@ -4,6 +4,8 @@ A full-stack game discovery, library, and backlog planning app that helps player
 
 This is a portfolio project built to demonstrate production-minded full-stack engineering: authenticated API design, asynchronous data pipelines, recommendation logic, external API ingestion, role-based access control, modern React UI, automated tests, and deployable cloud infrastructure.
 
+Deployed on Cloudflare with backend on AWS Services (Lambda, SQS, API Gateway): app.gamerec.uk
+
 ## Highlights
 
 - Personalized game recommendations using content-based filtering over genre, tag, rating, and Metacritic feature vectors.
@@ -33,10 +35,10 @@ The product direction is closer to a private screening library for games than a 
 | --- | --- |
 | Frontend | React 19, TypeScript, Vite, Mantine, React Router, TanStack Query, Zustand, Axios |
 | Backend | FastAPI, SQLAlchemy, Pydantic Settings, Alembic, SlowAPI |
-| Data | PostgreSQL, Redis, JSON feature vectors, RAWG API, Steam Web API, HowLongToBeat enrichment |
+| Data | PostgreSQL, Redis, JSON feature vectors, RAWG API, Steam Web API, HowLongToBeat enrichment (data retrieved through rate-limited web scraping) |
 | Recommendations | NumPy, scikit-learn-ready feature pipeline, cosine similarity, feedback adjustments |
 | Async work | Celery and Redis locally; AWS Lambda, SQS, DynamoDB, and optional ECS/Fargate RAWG worker in production |
-| Auth and security | JWT, refresh tokens, Redis blacklist, CSRF cookie/header validation, role-based dependencies, CORS allowlist |
+| Auth and security | JWT, refresh tokens, Redis blacklist (local, DynamoDB for production), CSRF cookie/header validation, role-based dependencies, CORS allowlist (implemented through Cloudflare DNS in production)|
 | AI | Gemini/Anthropic-compatible provider layer for AI picks and queue suggestions |
 | Testing | Pytest backend tests, frontend TypeScript build and ESLint |
 | Infrastructure | AWS SAM template, Lambda container images, SSM Parameter Store configuration |
@@ -312,7 +314,7 @@ infrastructure/samconfig.toml.example
 infrastructure/template.yaml
 ```
 
-## Engineering Decisions Worth Noting
+## BE Development Decisions
 
 - The recommendation pipeline separates deterministic content-based scoring from optional AI explanation layers so the app can still provide useful recommendations without relying on an LLM.
 - RAWG ingestion is checkpointed by crawl pass and tracks accepted/rejected IDs to support safe monthly resume behavior under a fixed API quota.
@@ -334,21 +336,8 @@ Implemented:
 - Backend test coverage across major service and infrastructure modules.
 - AWS SAM deployment scaffolding.
 
-Planned improvements:
+To Implement:
 
-- Automate feature-vector rebuilding after catalog sync completion.
-- Add more frontend integration or end-to-end tests for critical user flows.
-- Add richer recommendation history and "Game DNA" routes.
-- Continue tightening production rate-limit behavior by wiring user-aware rate keys through the API layer.
-- Expand observability around async jobs, ingestion budgets, and AI task outcomes.
-
-## Portfolio Focus
-
-This project demonstrates the kind of work expected in a real product codebase:
-
-- Translating a user problem into a complete product surface.
-- Designing an API and frontend that support authentication, roles, stateful workflows, and async jobs.
-- Building recommendation logic that is explainable and testable.
-- Handling external data quality, rate limits, duplicate prevention, and resumable ingestion.
-- Using AI as a product enhancement while keeping deterministic fallbacks and validation in place.
-- Thinking beyond local development with migration, testing, security, and deployment paths.
+- Steam Account import of games
+- Premium users with more powerful LLM powered features and less rate limits on LLMs
+- More polished UI / branding 

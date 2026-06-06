@@ -79,6 +79,7 @@ def test_extract_steam_identifier_accepts_ids_urls_and_vanity_names():
 def test_fuzzy_score_rejects_conflicting_sequels():
     assert _score_candidate("Dark Souls 2", "Dark Souls 3") == 0
     assert _score_candidate("Dark Souls II", "Dark Souls 2") >= 92
+    assert _score_candidate("Dark Souls", "Dark Souls 2") < 92
 
 
 def test_import_adds_confident_matches_as_backlog_and_preserves_unmatched():
@@ -108,6 +109,63 @@ def test_import_adds_confident_matches_as_backlog_and_preserves_unmatched():
         assert len(result["added"]) == 1
         assert len(result["unmatched"]) == 1
         assert db.query(Game).count() == 1
+    finally:
+        db.close()
+        for table in reversed(tables):
+            table.drop(engine)
+        engine.dispose()
+
+
+def test_import_keeps_base_game_and_sequel_separate_in_same_steam_library():
+    engine, db, tables = _sqlite_db()
+    try:
+        user = _add_user(db)
+        dark_souls = _add_game(db, game_id=1, rawg_id=101, name="Dark Souls", ratings_count=100)
+        dark_souls_2 = _add_game(db, game_id=2, rawg_id=102, name="Dark Souls 2", ratings_count=200)
+
+        result = import_steam_library(
+            db,
+            user.id,
+            "76561198000000000",
+            client=FakeSteamClient(
+                [
+                    SteamOwnedGame(appid=211420, name="Dark Souls"),
+                    SteamOwnedGame(appid=335300, name="Dark Souls II"),
+                ]
+            ),
+        )
+
+        entries = {entry.game_id: entry for entry in db.query(LibraryEntry).all()}
+        assert set(entries) == {dark_souls.id, dark_souls_2.id}
+        assert entries[dark_souls.id].steam_app_id == 211420
+        assert entries[dark_souls_2.id].steam_app_id == 335300
+        assert len(result["added"]) == 2
+        assert not result["skipped_low_confidence"]
+        assert not result["unmatched"]
+    finally:
+        db.close()
+        for table in reversed(tables):
+            table.drop(engine)
+        engine.dispose()
+
+
+def test_import_does_not_auto_import_base_game_as_numbered_sequel():
+    engine, db, tables = _sqlite_db()
+    try:
+        user = _add_user(db)
+        _add_game(db, game_id=1, rawg_id=101, name="Dark Souls 2", ratings_count=200)
+
+        result = import_steam_library(
+            db,
+            user.id,
+            "76561198000000000",
+            client=FakeSteamClient([SteamOwnedGame(appid=211420, name="Dark Souls")]),
+        )
+
+        assert db.query(LibraryEntry).count() == 0
+        assert len(result["added"]) == 0
+        assert len(result["skipped_low_confidence"]) == 1
+        assert result["skipped_low_confidence"][0].game.name == "Dark Souls 2"
     finally:
         db.close()
         for table in reversed(tables):
