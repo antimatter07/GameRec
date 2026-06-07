@@ -1,10 +1,15 @@
-# GameRec
+<p align="center">
+  <img src="frontend/src/assets/logo/gamerec-logo-title-transparent.png" alt="GameRec" width="360">
+</p>
 
-A full-stack game discovery, library, and backlog planning app that helps players decide what to play next. GameRec combines a searchable RAWG-powered catalog, personal library tracking, play queue management, journaling, content-based recommendations, and optional AI-assisted taste analysis.
+# GameRec - AI-Powered Video Game Recommender and Library Management System
 
-This is a portfolio project built to demonstrate production-minded full-stack engineering: authenticated API design, asynchronous data pipelines, recommendation logic, external API ingestion, role-based access control, modern React UI, automated tests, and deployable cloud infrastructure.
+A full-stack game discovery, library, and backlog planning app that helps players decide what to play next. GameRec combines a searchable RAWG-powered catalog, personal library tracking, play queue management, journaling, content-based recommendations, and AI-assisted taste analysis that gives users tailor-made recommendations on both video games and a suggested play order of current library.
 
-Deployed on Cloudflare with backend on AWS Services (Lambda, SQS, API Gateway): app.gamerec.uk
+This project features authenticated API design, asynchronous data pipelines, recommendation logic, external API ingestion, role-based access control, modern React UI, automated tests, and deployable cloud infrastructure.
+
+Deployed on Cloudflare with backend on AWS Services (Lambda, SQS, API Gateway) and PostgreSQL dastabase on Supabase: 
+app.gamerec.uk [app.gamerec.uk](app.gamerec.uk)
 
 ## Highlights
 
@@ -25,7 +30,7 @@ GameRec is designed for players with growing libraries or backlogs who want reco
 - What should I play next?
 - Why does this game fit my taste?
 - What have I enjoyed or abandoned before?
-- How should I organize my backlog into an intentional queue?
+- How should I organize my backlog into an intentional queue with a play order that makes sense?
 
 The product direction is closer to a private screening library for games than a generic dashboard: cover art, game metadata, ratings, notes, and taste signals are treated as the main interface.
 
@@ -33,7 +38,7 @@ The product direction is closer to a private screening library for games than a 
 
 | Layer | Technologies |
 | --- | --- |
-| Frontend | React 19, TypeScript, Vite, Mantine, React Router, TanStack Query, Zustand, Axios |
+| Frontend | React.js, TypeScript, Vite, Mantine, React Router, TanStack Query (State Management), Zustand, Axios |
 | Backend | FastAPI, SQLAlchemy, Pydantic Settings, Alembic, SlowAPI |
 | Data | PostgreSQL, Redis, JSON feature vectors, RAWG API, Steam Web API, HowLongToBeat enrichment (data retrieved through rate-limited web scraping) |
 | Recommendations | NumPy, scikit-learn-ready feature pipeline, cosine similarity, feedback adjustments |
@@ -41,7 +46,7 @@ The product direction is closer to a private screening library for games than a 
 | Auth and security | JWT, refresh tokens, Redis blacklist (local, DynamoDB for production), CSRF cookie/header validation, role-based dependencies, CORS allowlist (implemented through Cloudflare DNS in production)|
 | AI | Gemini/Anthropic-compatible provider layer for AI picks and queue suggestions |
 | Testing | Pytest backend tests, frontend TypeScript build and ESLint |
-| Infrastructure | AWS SAM template, Lambda container images, SSM Parameter Store configuration |
+| Infrastructure | AWS SAM, Lambda container images (AWS Lambda, API Gateway, SQS), SSM Parameter Store configuration |
 
 ## Architecture
 
