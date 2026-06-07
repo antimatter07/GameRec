@@ -8,8 +8,8 @@ A full-stack game discovery, library, and backlog planning app that helps player
 
 This project features authenticated API design, asynchronous data pipelines, recommendation logic, external API ingestion, role-based access control, modern React UI, automated tests, and deployable cloud infrastructure.
 
-Deployed on Cloudflare with backend on AWS Services (Lambda, SQS, API Gateway) and PostgreSQL dastabase on Supabase: 
-app.gamerec.uk [app.gamerec.uk](app.gamerec.uk)
+Deployed on Cloudflare with backend on AWS Services (Lambda, SQS, API Gateway) and PostgreSQL database on Supabase:
+[app.gamerec.uk](https://app.gamerec.uk)
 
 ## Highlights
 
