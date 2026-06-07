@@ -58,11 +58,11 @@ typography:
     fontWeight: 500
     lineHeight: 1.4
 rounded:
-  xs: "4px"
-  sm: "8px"
-  md: "12px"
-  lg: "16px"
-  xl: "24px"
+  xs: "0px"
+  sm: "6px"
+  md: "10px"
+  lg: "14px"
+  xl: "20px"
 spacing:
   xs: "10px"
   sm: "12px"
@@ -174,6 +174,15 @@ The palette is a restrained dark product system anchored by a warm ember ramp, w
 
 GameRec is flat by default and uses tonal layering instead of shadows. Depth comes from dark surface steps, thin borders, cover-image framing, overlay badges, and slight hover background shifts. Shadows are rare and should appear only when image or icon rendering needs separation.
 
+### Shape Vocabulary
+
+GameRec uses sharper structural edges and rounder interactive media elements. This keeps the app composed and editorial rather than soft everywhere.
+
+- **Sharp structural panels:** `xs` radius (0px) for page panels, metric cards, dashboards, filters, auth cards, tables, and admin surfaces. Sharpness signals stability, hierarchy, and precision.
+- **Soft controls:** `sm` radius (6px) for buttons, inputs, badges, tabs, icon wells, and compact controls. These still feel clickable without making the entire interface pill-like.
+- **Flexible media cards:** `md` radius (10px) for game cards, queue cards, draggable cards, note cards, cover previews, and surfaces that can be opened, moved, saved, or rearranged. Roundness here signals flexibility and friendliness.
+- **Large expressive surfaces:** `lg` and `xl` are reserved for landing-page illustration frames or rare media-led moments, not routine product panels.
+
 ### Shadow Vocabulary
 
 - **Icon Image Separation** (`filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25))`): Used on small rating icons over dense card content.
@@ -207,7 +216,7 @@ Chips and badges annotate status without becoming the interface.
 
 Cards are for games, repeated items, metric blocks, and panels, not every page section.
 
-- **Corner Style:** `md` radius (12px) for panels and game cards; `sm` (8px) for internal chip wells and cover controls.
+- **Corner Style:** `xs` radius (0px) for structural panels and metric blocks; `md` radius (10px) for game cards, queue cards, draggable items, and note cards; `sm` (6px) for internal chip wells and cover controls.
 - **Background:** `dark-7` for primary panels, `dark-6` for compact cards and controls, `dark-5` for tracks and internal wells, #171b27 on hover.
 - **Shadow Strategy:** No box shadow at rest. Use borders and tonal layering.
 - **Border:** One-pixel dark borders, usually Mantine `dark-4`, `dark-3` on hover.
@@ -255,7 +264,7 @@ Use compact progress bars, segmented bars, dot markers, mini heatmaps, and small
 - **Do** foreground cover art, screenshots, and media metadata so games feel desirable and memorable.
 - **Do** use ember-5 (#d4674d) for primary actions, selected states, focus, and AI recommendation intelligence.
 - **Do** keep page titles near 1.5rem and section titles around small semibold text.
-- **Do** use `Paper` with `withBorder`, `radius="md"`, and dark layered backgrounds for dashboard panels.
+- **Do** use `Paper` with `withBorder`, `radius="xs"`, and dark layered backgrounds for dashboard and structural panels.
 - **Do** use compact responsive grids: four-up metrics on desktop, two-up on tablet, one-up on narrow mobile.
 - **Do** use tabular numbers for ratings, counts, percentages, queue order, and playtime.
 - **Do** support WCAG AA, keyboard focus, reduced motion, and non-color cues for status.

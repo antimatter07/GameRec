@@ -216,7 +216,7 @@ export default function JournalPage() {
         <Tabs.Panel value="journal" pt="lg">
           <div className={classes.journalWorkspace}>
             <Stack gap="md" className={classes.timelineColumn}>
-              <Paper p="md" radius="md" withBorder className={classes.timelinePanel}>
+              <Paper p="md" radius="xs" withBorder className={classes.timelinePanel}>
                 <Group justify="space-between" align="flex-start" mb="md">
                   <div>
                     <Text size="sm" fw={600}>Timeline</Text>
@@ -281,7 +281,7 @@ export default function JournalPage() {
               {feedData && feedData.total > feedData.per_page && (
                 <Group justify="center">
                   <Pagination
-                    radius="md"
+                    radius="sm"
                     className={classes.journalPagination}
                     total={Math.ceil(feedData.total / feedData.per_page)}
                     value={feedPage}
@@ -291,14 +291,14 @@ export default function JournalPage() {
               )}
 
               <div className={classes.patternGrid}>
-                <Paper p="md" radius="md" withBorder>
+                <Paper p="md" radius="xs" withBorder>
                   <Group justify="space-between" mb="sm">
                     <Text size="sm" fw={600}>Hours per genre: {currentMonth}</Text>
                   </Group>
                   {stats && <GenreHoursChart genres={stats.top_genres_this_month} />}
                 </Paper>
 
-                <Paper p="md" radius="md" withBorder>
+                <Paper p="md" radius="xs" withBorder>
                   <Text size="sm" fw={600} mb="sm">Weekly activity</Text>
                   {stats && (
                     <WeeklyActivityCard
@@ -313,7 +313,7 @@ export default function JournalPage() {
 
             <aside className={classes.journalSidebar}>
               {stats && (
-                <Paper p="md" radius="md" withBorder className={classes.weekSummaryPanel}>
+                <Paper p="md" radius="xs" withBorder className={classes.weekSummaryPanel}>
                   <Text size="sm" fw={600} mb="sm">This week</Text>
                   <div className={classes.weekSummaryGrid}>
                     <div>
@@ -333,7 +333,7 @@ export default function JournalPage() {
                 </Paper>
               )}
 
-              <Paper p="md" radius="md" withBorder>
+              <Paper p="md" radius="xs" withBorder>
                 <Group justify="space-between" mb="sm">
                   <Text size="sm" fw={600}>Next session notes</Text>
                   <Anchor size="xs" c="#e97d61" onClick={() => setActiveTab('notes')}>
@@ -360,7 +360,7 @@ export default function JournalPage() {
                 </Stack>
               </Paper>
 
-              <Paper p="md" radius="md" withBorder>
+              <Paper p="md" radius="xs" withBorder>
                 <Text size="sm" fw={600} mb="sm">Mood signal</Text>
                 <EmotionSummaryCard
                   emotionStats={emotionStats ?? null}
@@ -371,7 +371,7 @@ export default function JournalPage() {
               </Paper>
 
               {stats && (
-                <Paper p="md" radius="md" withBorder>
+                <Paper p="md" radius="xs" withBorder>
                   <Text size="sm" fw={600} mb="sm">Backlog progress</Text>
                   <BacklogProgressCard
                     completed={stats.games_completed}
@@ -414,7 +414,7 @@ export default function JournalPage() {
 
         <Tabs.Panel value="ratings" pt="lg">
           {ratings && ratings.length > 0 ? (
-            <Paper p="md" radius="md" withBorder>
+            <Paper p="md" radius="xs" withBorder>
               <Text size="sm" fw={600} mb="sm">Multi-axis ratings</Text>
               <div className={classes.ratingWidgetGrid}>
                 {ratings.map((r, i) => (
@@ -426,7 +426,7 @@ export default function JournalPage() {
               </div>
             </Paper>
           ) : (
-            <Paper p="lg" radius="md" withBorder className={classes.statePanel}>
+            <Paper p="lg" radius="xs" withBorder className={classes.statePanel}>
               <Stack align="center" gap="xs">
                 <div className={classes.stateIcon}>
                   <IconCheck size={18} stroke={1.8} />
@@ -441,7 +441,7 @@ export default function JournalPage() {
 
         {/* ════ MOOD PROFILE ════════════════════════════════════════════════ */}
         <Tabs.Panel value="mood" pt="lg">
-          <Paper p="md" radius="md" withBorder mb="md">
+          <Paper p="md" radius="xs" withBorder mb="md">
             <Text size="sm" fw={600} mb="md">Emotion breakdown: last 30 days</Text>
             <EmotionSummaryCard
               emotionStats={emotionStats ?? null}
@@ -452,7 +452,7 @@ export default function JournalPage() {
           </Paper>
 
           {emotionStats && emotionStats.per_game.length > 0 && (
-            <Paper p="md" radius="md" withBorder mb="md">
+            <Paper p="md" radius="xs" withBorder mb="md">
               <Text size="sm" fw={600} mb="sm">Emotions by game</Text>
               <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
                 {emotionStats.per_game.map((g) => {
@@ -482,7 +482,7 @@ export default function JournalPage() {
           )}
 
           {emotionStats && emotionStats.per_genre.length > 0 && (
-            <Paper p="md" radius="md" withBorder>
+            <Paper p="md" radius="xs" withBorder>
               <Text size="sm" fw={600} mb="sm">Emotions by genre</Text>
               <Stack gap="xs">
                 {emotionStats.per_genre.map((g) => (

@@ -272,7 +272,7 @@
 
 .reasonPanel {
   border: 1px solid var(--landing-border);
-  border-radius: var(--mantine-radius-md);
+  border-radius: var(--mantine-radius-xs);
   background:
     linear-gradient(180deg, rgba(255, 241, 236, 0.045), transparent),
     var(--landing-bg-panel);
@@ -513,7 +513,7 @@
   place-items: center;
   overflow: hidden;
   border: 1px solid var(--landing-border);
-  border-radius: var(--mantine-radius-md);
+  border-radius: var(--mantine-radius-xs);
   background:
     radial-gradient(circle at 50% 30%, color-mix(in oklch, var(--icon-accent, var(--mantine-color-ember-5)) 18%, transparent), transparent 58%),
     linear-gradient(180deg, rgba(255, 241, 236, 0.035), transparent),
@@ -590,7 +590,7 @@
   justify-content: space-between;
   padding: 18px;
   border: 1px solid var(--landing-border);
-  border-radius: var(--mantine-radius-md);
+  border-radius: var(--mantine-radius-xs);
   background:
     linear-gradient(180deg, rgba(255, 241, 236, 0.035), transparent 34%),
     var(--landing-bg-raised);

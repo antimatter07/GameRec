@@ -86,7 +86,7 @@ export function GameFiltersBar({
         onKeyDown={(e) => e.key === 'Enter' && onSearchCommit()}
         leftSection={<IconSearch size={18} stroke={1.7} />}
         size="md"
-        radius="md"
+        radius="sm"
       />
 
       <Select
@@ -98,7 +98,7 @@ export function GameFiltersBar({
         value={filters.genre ?? null}
         onChange={(v) => update({ genre: v ?? undefined })}
         size="md"
-        radius="md"
+        radius="sm"
       />
 
       <Select
@@ -110,7 +110,7 @@ export function GameFiltersBar({
         value={filters.platform ?? null}
         onChange={(v) => update({ platform: v ?? undefined })}
         size="md"
-        radius="md"
+        radius="sm"
       />
 
       <Select
@@ -122,7 +122,7 @@ export function GameFiltersBar({
         value={filters.year ? String(filters.year) : null}
         onChange={(v) => update({ year: v ? Number(v) : undefined })}
         size="md"
-        radius="md"
+        radius="sm"
       />
 
       <Select
@@ -134,7 +134,7 @@ export function GameFiltersBar({
         value={filters.min_rating ? String(filters.min_rating) : null}
         onChange={(v) => update({ min_rating: v ? Number(v) : undefined })}
         size="md"
-        radius="md"
+        radius="sm"
       />
 
       <Select
@@ -146,7 +146,7 @@ export function GameFiltersBar({
         value={filters.max_hours ? String(filters.max_hours) : null}
         onChange={(v) => update({ max_hours: v ? Number(v) : undefined })}
         size="md"
-        radius="md"
+        radius="sm"
       />
 
       <Select
@@ -156,7 +156,7 @@ export function GameFiltersBar({
         value={filters.library_state ?? 'all'}
         onChange={(v) => update({ library_state: (v as GameFilters['library_state']) ?? 'all' })}
         size="md"
-        radius="md"
+        radius="sm"
         allowDeselect={false}
       />
 
@@ -167,7 +167,7 @@ export function GameFiltersBar({
         value={filters.sort ?? 'rating_desc'}
         onChange={(v) => update({ sort: (v as GameFilters['sort']) ?? 'rating_desc' })}
         size="md"
-        radius="md"
+        radius="sm"
         allowDeselect={false}
       />
 

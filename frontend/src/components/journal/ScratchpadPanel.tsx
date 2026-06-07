@@ -55,7 +55,7 @@ export function ScratchpadPanel({
       </Group>
 
       {notes.length === 0 || !hasVisibleSections ? (
-        <Paper withBorder radius="md" p="lg" className={classes.scratchpadEmpty}>
+        <Paper withBorder radius="xs" p="lg" className={classes.scratchpadEmpty}>
           <Stack align="center" gap="xs">
             <div className={classes.stateIcon}>
               <IconNotes size={18} stroke={1.8} />

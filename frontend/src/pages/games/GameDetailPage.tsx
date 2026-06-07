@@ -60,7 +60,7 @@ export default function GameDetailPage() {
   if (isError || !game) {
     return (
       <Center py={80}>
-        <Paper p="md" radius="md" withBorder className={classes.emptyState}>
+        <Paper p="md" radius="xs" withBorder className={classes.emptyState}>
           <Stack align="center" gap="sm">
             <Text size="sm" fw={600}>Game not found</Text>
             <Text size="xs" c="dimmed">This title may have been removed or is not available yet.</Text>
@@ -157,13 +157,13 @@ export default function GameDetailPage() {
       <div className={classes.contentGrid}>
         <Stack gap="xs">
           {libraryEntry && (
-            <Paper p="md" radius="md" withBorder>
+            <Paper p="md" radius="xs" withBorder>
               <Text size="sm" fw={600} mb="sm">Your ratings</Text>
               <MultiAxisRatingWidget gameId={id} />
             </Paper>
           )}
 
-          <Paper p="md" radius="md" withBorder>
+          <Paper p="md" radius="xs" withBorder>
             <ScratchpadPanel
               title={`${game.name} scratchpad`}
               actionLabel="New note"
@@ -194,7 +194,7 @@ export default function GameDetailPage() {
           </Paper>
 
           {cleanDescription && (
-            <Paper p="md" radius="md" withBorder>
+            <Paper p="md" radius="xs" withBorder>
               <Text size="sm" fw={600} mb="xs">About</Text>
               <Text size="sm" className={classes.description}>{cleanDescription}</Text>
             </Paper>
@@ -205,7 +205,7 @@ export default function GameDetailPage() {
           {(game.hltb_main_hours != null ||
             game.hltb_main_extra_hours != null ||
             game.hltb_completionist_hours != null) && (
-            <Paper p="md" radius="md" withBorder>
+            <Paper p="md" radius="xs" withBorder>
               <Group gap="xs" mb="sm" className={classes.panelHeader}>
                 <IconClock size={16} />
                 <Text size="sm" fw={600}>How Long to Beat</Text>
@@ -234,7 +234,7 @@ export default function GameDetailPage() {
           )}
 
           {recentSessions && recentSessions.items.length > 0 && (
-            <Paper p="md" radius="md" withBorder>
+            <Paper p="md" radius="xs" withBorder>
               <Text size="sm" fw={600} mb="sm">Recent sessions</Text>
               <Stack gap="xs">
                 {recentSessions.items.map((s) => (

@@ -42,19 +42,20 @@ const theme = createTheme({
   },
 
   radius: {
-    xs: '4px',
-    sm: '8px',
-    md: '12px',
-    lg: '16px',
-    xl: '24px',
+    xs: '0px',
+    sm: '6px',
+    md: '10px',
+    lg: '14px',
+    xl: '20px',
   },
-  defaultRadius: 'md',
+  defaultRadius: 'xs',
 
   components: {
     Paper: {
       defaultProps: {
         bg: 'var(--mantine-color-dark-7)',
         shadow: 'none',
+        radius: 'xs',
       },
     },
     Button: {
@@ -78,7 +79,7 @@ const theme = createTheme({
     Modal: {
       defaultProps: {
         overlayProps: { backgroundOpacity: 0.7, blur: 2 },
-        radius: 'md',
+        radius: 'sm',
       },
       styles: {
         content: {

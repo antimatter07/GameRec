@@ -137,7 +137,7 @@ export default function AdminDashboardPage() {
               { label: 'Premium Users',           value: metrics?.premium_count          ?? '–' },
               { label: 'Recommendations Served',  value: metrics?.recommendations_served ?? '–' },
             ].map((m) => (
-              <Paper key={m.label} p="md" withBorder radius="md" className={classes.metricCard}>
+              <Paper key={m.label} p="md" withBorder radius="xs" className={classes.metricCard}>
                 <div className={classes.metricLabel}>{m.label}</div>
                 <div className={classes.metricValue}>{String(m.value)}</div>
               </Paper>
@@ -158,7 +158,7 @@ export default function AdminDashboardPage() {
             <Text size="xs" c="dimmed">RAWG catalog sync status and current worker task.</Text>
           </div>
         </Group>
-        <Paper p="md" withBorder radius="md">
+        <Paper p="md" withBorder radius="xs">
           <Group gap="md">
             <Badge color={PIPELINE_STATUS_COLORS[pipelineStatus?.status ?? 'never_run'] ?? 'gray'}>
               {pipelineStatus?.status ?? 'never_run'}
@@ -195,7 +195,7 @@ export default function AdminDashboardPage() {
         {usersLoading ? (
           <Center><Loader /></Center>
         ) : (
-          <Paper withBorder radius="md" className={classes.tableWrap}>
+          <Paper withBorder radius="xs" className={classes.tableWrap}>
             <Table striped highlightOnHover className={classes.userTable}>
               <Table.Thead>
                 <Table.Tr>

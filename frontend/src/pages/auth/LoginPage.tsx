@@ -51,7 +51,7 @@ export default function LoginPage() {
           </Anchor>
         </Text>
 
-      <Paper withBorder p="xl" mt="lg" radius="md" className={classes.card}>
+      <Paper withBorder p="xl" mt="lg" radius="xs" className={classes.card}>
         <GoogleSignInButton
           fullWidth
           loading={isGoogleSubmitting}

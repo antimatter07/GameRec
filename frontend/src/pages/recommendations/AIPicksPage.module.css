@@ -279,7 +279,7 @@
   justify-content: center;
   text-align: center;
   padding: var(--mantine-spacing-xl) var(--mantine-spacing-md);
-  border-radius: var(--mantine-radius-md);
+  border-radius: var(--mantine-radius-xs);
   background: var(--mantine-color-dark-7);
 }
 

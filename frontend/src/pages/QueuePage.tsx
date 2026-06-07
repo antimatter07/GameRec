@@ -204,7 +204,7 @@ export default function QueuePage() {
       </div>
 
       <div className={classes.metricsGrid}>
-        <Paper className={classes.metricCard} p="md" radius="md" withBorder>
+        <Paper className={classes.metricCard} p="md" radius="xs" withBorder>
           <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-ember-light)' }}>
             <IconLayoutGrid size={18} color="var(--mantine-color-ember-5)" />
           </div>
@@ -215,7 +215,7 @@ export default function QueuePage() {
           <div className={classes.metricSub}>Drag cards to reorder the lineup</div>
         </Paper>
 
-        <Paper className={classes.metricCard} p="md" radius="md" withBorder>
+        <Paper className={classes.metricCard} p="md" radius="xs" withBorder>
           <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-blue-light)' }}>
             <IconBooks size={18} color="var(--mantine-color-blue-5)" />
           </div>
@@ -226,7 +226,7 @@ export default function QueuePage() {
           <div className={classes.metricSub}>Eligible library games ready to drag in</div>
         </Paper>
 
-        <Paper className={classes.metricCard} p="md" radius="md" withBorder>
+        <Paper className={classes.metricCard} p="md" radius="xs" withBorder>
           <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-teal-light)' }}>
             <IconClock size={18} color="var(--mantine-color-teal-5)" />
           </div>
@@ -237,7 +237,7 @@ export default function QueuePage() {
           <div className={classes.metricSub}>Based on main-story hours when available</div>
         </Paper>
 
-        <Paper className={classes.metricCard} p="md" radius="md" withBorder>
+        <Paper className={classes.metricCard} p="md" radius="xs" withBorder>
           <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-yellow-light)' }}>
             <IconPlayerPlay size={18} color="var(--mantine-color-yellow-5)" />
           </div>
@@ -250,7 +250,7 @@ export default function QueuePage() {
       </div>
 
       <div className={classes.overviewGrid}>
-        <Paper p="md" radius="md" withBorder>
+        <Paper p="md" radius="xs" withBorder>
           <Group justify="space-between" mb="sm" className={classes.panelHeader}>
             <div>
               <Text size="sm" fw={600}>Next up</Text>
@@ -299,7 +299,7 @@ export default function QueuePage() {
           )}
         </Paper>
 
-        <Paper p="md" radius="md" withBorder>
+        <Paper p="md" radius="xs" withBorder>
           <Group justify="space-between" mb="sm" className={classes.panelHeader}>
             <div>
               <Text size="sm" fw={600}>Queued genres</Text>
@@ -346,7 +346,7 @@ export default function QueuePage() {
       </div>
 
       <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragEnd={handleDragEnd}>
-        <Paper withBorder radius="md" p="md">
+        <Paper withBorder radius="xs" p="md">
           <Stack gap="sm">
             <Group justify="space-between" align="flex-start" gap="sm" className={classes.panelHeader}>
               <div>
@@ -381,7 +381,7 @@ export default function QueuePage() {
           </Stack>
         </Paper>
 
-        <Paper withBorder radius="md" p="md">
+        <Paper withBorder radius="xs" p="md">
           <Stack gap="sm">
             <Group justify="space-between" align="flex-start" gap="sm" className={classes.panelHeader}>
               <div>
@@ -436,7 +436,7 @@ export default function QueuePage() {
             )}
 
             {aiSuggestion?.overall_explanation && (
-              <Paper className={classes.aiExplanationCard} p="md" radius="md" withBorder>
+              <Paper className={classes.aiExplanationCard} p="md" radius="xs" withBorder>
                 <Text size="sm" fw={600} mb={6}>Why AI suggested this order</Text>
                 <Text size="sm" c="dimmed">{aiSuggestion.overall_explanation}</Text>
               </Paper>
@@ -473,7 +473,7 @@ export default function QueuePage() {
           </Stack>
         </Paper>
 
-        <Paper withBorder radius="md" p="md">
+        <Paper withBorder radius="xs" p="md">
           <Stack gap="sm">
             <Group justify="space-between" align="flex-start" gap="sm" className={classes.panelHeader}>
               <div>

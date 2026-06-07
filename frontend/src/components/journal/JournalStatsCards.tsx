@@ -50,7 +50,7 @@ interface MetricCardsProps {
 export function MetricCards({ stats }: MetricCardsProps) {
   return (
     <div className={classes.metricsGrid}>
-      <Paper className={classes.metricCard} p="md" radius="md" withBorder>
+      <Paper className={classes.metricCard} p="md" radius="xs" withBorder>
         <div className={classes.metricIcon} style={{ background: 'rgba(212, 103, 77, 0.14)' }}>
           <IconClock size={18} color="#d4674d" />
         </div>
@@ -66,7 +66,7 @@ export function MetricCards({ stats }: MetricCardsProps) {
         </div>
       </Paper>
 
-      <Paper className={classes.metricCard} p="md" radius="md" withBorder>
+      <Paper className={classes.metricCard} p="md" radius="xs" withBorder>
         <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-teal-light)' }}>
           <IconTrophy size={18} color="var(--mantine-color-teal-5)" />
         </div>
@@ -82,7 +82,7 @@ export function MetricCards({ stats }: MetricCardsProps) {
         </div>
       </Paper>
 
-      <Paper className={classes.metricCard} p="md" radius="md" withBorder>
+      <Paper className={classes.metricCard} p="md" radius="xs" withBorder>
         <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-yellow-light)' }}>
           <IconFlame size={18} color="var(--mantine-color-yellow-5)" />
         </div>
@@ -94,7 +94,7 @@ export function MetricCards({ stats }: MetricCardsProps) {
         <div className={classes.metricSub}>Longest: {stats.longest_streak_days} days</div>
       </Paper>
 
-      <Paper className={classes.metricCard} p="md" radius="md" withBorder>
+      <Paper className={classes.metricCard} p="md" radius="xs" withBorder>
         <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-blue-light)' }}>
           <IconChartBar size={18} color="var(--mantine-color-blue-5)" />
         </div>

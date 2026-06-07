@@ -308,7 +308,7 @@ export default function LibraryPage() {
   if (isError && !data) {
     return (
       <Center py={80}>
-        <Paper p="md" radius="md" withBorder>
+        <Paper p="md" radius="xs" withBorder>
           <Text size="sm" c="red.4">Failed to load your library. Please try again.</Text>
         </Paper>
       </Center>
@@ -336,7 +336,7 @@ export default function LibraryPage() {
         </Button>
       </div>
 
-      <Paper className={classes.summaryBar} p="md" radius="md" withBorder>
+      <Paper className={classes.summaryBar} p="md" radius="xs" withBorder>
         <div className={classes.summaryItem}>
           <div className={classes.summaryIcon} style={{ background: 'var(--mantine-color-ember-light)' }}>
             <IconBooks size={16} color="var(--mantine-color-ember-5)" />
@@ -381,7 +381,7 @@ export default function LibraryPage() {
       </Paper>
 
       {nextCandidate && (
-        <Paper p="md" radius="md" withBorder>
+        <Paper p="md" radius="xs" withBorder>
           <Group justify="space-between" align="center" gap="sm">
             <div>
               <Text size="sm" fw={600}>Ready to start next?</Text>
@@ -438,7 +438,7 @@ export default function LibraryPage() {
 
           return (
             <Tabs.Panel key={tab.value} value={tab.value} pt="lg">
-              <Paper p="md" radius="md" withBorder>
+              <Paper p="md" radius="xs" withBorder>
                 <Group justify="space-between" align="flex-start" gap="sm" mb="md" className={classes.panelHeader}>
                   <div>
                     <Text size="sm" fw={600}>
@@ -487,7 +487,7 @@ export default function LibraryPage() {
                           }
                           rightSectionPointerEvents="all"
                           size="sm"
-                          radius="md"
+                          radius="sm"
                         />
                         {showSearchStatus && (
                           <Text className={classes.searchStatus}>
@@ -505,7 +505,7 @@ export default function LibraryPage() {
                         onChange={(value) => value && setSort(value as LibrarySort)}
                         data={SORT_OPTIONS}
                         size="sm"
-                        radius="md"
+                        radius="sm"
                         allowDeselect={false}
                       />
 
@@ -515,7 +515,7 @@ export default function LibraryPage() {
                         value={viewMode}
                         onChange={(value) => setViewMode(value as 'covers' | 'compact')}
                         size="sm"
-                        radius="md"
+                        radius="sm"
                         color="ember"
                         data={[
                           {
@@ -584,7 +584,7 @@ export default function LibraryPage() {
                           <Box key={entry.id} className={classes.libraryItem}>
                             <GameCard game={entry.game} />
 
-                            <Paper p="sm" radius="md" withBorder className={classes.entryMeta}>
+                            <Paper p="sm" radius="xs" withBorder className={classes.entryMeta}>
                               <Group justify="space-between" align="flex-start" gap="sm" wrap="nowrap">
                                 <div className={classes.entryInfo}>
                                   <Group gap={6} wrap="wrap" mb={6}>
@@ -646,7 +646,7 @@ export default function LibraryPage() {
                           const runtime = formatRuntime(entry);
 
                           return (
-                            <Paper key={entry.id} p="sm" radius="md" withBorder className={classes.compactRow}>
+                            <Paper key={entry.id} p="sm" radius="xs" withBorder className={classes.compactRow}>
                               <button
                                 type="button"
                                 className={classes.compactCover}
@@ -695,7 +695,7 @@ export default function LibraryPage() {
                                     { value: 'dropped', label: 'Dropped' },
                                   ]}
                                   size="xs"
-                                  radius="md"
+                                  radius="sm"
                                   disabled={rowUpdating}
                                   allowDeselect={false}
                                 />
@@ -796,7 +796,7 @@ export default function LibraryPage() {
       </Tabs>
 
       <div className={classes.insightGrid}>
-        <Paper p="md" radius="md" withBorder className={classes.insightPanel}>
+        <Paper p="md" radius="xs" withBorder className={classes.insightPanel}>
           <Group justify="space-between" mb="sm" className={classes.panelHeader}>
             <div>
               <Text size="sm" fw={600}>Library shape</Text>
@@ -830,7 +830,7 @@ export default function LibraryPage() {
           </Stack>
         </Paper>
 
-        <Paper p="md" radius="md" withBorder className={classes.insightPanel}>
+        <Paper p="md" radius="xs" withBorder className={classes.insightPanel}>
           <Group justify="space-between" mb="sm" className={classes.panelHeader}>
             <div>
               <Text size="sm" fw={600}>Taste signals</Text>

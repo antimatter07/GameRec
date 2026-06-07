@@ -83,7 +83,7 @@ export default function RecommendationsPage() {
   if (isError) {
     return (
       <Center py={80}>
-        <Paper p="md" radius="md" withBorder>
+        <Paper p="md" radius="xs" withBorder>
           <Group gap="sm" wrap="nowrap">
             <div className={classes.statusIcon} style={{ background: 'rgba(250, 82, 82, 0.12)' }}>
               <IconAlertCircle size={16} color="var(--mantine-color-red-5)" />
@@ -121,7 +121,7 @@ export default function RecommendationsPage() {
       </div>
 
       <div className={classes.metricsGrid}>
-        <Paper className={classes.metricCard} p="md" radius="md" withBorder>
+        <Paper className={classes.metricCard} p="md" radius="xs" withBorder>
           <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-ember-light)' }}>
             <IconSparkles size={18} color="var(--mantine-color-ember-5)" />
           </div>
@@ -132,7 +132,7 @@ export default function RecommendationsPage() {
           <div className={classes.metricSub}>Current ranked set</div>
         </Paper>
 
-        <Paper className={classes.metricCard} p="md" radius="md" withBorder>
+        <Paper className={classes.metricCard} p="md" radius="xs" withBorder>
           <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-teal-light)' }}>
             <IconChecks size={18} color="var(--mantine-color-teal-5)" />
           </div>
@@ -143,7 +143,7 @@ export default function RecommendationsPage() {
           <div className={classes.metricSub}>Cosine similarity mean</div>
         </Paper>
 
-        <Paper className={classes.metricCard} p="md" radius="md" withBorder>
+        <Paper className={classes.metricCard} p="md" radius="xs" withBorder>
           <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-blue-light)' }}>
             <IconBrain size={18} color="var(--mantine-color-blue-5)" />
           </div>
@@ -156,7 +156,7 @@ export default function RecommendationsPage() {
       </div>
 
       {!data || items.length === 0 ? (
-        <Paper p="md" radius="md" withBorder className={classes.emptyState}>
+        <Paper p="md" radius="xs" withBorder className={classes.emptyState}>
           <div>
             <Text size="sm" fw={600}>No recommendations yet</Text>
             <Text size="xs" c="dimmed" mt={4}>
@@ -165,7 +165,7 @@ export default function RecommendationsPage() {
           </div>
         </Paper>
       ) : (
-        <Paper p="md" radius="md" withBorder>
+        <Paper p="md" radius="xs" withBorder>
           <Group justify="space-between" align="flex-start" gap="sm" mb="md" className={classes.panelHeader}>
             <div>
               <Text size="sm" fw={600}>Current matches</Text>

@@ -179,7 +179,7 @@
   gap: 12px;
   padding: 14px;
   border: 1px solid rgba(212, 103, 77, 0.28);
-  border-radius: var(--mantine-radius-md);
+  border-radius: var(--mantine-radius-xs);
   background:
     linear-gradient(135deg, rgba(212, 103, 77, 0.12), rgba(23, 27, 39, 0.72) 42%),
     var(--mantine-color-dark-6);

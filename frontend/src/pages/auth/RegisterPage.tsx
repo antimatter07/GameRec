@@ -54,7 +54,7 @@ export default function RegisterPage() {
           </Anchor>
         </Text>
 
-      <Paper withBorder p="xl" mt="lg" radius="md" className={classes.card}>
+      <Paper withBorder p="xl" mt="lg" radius="xs" className={classes.card}>
         <GoogleSignInButton
           fullWidth
           label={isGoogleSubmitting ? 'Creating Google session...' : 'Sign up with Google'}

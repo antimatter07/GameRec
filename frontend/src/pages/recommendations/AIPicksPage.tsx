@@ -117,7 +117,7 @@ export default function AIPicksPage() {
   if (isError) {
     return (
       <Center py={80}>
-        <Paper p="md" radius="md" withBorder>
+        <Paper p="md" radius="xs" withBorder>
           <Group gap="sm" wrap="nowrap">
             <div className={classes.statusIcon} style={{ background: 'rgba(250, 82, 82, 0.12)' }}>
               <IconAlertCircle size={16} color="var(--mantine-color-red-5)" />
@@ -177,7 +177,7 @@ export default function AIPicksPage() {
         </Button>
       </div>
 
-      <Paper p="md" radius="md" withBorder className={classes.statusPanel}>
+      <Paper p="md" radius="xs" withBorder className={classes.statusPanel}>
         <Group justify="space-between" align="flex-start" gap="sm" className={classes.panelHeader}>
           <Group gap="sm" wrap="nowrap">
             <div className={classes.statusIcon} style={{ background: statusTone.background }}>
@@ -198,7 +198,7 @@ export default function AIPicksPage() {
       </Paper>
 
       {!recommendation && (
-        <Paper p="md" radius="md" withBorder className={classes.emptyState}>
+        <Paper p="md" radius="xs" withBorder className={classes.emptyState}>
           <div>
             <Text size="sm" fw={600}>No AI Picks yet</Text>
             <Text size="xs" c="dimmed" mt={4}>
@@ -211,7 +211,7 @@ export default function AIPicksPage() {
       {readyRecommendation && hasItems && (
         <>
           <div className={classes.metricsGrid}>
-            <Paper className={classes.metricCard} p="md" radius="md" withBorder>
+            <Paper className={classes.metricCard} p="md" radius="xs" withBorder>
               <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-ember-light)' }}>
                 <IconSparkles size={18} color="var(--mantine-color-ember-5)" />
               </div>
@@ -222,7 +222,7 @@ export default function AIPicksPage() {
               <div className={classes.metricSub}>Current recommendation set</div>
             </Paper>
 
-            <Paper className={classes.metricCard} p="md" radius="md" withBorder>
+            <Paper className={classes.metricCard} p="md" radius="xs" withBorder>
               <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-teal-light)' }}>
                 <IconGauge size={18} color="var(--mantine-color-teal-5)" />
               </div>
@@ -233,7 +233,7 @@ export default function AIPicksPage() {
               <div className={classes.metricSub}>Across picks with confidence scores</div>
             </Paper>
 
-            <Paper className={classes.metricCard} p="md" radius="md" withBorder>
+            <Paper className={classes.metricCard} p="md" radius="xs" withBorder>
               <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-blue-light)' }}>
                 <IconBolt size={18} color="var(--mantine-color-blue-5)" />
               </div>
@@ -244,7 +244,7 @@ export default function AIPicksPage() {
               <div className={classes.metricSub}>Confidence at 75% or higher</div>
             </Paper>
 
-            <Paper className={classes.metricCard} p="md" radius="md" withBorder>
+            <Paper className={classes.metricCard} p="md" radius="xs" withBorder>
               <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-yellow-light)' }}>
                 <IconCalendarTime size={18} color="var(--mantine-color-yellow-5)" />
               </div>
@@ -257,7 +257,7 @@ export default function AIPicksPage() {
           </div>
 
           <div className={classes.overviewGrid}>
-            <Paper p="md" radius="md" withBorder>
+            <Paper p="md" radius="xs" withBorder>
               <Group justify="space-between" mb="sm" className={classes.panelHeader}>
                 <div>
                   <Text size="sm" fw={600}>Taste summary</Text>
@@ -273,7 +273,7 @@ export default function AIPicksPage() {
               </Text>
             </Paper>
 
-            <Paper p="md" radius="md" withBorder>
+            <Paper p="md" radius="xs" withBorder>
               <Group justify="space-between" mb="sm" className={classes.panelHeader}>
                 <div>
                   <Text size="sm" fw={600}>Batch signals</Text>
@@ -305,7 +305,7 @@ export default function AIPicksPage() {
             </Paper>
           </div>
 
-          <Paper p="md" radius="md" withBorder>
+          <Paper p="md" radius="xs" withBorder>
             <Group justify="space-between" align="flex-start" gap="sm" mb="md" className={classes.panelHeader}>
               <div>
                 <Text size="sm" fw={600}>Current picks</Text>

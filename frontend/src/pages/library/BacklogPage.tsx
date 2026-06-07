@@ -54,14 +54,14 @@ export default function BacklogPage() {
         )}
       </div>
 
-      <Paper p="md" radius="md" withBorder>
+      <Paper p="md" radius="xs" withBorder>
         <BacklogFilters filters={filters} onChange={setFilters} />
       </Paper>
 
       {isLoading && <Center h={300}><Loader color="ember" /></Center>}
 
       {isError && (
-        <Paper p="md" radius="md" withBorder>
+        <Paper p="md" radius="xs" withBorder>
           <Text c="red.4" ta="center" size="sm">Failed to load backlog. Try again.</Text>
         </Paper>
       )}

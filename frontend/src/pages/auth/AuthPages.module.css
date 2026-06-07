@@ -68,7 +68,7 @@
   margin-top: var(--mantine-spacing-lg);
   padding: 12px;
   border: 1px solid rgba(212, 103, 77, 0.24);
-  border-radius: var(--mantine-radius-md);
+  border-radius: var(--mantine-radius-xs);
   background:
     linear-gradient(135deg, rgba(212, 103, 77, 0.12), rgba(23, 27, 39, 0.76) 48%),
     var(--mantine-color-dark-6);

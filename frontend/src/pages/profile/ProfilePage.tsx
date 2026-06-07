@@ -187,7 +187,7 @@ export default function ProfilePage() {
       </div>
 
       <div className={classes.metricsGrid}>
-        <Paper className={classes.metricCard} p="md" radius="md" withBorder>
+        <Paper className={classes.metricCard} p="md" radius="xs" withBorder>
           <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-ember-light)' }}>
             <IconUserCircle size={18} color="var(--mantine-color-ember-5)" />
           </div>
@@ -198,7 +198,7 @@ export default function ProfilePage() {
           <div className={classes.metricSub}>Display name, bio, and avatar</div>
         </Paper>
 
-        <Paper className={classes.metricCard} p="md" radius="md" withBorder>
+        <Paper className={classes.metricCard} p="md" radius="xs" withBorder>
           <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-blue-light)' }}>
             <IconShield size={18} color="var(--mantine-color-blue-5)" />
           </div>
@@ -209,7 +209,7 @@ export default function ProfilePage() {
           <div className={classes.metricSub}>Current account tier</div>
         </Paper>
 
-        <Paper className={classes.metricCard} p="md" radius="md" withBorder>
+        <Paper className={classes.metricCard} p="md" radius="xs" withBorder>
           <div className={classes.metricIcon} style={{ background: 'var(--mantine-color-teal-light)' }}>
             <IconBrandSteam size={18} color="var(--mantine-color-teal-5)" />
           </div>
@@ -222,7 +222,7 @@ export default function ProfilePage() {
       </div>
 
       <div className={classes.overviewGrid}>
-        <Paper p="md" radius="md" withBorder>
+        <Paper p="md" radius="xs" withBorder>
           <Stack gap="md">
             <Group className={classes.panelHeader} justify="space-between">
               <div>
@@ -279,7 +279,7 @@ export default function ProfilePage() {
 
         <Stack gap="sm">
           {user.role === 'basic' && (
-            <Paper p="md" radius="md" withBorder className={classes.sidePanel}>
+            <Paper p="md" radius="xs" withBorder className={classes.sidePanel}>
               <Stack gap="sm">
                 <Group gap="xs">
                   <IconCrown size={16} color="var(--mantine-color-yellow-5)" />
@@ -300,7 +300,7 @@ export default function ProfilePage() {
             </Paper>
           )}
 
-          <Paper p="md" radius="md" withBorder className={classes.dangerPanel}>
+          <Paper p="md" radius="xs" withBorder className={classes.dangerPanel}>
             <Stack gap="sm">
               <Group gap="xs">
                 <IconAlertTriangle size={16} color="var(--mantine-color-red-5)" />
@@ -322,7 +322,7 @@ export default function ProfilePage() {
         </Stack>
       </div>
 
-      <Paper p="md" radius="md" withBorder>
+      <Paper p="md" radius="xs" withBorder>
         <Stack gap="md">
           <Group className={classes.panelHeader} justify="space-between">
             <div>

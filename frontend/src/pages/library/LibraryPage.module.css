@@ -124,6 +124,15 @@
   min-width: 190px;
 }
 
+.viewSwitch :global(.mantine-SegmentedControl-root) {
+  border-radius: var(--mantine-radius-sm);
+}
+
+.viewSwitch :global(.mantine-SegmentedControl-indicator),
+.viewSwitch :global(.mantine-SegmentedControl-label) {
+  border-radius: var(--mantine-radius-sm);
+}
+
 .viewSwitchLabel {
   display: inline-flex;
   align-items: center;
@@ -146,6 +155,14 @@
 .searchInput :global(.mantine-Input-input)::placeholder,
 .sortSelect :global(.mantine-Input-input)::placeholder {
   color: var(--mantine-color-gray-5);
+}
+
+.tabsList :global(.mantine-Tabs-tab) {
+  border-radius: var(--mantine-radius-sm);
+}
+
+.tabsList :global(.mantine-Tabs-tab[data-active]) {
+  border-radius: var(--mantine-radius-sm);
 }
 
 .searchInput :global(.mantine-Input-input:focus),
@@ -442,7 +459,7 @@
   justify-content: center;
   text-align: center;
   padding: var(--mantine-spacing-xl) var(--mantine-spacing-md);
-  border-radius: var(--mantine-radius-md);
+  border-radius: var(--mantine-radius-xs);
   border: 1px dashed rgba(255, 255, 255, 0.08);
   background: var(--mantine-color-dark-6);
 }

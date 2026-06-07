@@ -111,7 +111,7 @@ export default function CatalogPage() {
         </div>
       </div>
 
-      <Paper p="md" radius="md" withBorder className={classes.filterPanel}>
+      <Paper p="md" radius="xs" withBorder className={classes.filterPanel}>
         <Group justify="space-between" align="flex-end" gap="sm" className={classes.panelHeader}>
           <div>
             <Text size="sm" fw={600} className={classes.panelTitle}>
@@ -158,7 +158,7 @@ export default function CatalogPage() {
       )}
 
       {isError && (
-        <Paper withBorder radius="md" p="md" className={classes.statePanel}>
+        <Paper withBorder radius="xs" p="md" className={classes.statePanel}>
           <Group gap="sm" align="flex-start">
             <div className={classes.stateIcon}>
               <IconAlertCircle size={18} stroke={1.8} />
@@ -193,7 +193,7 @@ export default function CatalogPage() {
               ))}
             </Box>
           ) : (
-            <Paper withBorder radius="md" p="lg" className={classes.statePanel}>
+            <Paper withBorder radius="xs" p="lg" className={classes.statePanel}>
               <Center className={classes.emptyState}>
                 <div className={classes.stateIcon}>
                   <IconSearchOff size={18} stroke={1.8} />
@@ -223,7 +223,7 @@ export default function CatalogPage() {
                 total={totalPages}
                 value={page}
                 onChange={(nextPage) => setSearchParams(writeCatalogParams(filters, nextPage))}
-                radius="md"
+                radius="sm"
                 className={classes.pagination}
               />
             </Center>
