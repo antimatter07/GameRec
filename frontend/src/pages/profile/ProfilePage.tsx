@@ -5,6 +5,7 @@ import {
   Badge,
   Button,
   Group,
+  Progress,
   Modal,
   Paper,
   SimpleGrid,
@@ -12,16 +13,19 @@ import {
   Text,
   TextInput,
   Textarea,
+  ThemeIcon,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { useForm } from '@mantine/form';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { isAxiosError } from 'axios';
 import {
   IconAlertTriangle,
   IconBrandSteam,
+  IconCloudDownload,
   IconCrown,
+  IconDatabaseSearch,
   IconDeviceGamepad2,
   IconId,
   IconPencil,
@@ -84,6 +88,7 @@ export default function ProfilePage() {
   const [deleteOpened, { open: openDelete, close: closeDelete }] = useDisclosure(false);
   const [steamProfile, setSteamProfile] = useState('');
   const [steamResult, setSteamResult] = useState<SteamImportResponse | null>(null);
+  const [steamImportSeconds, setSteamImportSeconds] = useState(0);
   const importSteam = useImportSteamLibrary();
 
   const form = useForm({
@@ -124,6 +129,8 @@ export default function ProfilePage() {
 
   const handleSteamImport = async () => {
     try {
+      setSteamResult(null);
+      setSteamImportSeconds(0);
       const result = await importSteam.mutateAsync(steamProfile.trim());
       setSteamResult(result);
       notifications.show({
@@ -139,7 +146,28 @@ export default function ProfilePage() {
     }
   };
 
+  useEffect(() => {
+    if (!importSteam.isPending) {
+      return undefined;
+    }
+
+    const startedAt = Date.now();
+    const intervalId = window.setInterval(() => {
+      setSteamImportSeconds(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [importSteam.isPending]);
+
   if (!user) return null;
+
+  const steamImportStatus =
+    steamImportSeconds < 8
+      ? 'Connecting to Steam and reading the public library.'
+      : steamImportSeconds < 25
+        ? 'Matching Steam titles against the GameRec catalog.'
+        : 'Still working. Large libraries can take a little longer to match safely.';
+  const steamImportProgress = Math.min(92, 18 + steamImportSeconds * 3);
 
   return (
     <Stack gap="lg" className={classes.page}>
@@ -315,6 +343,7 @@ export default function ProfilePage() {
               placeholder="SteamID64 or steamcommunity.com profile URL"
               value={steamProfile}
               onChange={(event) => setSteamProfile(event.currentTarget.value)}
+              disabled={importSteam.isPending}
             />
             <Button
               color="ember"
@@ -323,9 +352,39 @@ export default function ProfilePage() {
               disabled={steamProfile.trim().length === 0}
               leftSection={<IconBrandSteam size={16} />}
             >
-              Import library
+              {importSteam.isPending ? 'Importing...' : 'Import library'}
             </Button>
           </Group>
+
+          {importSteam.isPending && (
+            <div className={classes.importProgress} role="status" aria-live="polite" aria-atomic="true">
+              <Group justify="space-between" align="flex-start" gap="sm" wrap="nowrap">
+                <Group gap="sm" align="flex-start" wrap="nowrap">
+                  <ThemeIcon radius="sm" color="ember" variant="light" size={36}>
+                    <IconCloudDownload size={18} />
+                  </ThemeIcon>
+                  <div>
+                    <Text size="sm" fw={600}>Import in progress</Text>
+                    <Text size="xs" c="dimmed">{steamImportStatus}</Text>
+                  </div>
+                </Group>
+                <Badge size="sm" variant="light" color="ember">
+                  {steamImportSeconds}s
+                </Badge>
+              </Group>
+              <Progress
+                value={steamImportProgress}
+                color="ember"
+                radius="xs"
+                size="sm"
+                aria-label="Steam import progress"
+              />
+              <Group gap="xs" className={classes.importChecks}>
+                <IconDatabaseSearch size={14} />
+                <Text size="xs">Keep this page open until the import summary appears.</Text>
+              </Group>
+            </div>
+          )}
 
           {steamResult && (
             <Alert color="teal" variant="light" className={classes.resultAlert}>

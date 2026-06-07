@@ -1,8 +1,10 @@
 import { isAxiosError } from 'axios';
-import { Anchor, Button, Container, Divider, Paper, PasswordInput, Text, TextInput, Title } from '@mantine/core';
+import { Anchor, Button, Container, Divider, Paper, PasswordInput, Progress, Text, TextInput, ThemeIcon, Title } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { Link } from 'react-router';
+import { useState } from 'react';
+import { IconUserPlus } from '@tabler/icons-react';
 import logoTitle from '../../assets/logo/gamerec-logo-title-transparent.png';
 import { useAuth } from '../../hooks/useAuth';
 import { GoogleSignInButton } from '../../components/GoogleSignInButton';
@@ -10,6 +12,9 @@ import classes from './AuthPages.module.css';
 
 export default function RegisterPage() {
   const { register, loginWithGoogle } = useAuth();
+  const [isEmailSubmitting, setIsEmailSubmitting] = useState(false);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
+  const isProcessing = isEmailSubmitting || isGoogleSubmitting;
 
   const form = useForm({
     initialValues: { email: '', display_name: '', password: '' },
@@ -22,10 +27,13 @@ export default function RegisterPage() {
 
   const handleSubmit = form.onSubmit(async (values) => {
     try {
+      setIsEmailSubmitting(true);
       await register(values);
     } catch (err: unknown) {
       const message = isAxiosError(err) ? (err.response?.data?.detail ?? 'Registration failed') : 'Registration failed';
       notifications.show({ color: 'red', title: 'Error', message });
+    } finally {
+      setIsEmailSubmitting(false);
     }
   });
 
@@ -49,12 +57,19 @@ export default function RegisterPage() {
       <Paper withBorder p="xl" mt="lg" radius="md" className={classes.card}>
         <GoogleSignInButton
           fullWidth
-          label="Sign up with Google"
-          onSuccess={(accessToken) =>
-            loginWithGoogle(accessToken).catch(() =>
-              notifications.show({ color: 'red', title: 'Google sign-in failed', message: 'Try again or register with email' })
-            )
-          }
+          label={isGoogleSubmitting ? 'Creating Google session...' : 'Sign up with Google'}
+          loading={isGoogleSubmitting}
+          disabled={isProcessing}
+          onSuccess={async (accessToken) => {
+            try {
+              setIsGoogleSubmitting(true);
+              await loginWithGoogle(accessToken);
+            } catch {
+              notifications.show({ color: 'red', title: 'Google sign-in failed', message: 'Try again or register with email' });
+            } finally {
+              setIsGoogleSubmitting(false);
+            }
+          }}
           onError={() =>
             notifications.show({ color: 'red', title: 'Google sign-in failed', message: 'Try again or register with email' })
           }
@@ -70,6 +85,7 @@ export default function RegisterPage() {
             label="Display name"
             placeholder="Your name"
             required
+            disabled={isProcessing}
             {...form.getInputProps('display_name')}
           />
           <TextInput
@@ -78,6 +94,7 @@ export default function RegisterPage() {
             placeholder="you@example.com"
             required
             mt="md"
+            disabled={isProcessing}
             {...form.getInputProps('email')}
           />
           <PasswordInput
@@ -86,11 +103,29 @@ export default function RegisterPage() {
             placeholder="At least 8 characters"
             required
             mt="md"
+            disabled={isProcessing}
             {...form.getInputProps('password')}
           />
 
-          <Button type="submit" fullWidth mt="xl">
-            Register
+          {isProcessing && (
+            <div className={classes.processingPanel} role="status" aria-live="polite" aria-atomic="true">
+              <ThemeIcon radius="sm" color="ember" variant="light" size={34}>
+                <IconUserPlus size={18} />
+              </ThemeIcon>
+              <div className={classes.processingContent}>
+                <Text size="sm" fw={600}>
+                  {isGoogleSubmitting ? 'Creating your Google session' : 'Creating your account'}
+                </Text>
+                <Text size="xs" c="dimmed">
+                  We are setting up your profile and opening your GameRec library.
+                </Text>
+                <Progress value={68} color="ember" radius="xs" size="xs" mt={8} aria-label="Registration processing" />
+              </div>
+            </div>
+          )}
+
+          <Button type="submit" fullWidth mt="xl" loading={isEmailSubmitting} disabled={isProcessing}>
+            {isEmailSubmitting ? 'Creating account...' : 'Register'}
           </Button>
         </form>
       </Paper>

@@ -60,3 +60,25 @@
   font-size: 0.75rem;
   font-weight: 700;
 }
+
+.processingPanel {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: var(--mantine-spacing-lg);
+  padding: 12px;
+  border: 1px solid rgba(212, 103, 77, 0.24);
+  border-radius: var(--mantine-radius-md);
+  background:
+    linear-gradient(135deg, rgba(212, 103, 77, 0.12), rgba(23, 27, 39, 0.76) 48%),
+    var(--mantine-color-dark-6);
+}
+
+.processingContent {
+  min-width: 0;
+  flex: 1;
+}
+
+.processingPanel :global(.mantine-Progress-root) {
+  background: var(--mantine-color-dark-5);
+}
