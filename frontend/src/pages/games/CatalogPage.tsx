@@ -1,6 +1,6 @@
 import { Box, Center, Group, Pagination, Paper, Skeleton, Stack, Text, Title } from '@mantine/core';
 import { IconAlertCircle, IconSearchOff } from '@tabler/icons-react';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { GameFiltersBar } from '../../components/games/GameFilters';
 import { GameCard } from '../../components/games/GameCard';
@@ -61,12 +61,34 @@ function writeCatalogParams(filters: GameFilters, page: number) {
 export default function CatalogPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { page, filters } = useMemo(() => parseCatalogParams(searchParams), [searchParams]);
+  const [searchDraft, setSearchDraft] = useState({
+    appliedSearch: filters.search,
+    input: filters.search ?? '',
+  });
+  const searchInput = searchDraft.appliedSearch === filters.search ? searchDraft.input : (filters.search ?? '');
 
   const { data, isLoading, isError } = useGamesList(page, 20, filters);
 
   const handleFiltersChange = (newFilters: GameFilters) => {
     setSearchParams(writeCatalogParams(newFilters, 1));
   };
+
+  const applySearch = (value: string) => {
+    const normalizedSearch = value.trim() || undefined;
+    if (normalizedSearch === filters.search) return;
+    handleFiltersChange({ ...filters, search: normalizedSearch });
+  };
+
+  useEffect(() => {
+    const normalizedSearch = searchInput.trim() || undefined;
+    if (normalizedSearch === filters.search) return undefined;
+
+    const timeoutId = window.setTimeout(() => {
+      setSearchParams(writeCatalogParams({ ...filters, search: normalizedSearch }, 1));
+    }, 3000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [filters, searchInput, setSearchParams]);
 
   const totalPages = data ? Math.ceil(data.total / data.page_size) : 1;
   const activeFilterCount = Object.entries(filters).filter(([key, value]) => {
@@ -113,10 +135,9 @@ export default function CatalogPage() {
           onReset={() => {
             handleFiltersChange(DEFAULT_FILTERS);
           }}
-          searchInput={filters.search ?? ''}
-          onSearchInputChange={(value) => {
-            handleFiltersChange({ ...filters, search: value.trim() || undefined });
-          }}
+          searchInput={searchInput}
+          onSearchInputChange={(input) => setSearchDraft({ appliedSearch: filters.search, input })}
+          onSearchCommit={() => applySearch(searchInput)}
         />
       </Paper>
 

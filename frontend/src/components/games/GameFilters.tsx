@@ -9,6 +9,7 @@ interface GameFiltersProps {
   onReset: () => void;
   searchInput: string;
   onSearchInputChange: (value: string) => void;
+  onSearchCommit: () => void;
 }
 
 // TODO: Fetch these dynamically from RAWG /genres and /platforms endpoints
@@ -64,9 +65,15 @@ const SORT_OPTIONS = [
  * Filter bar for the game catalog.
  * TODO: Sync filter state with URL search params (useSearchParams)
  */
-export function GameFiltersBar({ filters, onChange, onReset, searchInput, onSearchInputChange }: GameFiltersProps) {
+export function GameFiltersBar({
+  filters,
+  onChange,
+  onReset,
+  searchInput,
+  onSearchInputChange,
+  onSearchCommit,
+}: GameFiltersProps) {
   const update = (partial: Partial<GameFilters>) => onChange({ ...filters, ...partial });
-  const commitSearch = () => update({ search: searchInput.trim() || undefined });
 
   return (
     <Group className={classes.filtersRow} wrap="wrap" gap="sm" align="center">
@@ -76,8 +83,7 @@ export function GameFiltersBar({ filters, onChange, onReset, searchInput, onSear
         placeholder="Search games…"
         value={searchInput}
         onChange={(e) => onSearchInputChange(e.currentTarget.value)}
-        onKeyDown={(e) => e.key === 'Enter' && commitSearch()}
-        onBlur={commitSearch}
+        onKeyDown={(e) => e.key === 'Enter' && onSearchCommit()}
         leftSection={<IconSearch size={18} stroke={1.7} />}
         size="md"
         radius="md"

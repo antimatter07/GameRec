@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Badge,
   Button,
@@ -40,7 +40,8 @@ function formatRelativeTime(iso: string | null): string {
 export default function AdminDashboardPage() {
   const currentUser = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
-  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [appliedSearch, setAppliedSearch] = useState<string | undefined>(undefined);
 
   const { data: metrics, isLoading: metricsLoading } = useQuery({
     queryKey: ['admin-metrics'],
@@ -55,9 +56,25 @@ export default function AdminDashboardPage() {
   });
 
   const { data: users, isLoading: usersLoading } = useQuery({
-    queryKey: ['admin-users', search],
-    queryFn: () => adminApi.listUsers(1, 50, search || undefined),
+    queryKey: ['admin-users', appliedSearch],
+    queryFn: () => adminApi.listUsers(1, 50, appliedSearch),
   });
+
+  const applySearch = (value: string) => {
+    const normalizedSearch = value.trim() || undefined;
+    setAppliedSearch((current) => (current === normalizedSearch ? current : normalizedSearch));
+  };
+
+  useEffect(() => {
+    const normalizedSearch = searchInput.trim() || undefined;
+    if (normalizedSearch === appliedSearch) return undefined;
+
+    const timeoutId = window.setTimeout(() => {
+      setAppliedSearch((current) => (current === normalizedSearch ? current : normalizedSearch));
+    }, 3000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [appliedSearch, searchInput]);
 
   const triggerPipeline = useMutation({
     mutationFn: adminApi.triggerPipeline,
@@ -167,8 +184,13 @@ export default function AdminDashboardPage() {
           className={classes.searchInput}
           leftSection={<IconSearch size={16} />}
           placeholder="Search by email or name…"
-          value={search}
-          onChange={(e) => setSearch(e.currentTarget.value)}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.currentTarget.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              applySearch(searchInput);
+            }
+          }}
         />
         {usersLoading ? (
           <Center><Loader /></Center>
