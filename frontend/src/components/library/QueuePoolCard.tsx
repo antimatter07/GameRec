@@ -1,7 +1,7 @@
-import { ActionIcon, Badge, Group, Rating, Text } from '@mantine/core';
+import { ActionIcon, Badge, Group, Rating, Text, Tooltip } from '@mantine/core';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { IconDeviceGamepad2, IconPlus } from '@tabler/icons-react';
+import { IconDeviceGamepad2, IconGripVertical, IconPlus } from '@tabler/icons-react';
 import type { LibraryEntry, LibraryStatus } from '../../types/library';
 import classes from './QueueCards.module.css';
 
@@ -76,9 +76,17 @@ export function QueuePoolCard({ entry, onPlusClick }: QueuePoolCardProps) {
       </div>
 
       <div className={classes.body}>
-        <Text className={classes.title} lineClamp={2}>
-          {game.name}
-        </Text>
+        <div className={classes.titleRow}>
+          <Text className={classes.title} lineClamp={2}>
+            {game.name}
+          </Text>
+
+          <Tooltip label="Drag card" withArrow openDelay={150}>
+            <span className={classes.dragHandle} aria-hidden="true">
+              <IconGripVertical size={15} stroke={1.8} />
+            </span>
+          </Tooltip>
+        </div>
 
         <div className={classes.meta}>
           {releaseYear && <span>{releaseYear}</span>}

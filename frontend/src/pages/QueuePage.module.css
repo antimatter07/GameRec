@@ -210,14 +210,20 @@
 
 .droppableZone {
   min-height: 96px;
+  padding: 6px;
+  margin: -6px;
+  border: 1px dashed transparent;
   border-radius: var(--mantine-radius-md);
   transition:
     background 150ms ease,
-    border-color 150ms ease;
+    border-color 150ms ease,
+    outline-color 150ms ease;
 }
 
 .droppableZoneActive {
-  background: rgba(124, 92, 252, 0.06);
+  border-color: rgba(212, 103, 77, 0.38);
+  background: rgba(212, 103, 77, 0.08);
+  outline: 1px solid rgba(212, 103, 77, 0.16);
 }
 
 .cardGrid {

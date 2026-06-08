@@ -25,8 +25,21 @@
   background: #171b27;
 }
 
+.card:focus-visible {
+  outline: 2px solid var(--mantine-color-ember-6);
+  outline-offset: 2px;
+}
+
+.card:hover .dragHandle,
+.card:focus-visible .dragHandle {
+  border-color: rgba(212, 103, 77, 0.36);
+  background: rgba(212, 103, 77, 0.12);
+  color: var(--mantine-color-ember-1);
+}
+
 .cardDragging {
   opacity: 0.55;
+  cursor: grabbing;
 }
 
 .coverWrap {
@@ -95,12 +108,38 @@
   padding: 10px 12px 12px;
 }
 
+.titleRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 8px;
+  min-height: 2.35rem;
+}
+
 .title {
+  min-width: 0;
   font-size: 0.86rem;
   font-weight: 600;
   color: var(--mantine-color-gray-0);
   line-height: 1.35;
   min-height: 2.35rem;
+}
+
+.dragHandle {
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--mantine-radius-sm);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--mantine-color-gray-5);
+  transition:
+    border-color 150ms ease,
+    background 150ms ease,
+    color 150ms ease;
 }
 
 .meta {

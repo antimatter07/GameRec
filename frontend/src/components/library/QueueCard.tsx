@@ -1,6 +1,6 @@
 import type { CSSProperties, HTMLAttributes, ReactNode, Ref } from 'react';
-import { Group, Rating, Text } from '@mantine/core';
-import { IconDeviceGamepad2 } from '@tabler/icons-react';
+import { Group, Rating, Text, Tooltip } from '@mantine/core';
+import { IconDeviceGamepad2, IconGripVertical } from '@tabler/icons-react';
 import type { GameListItem } from '../../types/game';
 import classes from './QueueCards.module.css';
 
@@ -69,9 +69,19 @@ export function QueueCard({
       </div>
 
       <div className={classes.body}>
-        <Text className={classes.title} lineClamp={2}>
-          {game.name}
-        </Text>
+        <div className={classes.titleRow}>
+          <Text className={classes.title} lineClamp={2}>
+            {game.name}
+          </Text>
+
+          {!readOnly && (
+            <Tooltip label="Drag card" withArrow openDelay={150}>
+              <span className={classes.dragHandle} aria-hidden="true">
+                <IconGripVertical size={15} stroke={1.8} />
+              </span>
+            </Tooltip>
+          )}
+        </div>
 
         <div className={classes.meta}>
           {releaseYear && <span>{releaseYear}</span>}
