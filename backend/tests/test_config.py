@@ -37,3 +37,33 @@ def test_load_aws_parameter_values_reads_parameter_path(monkeypatch):
             "WithDecryption": True,
         }
     ]
+
+
+def test_settings_allows_default_secret_outside_production(monkeypatch):
+    monkeypatch.delenv("APP_ENV", raising=False)
+    monkeypatch.delenv("SECRET_KEY", raising=False)
+
+    settings = config.Settings(_env_file=None)
+
+    assert settings.SECRET_KEY == "change-me-in-production"
+
+
+def test_settings_rejects_default_secret_in_production(monkeypatch):
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.delenv("SECRET_KEY", raising=False)
+
+    try:
+        config.Settings(_env_file=None)
+    except ValueError as exc:
+        assert "SECRET_KEY must be configured for production" in str(exc)
+    else:
+        raise AssertionError("Expected production settings to reject the default SECRET_KEY")
+
+
+def test_settings_accepts_configured_secret_in_production(monkeypatch):
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("SECRET_KEY", "real-production-secret")
+
+    settings = config.Settings()
+
+    assert settings.SECRET_KEY == "real-production-secret"

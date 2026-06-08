@@ -1,7 +1,7 @@
 import os
 from typing import Any
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -40,6 +40,7 @@ def _load_aws_parameter_values() -> dict[str, Any]:
 
 
 _AWS_PARAMETER_VALUES = _load_aws_parameter_values()
+_DEFAULT_SECRET_KEY = "change-me-in-production"
 
 
 class Settings(BaseSettings):
@@ -48,7 +49,7 @@ class Settings(BaseSettings):
     # App
     APP_ENV: str = "development"
     APP_RUNTIME: str = "local"  # local | lambda | fargate
-    SECRET_KEY: str = _AWS_PARAMETER_VALUES.get("SECRET_KEY", "change-me-in-production")
+    SECRET_KEY: str = _AWS_PARAMETER_VALUES.get("SECRET_KEY", _DEFAULT_SECRET_KEY)
     TASK_BACKEND: str = "celery"  # celery | sqs
     KV_BACKEND: str = "redis"  # redis | dynamodb
     AWS_SSM_PARAMETER_PATH: str = ""
@@ -126,6 +127,16 @@ class Settings(BaseSettings):
         if isinstance(value, str) and not value.lstrip().startswith("["):
             return [item.strip() for item in value.split(",") if item.strip()]
         return value
+
+    @model_validator(mode="after")
+    def _validate_production_secrets(self) -> "Settings":
+        if self.APP_ENV.lower() != "production":
+            return self
+
+        if not self.SECRET_KEY.strip() or self.SECRET_KEY == _DEFAULT_SECRET_KEY:
+            raise ValueError("SECRET_KEY must be configured for production.")
+
+        return self
 
 
 settings = Settings()
