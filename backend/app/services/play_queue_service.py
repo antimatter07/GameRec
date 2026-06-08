@@ -1,5 +1,6 @@
 from fastapi import HTTPException, status
 from sqlalchemy import func, text, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.library import LibraryEntry, LibraryStatus
@@ -7,6 +8,31 @@ from app.models.play_queue import PlayQueueEntry
 from app.schemas.play_queue import PlayQueueEnqueue, PlayQueueReorder
 
 QUEUEABLE_STATUSES = {LibraryStatus.BACKLOG, LibraryStatus.REPLAYING}
+_QUEUE_LOCK_NAMESPACE = 730001
+_QUEUE_MUTATION_MAX_ATTEMPTS = 3
+
+
+def _lock_user_queue(db: Session, user_id: int) -> None:
+    """Serialize queue mutations for one user within the current DB transaction."""
+    db.execute(
+        text("SELECT pg_advisory_xact_lock(:namespace, :user_id)"),
+        {"namespace": _QUEUE_LOCK_NAMESPACE, "user_id": user_id},
+    )
+
+
+def _run_queue_mutation_with_retry(db: Session, operation):
+    for attempt in range(_QUEUE_MUTATION_MAX_ATTEMPTS):
+        try:
+            return operation()
+        except IntegrityError as exc:
+            db.rollback()
+            if attempt == _QUEUE_MUTATION_MAX_ATTEMPTS - 1:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Queue changed while processing; please retry.",
+                ) from exc
+
+    raise RuntimeError("Queue mutation retry loop exited unexpectedly")
 
 
 def _load_queue(db: Session, user_id: int) -> list[PlayQueueEntry]:
@@ -73,6 +99,12 @@ def enqueue(db: Session, user_id: int, payload: PlayQueueEnqueue) -> dict:
 
     Raises:
         HTTPException: When the resource is missing or the user cannot perform the operation."""
+    return _run_queue_mutation_with_retry(db, lambda: _enqueue_locked(db, user_id, payload))
+
+
+def _enqueue_locked(db: Session, user_id: int, payload: PlayQueueEnqueue) -> dict:
+    _lock_user_queue(db, user_id)
+
     entry = (
         db.query(LibraryEntry)
         .filter(LibraryEntry.id == payload.entry_id, LibraryEntry.user_id == user_id)
@@ -122,6 +154,12 @@ def dequeue(db: Session, user_id: int, entry_id: int) -> None:
 
     Raises:
         HTTPException: When the resource is missing or the user cannot perform the operation."""
+    return _run_queue_mutation_with_retry(db, lambda: _dequeue_locked(db, user_id, entry_id))
+
+
+def _dequeue_locked(db: Session, user_id: int, entry_id: int) -> None:
+    _lock_user_queue(db, user_id)
+
     queue_entry = (
         db.query(PlayQueueEntry)
         .filter(PlayQueueEntry.user_id == user_id, PlayQueueEntry.entry_id == entry_id)
@@ -158,6 +196,8 @@ def remove_entry_from_queue(db: Session, user_id: int, entry_id: int) -> dict:
 
     Returns:
         Dictionary containing serialized service state and metadata."""
+    _lock_user_queue(db, user_id)
+
     queue_entry = (
         db.query(PlayQueueEntry)
         .filter(PlayQueueEntry.user_id == user_id, PlayQueueEntry.entry_id == entry_id)
@@ -205,6 +245,12 @@ def reorder(db: Session, user_id: int, payload: PlayQueueReorder) -> dict:
 
     Raises:
         HTTPException: When the resource is missing or the user cannot perform the operation."""
+    return _run_queue_mutation_with_retry(db, lambda: _reorder_locked(db, user_id, payload))
+
+
+def _reorder_locked(db: Session, user_id: int, payload: PlayQueueReorder) -> dict:
+    _lock_user_queue(db, user_id)
+
     current = (
         db.query(PlayQueueEntry)
         .filter(PlayQueueEntry.user_id == user_id)
@@ -247,6 +293,13 @@ def advance_queue_after_completion(db: Session, user_id: int, completed_entry_id
 
     Returns:
         Dictionary containing serialized service state and metadata."""
+    return _run_queue_mutation_with_retry(
+        db,
+        lambda: _advance_queue_after_completion_locked(db, user_id, completed_entry_id),
+    )
+
+
+def _advance_queue_after_completion_locked(db: Session, user_id: int, completed_entry_id: int) -> dict:
     result = remove_entry_from_queue(db, user_id, completed_entry_id)
     db.commit()
     return {
