@@ -19,6 +19,7 @@ parameter_overrides = [
   "EnableRawgSchedules=false",
   "AllowedOrigins=https://app.yourdomain.com",
   "CookieDomain=.yourdomain.com",
+  "CookieSecure=true",
   "EcsClusterArn=",
   "EcsRawgTaskDefinitionArn=",
   "EcsRawgContainerName=rawg",

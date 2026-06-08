@@ -1,5 +1,6 @@
 import os
 from typing import Any
+from urllib.parse import urlparse
 
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -41,6 +42,20 @@ def _load_aws_parameter_values() -> dict[str, Any]:
 
 _AWS_PARAMETER_VALUES = _load_aws_parameter_values()
 _DEFAULT_SECRET_KEY = "change-me-in-production"
+_LOCAL_HOSTNAMES = {"", "localhost", "127.0.0.1", "::1"}
+_LOCAL_APP_ENVS = {"development", "local", "test", "testing"}
+
+
+def _is_local_hostname(hostname: str) -> bool:
+    normalized = hostname.strip().strip(".").lower()
+    return normalized in _LOCAL_HOSTNAMES or normalized.endswith(".localhost")
+
+
+def _origin_hostname(origin: str) -> str:
+    parsed = urlparse(origin)
+    if parsed.scheme and parsed.hostname:
+        return parsed.hostname
+    return origin.split(":", 1)[0]
 
 
 class Settings(BaseSettings):
@@ -118,6 +133,7 @@ class Settings(BaseSettings):
     # Cookies
     COOKIE_DOMAIN: str = ""
     COOKIE_SAMESITE: str = "lax"
+    COOKIE_SECURE: bool = False
 
     @field_validator("ALLOWED_ORIGINS", "ECS_SUBNET_IDS", "ECS_SECURITY_GROUP_IDS", mode="before")
     @classmethod
@@ -130,11 +146,28 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _validate_production_secrets(self) -> "Settings":
-        if self.APP_ENV.lower() != "production":
-            return self
+        app_env = self.APP_ENV.lower()
 
-        if not self.SECRET_KEY.strip() or self.SECRET_KEY == _DEFAULT_SECRET_KEY:
+        if app_env == "production" and (not self.SECRET_KEY.strip() or self.SECRET_KEY == _DEFAULT_SECRET_KEY):
             raise ValueError("SECRET_KEY must be configured for production.")
+
+        if not self.COOKIE_SECURE:
+            if app_env == "production":
+                raise ValueError("COOKIE_SECURE must be true for production.")
+            if app_env not in _LOCAL_APP_ENVS:
+                raise ValueError("COOKIE_SECURE=false is only allowed for local or test app environments.")
+
+            cookie_domain = self.COOKIE_DOMAIN.strip()
+            if cookie_domain and not _is_local_hostname(cookie_domain):
+                raise ValueError("COOKIE_SECURE=false is only allowed with local cookie domains.")
+
+            non_local_origins = [
+                origin
+                for origin in self.ALLOWED_ORIGINS
+                if not _is_local_hostname(_origin_hostname(origin))
+            ]
+            if non_local_origins:
+                raise ValueError("COOKIE_SECURE=false is only allowed with local allowed origins.")
 
         return self
 

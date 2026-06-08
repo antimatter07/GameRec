@@ -92,7 +92,7 @@ def set_auth_cookie(response, token: str) -> None:
         key=AUTH_COOKIE_NAME,
         value=token,
         httponly=True,
-        secure=settings.APP_ENV == "production",
+        secure=settings.COOKIE_SECURE,
         samesite=settings.COOKIE_SAMESITE,
         max_age=_AUTH_COOKIE_MAX_AGE_SECONDS,
         path=AUTH_COOKIE_PATH,
@@ -113,7 +113,7 @@ def clear_auth_cookie(response) -> None:
     response.delete_cookie(
         key=AUTH_COOKIE_NAME,
         path=AUTH_COOKIE_PATH,
-        secure=settings.APP_ENV == "production",
+        secure=settings.COOKIE_SECURE,
         samesite=settings.COOKIE_SAMESITE,
         domain=settings.COOKIE_DOMAIN or None,
     )
@@ -134,7 +134,7 @@ def set_csrf_cookie(response, csrf_token: str) -> None:
         key=CSRF_COOKIE_NAME,
         value=csrf_token,
         httponly=False,
-        secure=settings.APP_ENV == "production",
+        secure=settings.COOKIE_SECURE,
         samesite=settings.COOKIE_SAMESITE,
         max_age=_AUTH_COOKIE_MAX_AGE_SECONDS,
         path=CSRF_COOKIE_PATH,
@@ -155,7 +155,7 @@ def clear_csrf_cookie(response) -> None:
     response.delete_cookie(
         key=CSRF_COOKIE_NAME,
         path=CSRF_COOKIE_PATH,
-        secure=settings.APP_ENV == "production",
+        secure=settings.COOKIE_SECURE,
         samesite=settings.COOKIE_SAMESITE,
         domain=settings.COOKIE_DOMAIN or None,
     )

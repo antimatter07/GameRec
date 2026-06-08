@@ -39,6 +39,12 @@ Parameters:
   CookieDomain:
     Type: String
     Default: .yourdomain.com
+  CookieSecure:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
   EcsClusterArn:
     Type: String
     Default: ""
@@ -80,6 +86,7 @@ Globals:
         ALLOWED_ORIGINS: !Ref AllowedOrigins
         COOKIE_DOMAIN: !Ref CookieDomain
         COOKIE_SAMESITE: lax
+        COOKIE_SECURE: !Ref CookieSecure
         SQS_RECOMMENDATION_QUEUE_URL: !Ref RecommendationQueue
         SQS_AI_QUEUE_URL: !Ref AiQueue
         SQS_HLTB_QUEUE_URL: !Ref HltbQueue

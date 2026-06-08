@@ -63,7 +63,75 @@ def test_settings_rejects_default_secret_in_production(monkeypatch):
 def test_settings_accepts_configured_secret_in_production(monkeypatch):
     monkeypatch.setenv("APP_ENV", "production")
     monkeypatch.setenv("SECRET_KEY", "real-production-secret")
+    monkeypatch.setenv("COOKIE_SECURE", "true")
 
     settings = config.Settings()
 
     assert settings.SECRET_KEY == "real-production-secret"
+    assert settings.COOKIE_SECURE is True
+
+
+def test_settings_rejects_insecure_cookies_in_production(monkeypatch):
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("SECRET_KEY", "real-production-secret")
+    monkeypatch.setenv("COOKIE_SECURE", "false")
+
+    try:
+        config.Settings(_env_file=None)
+    except ValueError as exc:
+        assert "COOKIE_SECURE must be true for production" in str(exc)
+    else:
+        raise AssertionError("Expected production settings to reject insecure cookies")
+
+
+def test_settings_rejects_insecure_cookies_for_non_local_domain(monkeypatch):
+    monkeypatch.setenv("APP_ENV", "development")
+    monkeypatch.setenv("COOKIE_SECURE", "false")
+    monkeypatch.setenv("COOKIE_DOMAIN", ".example.com")
+    monkeypatch.setenv("ALLOWED_ORIGINS", "http://localhost:5173")
+
+    try:
+        config.Settings(_env_file=None)
+    except ValueError as exc:
+        assert "local cookie domains" in str(exc)
+    else:
+        raise AssertionError("Expected non-local cookie domain to require secure cookies")
+
+
+def test_settings_rejects_insecure_cookies_for_staging_environment(monkeypatch):
+    monkeypatch.setenv("APP_ENV", "staging")
+    monkeypatch.setenv("COOKIE_SECURE", "false")
+    monkeypatch.delenv("COOKIE_DOMAIN", raising=False)
+    monkeypatch.setenv("ALLOWED_ORIGINS", "http://localhost:5173")
+
+    try:
+        config.Settings(_env_file=None)
+    except ValueError as exc:
+        assert "local or test app environments" in str(exc)
+    else:
+        raise AssertionError("Expected staging settings to require secure cookies")
+
+
+def test_settings_rejects_insecure_cookies_for_non_local_origin(monkeypatch):
+    monkeypatch.setenv("APP_ENV", "development")
+    monkeypatch.setenv("COOKIE_SECURE", "false")
+    monkeypatch.delenv("COOKIE_DOMAIN", raising=False)
+    monkeypatch.setenv("ALLOWED_ORIGINS", "https://app.example.com")
+
+    try:
+        config.Settings(_env_file=None)
+    except ValueError as exc:
+        assert "local allowed origins" in str(exc)
+    else:
+        raise AssertionError("Expected non-local allowed origin to require secure cookies")
+
+
+def test_settings_allows_insecure_cookies_for_local_development(monkeypatch):
+    monkeypatch.setenv("APP_ENV", "development")
+    monkeypatch.setenv("COOKIE_SECURE", "false")
+    monkeypatch.delenv("COOKIE_DOMAIN", raising=False)
+    monkeypatch.setenv("ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
+
+    settings = config.Settings(_env_file=None)
+
+    assert settings.COOKIE_SECURE is False

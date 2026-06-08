@@ -148,6 +148,7 @@ Use a real root domain so cookies work across frontend and API subdomains:
 https://app.yourdomain.com
 https://api.yourdomain.com
 COOKIE_DOMAIN=.yourdomain.com
+COOKIE_SECURE=true
 ```
 
 In AWS Certificate Manager, request a certificate for `api.yourdomain.com`.
