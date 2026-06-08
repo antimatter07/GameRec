@@ -19,7 +19,7 @@ export default function LoginPage() {
     initialValues: { email: '', password: '' },
     validate: {
       email:    (v) => (/^\S+@\S+$/.test(v) ? null : 'Invalid email'),
-      password: (v) => (v.length >= 8 ? null : 'Password must be at least 8 characters'),
+      password: (v) => (v.trim() ? null : 'Password is required'),
     },
   });
 

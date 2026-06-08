@@ -4,10 +4,11 @@ import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { Link } from 'react-router';
 import { useState } from 'react';
-import { IconUserPlus } from '@tabler/icons-react';
+import { IconCheck, IconUserPlus } from '@tabler/icons-react';
 import logoTitle from '../../assets/logo/gamerec-logo-title-transparent.png';
 import { useAuth } from '../../hooks/useAuth';
 import { GoogleSignInButton } from '../../components/GoogleSignInButton';
+import { getPasswordRequirements, validatePasswordPolicy } from '../../utils/passwordPolicy';
 import classes from './AuthPages.module.css';
 
 export default function RegisterPage() {
@@ -21,11 +22,24 @@ export default function RegisterPage() {
     validate: {
       email:        (v) => (/^\S+@\S+$/.test(v) ? null : 'Invalid email'),
       display_name: (v) => (v.length >= 2 ? null : 'Display name too short'),
-      password:     (v) => (v.length >= 8 ? null : 'Password must be at least 8 characters'),
+      password:     (v) => validatePasswordPolicy(v),
     },
+  });
+  const passwordRequirements = getPasswordRequirements(form.values.password, {
+    email:       form.values.email,
+    displayName: form.values.display_name,
   });
 
   const handleSubmit = form.onSubmit(async (values) => {
+    const passwordError = validatePasswordPolicy(values.password, {
+      email:       values.email,
+      displayName: values.display_name,
+    });
+    if (passwordError) {
+      form.setFieldError('password', passwordError);
+      return;
+    }
+
     try {
       setIsEmailSubmitting(true);
       await register(values);
@@ -100,12 +114,27 @@ export default function RegisterPage() {
           <PasswordInput
             className={classes.input}
             label="Password"
-            placeholder="At least 8 characters"
+            placeholder="Create a strong password"
             required
             mt="md"
             disabled={isProcessing}
             {...form.getInputProps('password')}
           />
+          <div className={classes.passwordRequirements} aria-label="Password requirements">
+            <Text size="xs" fw={700} c="gray.3">
+              Password requirements
+            </Text>
+            <ul className={classes.passwordRequirementList} aria-live="polite">
+              {passwordRequirements.map((requirement) => (
+                <li key={requirement.id} className={classes.passwordRequirement} data-met={requirement.met}>
+                  <span className={classes.passwordRequirementIcon} aria-hidden="true">
+                    {requirement.met ? <IconCheck size={12} stroke={2.2} /> : null}
+                  </span>
+                  <span>{requirement.label}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
 
           {isProcessing && (
             <div className={classes.processingPanel} role="status" aria-live="polite" aria-atomic="true">

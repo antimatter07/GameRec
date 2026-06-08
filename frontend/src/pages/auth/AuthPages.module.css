@@ -61,6 +61,54 @@
   font-weight: 700;
 }
 
+.passwordRequirements {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--mantine-radius-sm);
+  background: rgba(23, 27, 39, 0.72);
+}
+
+.passwordRequirementList {
+  display: grid;
+  gap: 7px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.passwordRequirement {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  color: var(--mantine-color-gray-5);
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
+.passwordRequirement[data-met='true'] {
+  color: var(--mantine-color-gray-2);
+}
+
+.passwordRequirementIcon {
+  display: grid;
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  place-items: center;
+  border: 1px solid var(--mantine-color-dark-4);
+  border-radius: 999px;
+  color: var(--mantine-color-ember-3);
+  background: var(--mantine-color-dark-6);
+}
+
+.passwordRequirement[data-met='true'] .passwordRequirementIcon {
+  border-color: rgba(212, 103, 77, 0.46);
+  background: rgba(212, 103, 77, 0.12);
+}
+
 .processingPanel {
   display: flex;
   align-items: flex-start;

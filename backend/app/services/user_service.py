@@ -1,6 +1,7 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.password_policy import PasswordPolicyError, validate_password_policy
 from app.core.security import hash_password
 from app.models.user import User, UserRole
 from app.schemas.user import UserCreate, UserUpdate
@@ -20,6 +21,15 @@ def create_user(db: Session, user_in: UserCreate) -> User:
 
     Raises:
         HTTPException: When the resource is missing or the user cannot perform the operation."""
+    try:
+        validate_password_policy(
+            user_in.password,
+            email=str(user_in.email),
+            display_name=user_in.display_name,
+        )
+    except PasswordPolicyError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+
     if db.query(User).filter(User.email == user_in.email).first():
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
     user = User(
