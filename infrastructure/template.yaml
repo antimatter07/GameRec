@@ -93,6 +93,17 @@ Globals:
 Resources:
   HttpApi:
     Type: AWS::Serverless::HttpApi
+    Properties:
+      RouteSettings:
+        "POST /api/auth/login":
+          ThrottlingRateLimit: 5
+          ThrottlingBurstLimit: 10
+        "POST /api/auth/register":
+          ThrottlingRateLimit: 5
+          ThrottlingBurstLimit: 10
+        "POST /api/auth/google":
+          ThrottlingRateLimit: 5
+          ThrottlingBurstLimit: 10
 
   KvTable:
     Type: AWS::DynamoDB::Table

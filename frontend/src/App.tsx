@@ -9,6 +9,7 @@ import { Notifications } from '@mantine/notifications';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from 'react-router';
 
+import { authApi } from './api/auth';
 import { usersApi } from './api/users';
 import { router } from './router';
 import { useAuthStore } from './store/authStore';
@@ -142,7 +143,7 @@ function AuthBootstrap() {
     hasStarted.current = true;
 
     if (isPublicPath(window.location.pathname)) {
-      setIsBootstrapping(false);
+      authApi.ensureCsrf().finally(() => setIsBootstrapping(false));
       return;
     }
 

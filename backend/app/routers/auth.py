@@ -14,6 +14,11 @@ router = APIRouter()
 DBDep = Annotated[Session, Depends(get_db)]
 
 
+@router.get("/csrf", status_code=status.HTTP_204_NO_CONTENT)
+def get_csrf_token():
+    """Ensure the CSRF cookie is issued for public auth pages."""
+
+
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def register(user_in: UserCreate, db: DBDep):
     """Register.

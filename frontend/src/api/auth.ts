@@ -13,6 +13,9 @@ export interface RegisterPayload {
 }
 
 export const authApi = {
+  ensureCsrf: () =>
+    apiClient.get('/auth/csrf'),
+
   register: (payload: RegisterPayload) =>
     apiClient.post<User>('/auth/register', payload).then((r) => r.data),
 
