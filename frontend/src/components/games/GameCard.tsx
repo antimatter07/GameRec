@@ -1,5 +1,5 @@
 import type { KeyboardEvent } from 'react';
-import { Badge, Card, Group, Image, Rating, Stack, Text } from '@mantine/core';
+import { Badge, Card, Group, Image, Rating, Stack, Text, Tooltip } from '@mantine/core';
 import { IconClock, IconFlame, IconSparkles, IconStar } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import { useLibrary } from '../../hooks/useLibrary';
@@ -37,6 +37,19 @@ function getDiscoverySignal(game: GameListItem, inLibrary: boolean) {
   return { label: 'Discovery pick', tone: 'gray', icon: IconSparkles };
 }
 
+function getVisibleGenres(genres: GameListItem['genres'], maxVisible = 2) {
+  const genreNames = genres.map((genre) => genre.name).filter(Boolean);
+  const visibleGenres = genreNames.slice(0, maxVisible);
+  const hiddenGenres = genreNames.slice(maxVisible);
+
+  return {
+    visibleGenres,
+    hiddenGenres,
+    hiddenCount: hiddenGenres.length,
+    fullGenreLabel: genreNames.join(', '),
+  };
+}
+
 export function GameCard({ game, showAdd = false }: GameCardProps) {
   const { data: library } = useLibrary();
   const navigate = useNavigate();
@@ -44,9 +57,8 @@ export function GameCard({ game, showAdd = false }: GameCardProps) {
   const libraryEntry = library?.find((entry) => entry.game.id === game.id) ?? null;
   const inLibrary = libraryEntry !== null;
   const releaseYear = game.released ? new Date(game.released).getFullYear() : null;
-  const primaryGenre = game.genres[0]?.name;
   const primaryPlatform = game.platforms[0]?.name;
-  const metaItems = [releaseYear ?? 'TBA', primaryGenre, primaryPlatform].filter(Boolean).join(' / ');
+  const { visibleGenres, hiddenGenres, hiddenCount, fullGenreLabel } = getVisibleGenres(game.genres);
   const playtimeLabel = game.hltb_main_hours
     ? `${Math.round(game.hltb_main_hours)}h main`
     : game.playtime
@@ -114,9 +126,40 @@ export function GameCard({ game, showAdd = false }: GameCardProps) {
           {game.name}
         </button>
 
-        <Text size="sm" c="dimmed" className={classes.meta}>
-          {metaItems}
-        </Text>
+        <div className={classes.metaBlock}>
+          <div className={classes.metaPrimary}>
+            <span>{releaseYear ?? 'TBA'}</span>
+            {primaryPlatform && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span className={classes.platformText}>{primaryPlatform}</span>
+              </>
+            )}
+          </div>
+
+          {visibleGenres.length > 0 && (
+            <div className={classes.genreRow} aria-label={`Genres: ${fullGenreLabel}`}>
+              {visibleGenres.map((genre, index) => (
+                <span className={classes.genreGroup} key={`${genre}-${index}`}>
+                  {index > 0 && <span aria-hidden="true">·</span>}
+                  <span className={classes.genreText}>{genre}</span>
+                </span>
+              ))}
+              {hiddenCount > 0 && (
+                <Tooltip label={fullGenreLabel} withArrow openDelay={150}>
+                  <span
+                    className={classes.moreGenresChip}
+                    title={fullGenreLabel}
+                    tabIndex={0}
+                    aria-label={`Additional genres: ${hiddenGenres.join(', ')}`}
+                  >
+                    +{hiddenCount}
+                  </span>
+                </Tooltip>
+              )}
+            </div>
+          )}
+        </div>
 
         <Badge
           className={classes.signalBadge}

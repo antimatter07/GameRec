@@ -132,13 +132,82 @@
   color: var(--mantine-color-ember-2);
 }
 
-.meta {
-  min-height: 1.25rem;
+.metaBlock {
+  display: flex;
+  min-width: 0;
+  min-height: 2.45rem;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
   font-size: 0.75rem;
   font-weight: 500;
   color: var(--mantine-color-dimmed);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+}
+
+.metaPrimary {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  line-height: 1.15rem;
+  white-space: nowrap;
+}
+
+.platformText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.genreRow {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  line-height: 1.15rem;
+}
+
+.genreGroup {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.genreGroup:first-child {
+  flex-shrink: 1;
+}
+
+.genreText {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--mantine-color-gray-5);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.moreGenresChip {
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--mantine-radius-sm);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--mantine-color-gray-4);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1rem;
+  cursor: default;
+}
+
+.moreGenresChip:hover,
+.moreGenresChip:focus-visible {
+  border-color: rgba(212, 103, 77, 0.34);
+  background: rgba(212, 103, 77, 0.1);
+  color: var(--mantine-color-ember-1);
+  outline: none;
 }
 
 .signalBadge {

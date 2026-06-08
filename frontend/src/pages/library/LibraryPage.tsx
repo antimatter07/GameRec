@@ -111,17 +111,65 @@ const SORT_OPTIONS: Array<{ value: LibrarySort; label: string }> = [
 
 const LIBRARY_PAGE_SIZE = 40;
 
-function formatGenres(entry: LibraryEntry) {
-  const genreNames = entry.game.genres.slice(0, 3).map((genre) => genre.name);
-  return genreNames.length > 0 ? genreNames.join(' • ') : 'No genres yet';
-}
-
-function formatGameMeta(entry: LibraryEntry) {
+function getGameMetaParts(entry: LibraryEntry) {
   const releaseYear = entry.game.released ? new Date(entry.game.released).getFullYear() : null;
   const platform = entry.game.platforms[0]?.name;
-  const genre = entry.game.genres[0]?.name;
 
-  return [releaseYear ?? 'TBA', genre, platform].filter(Boolean).join(' / ');
+  return {
+    releaseYear: releaseYear ?? 'TBA',
+    platform,
+  };
+}
+
+function getVisibleGenres(genres: LibraryEntry['game']['genres'], maxVisible = 2) {
+  const genreNames = genres.map((genre) => genre.name).filter(Boolean);
+  const visibleGenres = genreNames.slice(0, maxVisible);
+  const hiddenGenres = genreNames.slice(maxVisible);
+
+  return {
+    visibleGenres,
+    hiddenGenres,
+    hiddenCount: hiddenGenres.length,
+    fullGenreLabel: genreNames.join(', '),
+  };
+}
+
+function GenrePreview({
+  genres,
+  compact = false,
+}: {
+  genres: LibraryEntry['game']['genres'];
+  compact?: boolean;
+}) {
+  const { visibleGenres, hiddenGenres, hiddenCount, fullGenreLabel } = getVisibleGenres(genres);
+  const rowClassName = compact ? classes.compactGenreRow : classes.entryGenreRow;
+
+  if (visibleGenres.length === 0) {
+    return <span className={compact ? classes.compactNoGenres : classes.entryNoGenres}>No genres yet</span>;
+  }
+
+  return (
+    <div className={rowClassName} aria-label={`Genres: ${fullGenreLabel}`}>
+      {visibleGenres.map((genre, index) => (
+        <span className={classes.libraryGenreGroup} key={`${genre}-${index}`}>
+          {index > 0 && <span aria-hidden="true">·</span>}
+          <span className={classes.libraryGenreText}>{genre}</span>
+        </span>
+      ))}
+      {hiddenCount > 0 && (
+        <Tooltip label={fullGenreLabel} withArrow openDelay={150}>
+          <span
+            className={classes.libraryMoreGenresChip}
+            title={fullGenreLabel}
+            tabIndex={0}
+            aria-label={`Additional genres: ${hiddenGenres.join(', ')}`}
+          >
+            +{hiddenCount}
+          </span>
+        </Tooltip>
+      )}
+    </div>
+  );
 }
 
 function formatRuntime(entry: LibraryEntry) {
@@ -610,9 +658,7 @@ export default function LibraryPage() {
                                   <Text className={classes.entryMetaLine}>
                                     Added {dateFormatter.format(new Date(entry.added_at))}
                                   </Text>
-                                  <Text className={`${classes.entryMetaLine} ${classes.entryGenres}`}>
-                                    {formatGenres(entry)}
-                                  </Text>
+                                  <GenrePreview genres={entry.game.genres} />
                                 </div>
 
                                 <Group gap={6} className={classes.entryActions} wrap="nowrap">
@@ -650,6 +696,7 @@ export default function LibraryPage() {
                         {panelEntries.map((entry) => {
                           const rowUpdating = updatingEntryId === entry.id;
                           const runtime = formatRuntime(entry);
+                          const { releaseYear, platform } = getGameMetaParts(entry);
 
                           return (
                             <Paper key={entry.id} p="sm" radius="xs" withBorder className={classes.compactRow}>
@@ -674,7 +721,18 @@ export default function LibraryPage() {
                                 >
                                   {entry.game.name}
                                 </button>
-                                <Text className={classes.compactMeta}>{formatGameMeta(entry)}</Text>
+                                <div className={classes.compactMetaBlock}>
+                                  <div className={classes.compactMetaPrimary}>
+                                    <span>{releaseYear}</span>
+                                    {platform && (
+                                      <>
+                                        <span aria-hidden="true">·</span>
+                                        <span className={classes.compactPlatformText}>{platform}</span>
+                                      </>
+                                    )}
+                                  </div>
+                                  <GenrePreview genres={entry.game.genres} compact />
+                                </div>
                                 <Group gap={6} wrap="wrap" className={classes.compactMobileBadges}>
                                   <Badge size="xs" color={STATUS_COLORS[entry.status]} variant="light">
                                     {STATUS_LABELS[entry.status]}
