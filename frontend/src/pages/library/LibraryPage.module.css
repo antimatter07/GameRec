@@ -265,6 +265,7 @@
 }
 
 .entryMeta {
+  min-height: 112px;
   transition:
     border-color 150ms ease,
     background 150ms ease;
@@ -278,6 +279,26 @@
 .entryInfo {
   min-width: 0;
   flex: 1;
+}
+
+.entryStatusRow {
+  min-height: 2.55rem;
+  align-content: flex-start;
+}
+
+.entryStatusRow :global(.mantine-Badge-root) {
+  flex-shrink: 0;
+}
+
+.entryRatingSlot {
+  min-width: 5.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.entryRating {
+  min-width: 0;
 }
 
 .entryMetaLine {
@@ -299,6 +320,13 @@
 
 .ratingText {
   font-variant-numeric: tabular-nums;
+}
+
+.unratedText {
+  color: var(--mantine-color-gray-6);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .compactList {

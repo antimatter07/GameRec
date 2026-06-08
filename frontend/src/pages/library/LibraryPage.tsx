@@ -587,18 +587,24 @@ export default function LibraryPage() {
                             <Paper p="sm" radius="xs" withBorder className={classes.entryMeta}>
                               <Group justify="space-between" align="flex-start" gap="sm" wrap="nowrap">
                                 <div className={classes.entryInfo}>
-                                  <Group gap={6} wrap="wrap" mb={6}>
+                                  <Group gap={6} wrap="wrap" mb={6} className={classes.entryStatusRow}>
                                     <Badge size="xs" color={STATUS_COLORS[entry.status]} variant="light">
                                       {STATUS_LABELS[entry.status]}
                                     </Badge>
-                                    {entry.rating !== null && (
-                                      <Group gap={6} wrap="nowrap">
-                                        <Rating value={entry.rating} fractions={2} readOnly size="xs" color="yellow" />
-                                        <Text size="xs" c="dimmed" className={classes.ratingText}>
-                                          {entry.rating.toFixed(1)}
+                                    <div className={classes.entryRatingSlot}>
+                                      {entry.rating !== null ? (
+                                        <Group gap={6} wrap="nowrap" className={classes.entryRating}>
+                                          <Rating value={entry.rating} fractions={2} readOnly size="xs" color="yellow" />
+                                          <Text size="xs" c="dimmed" className={classes.ratingText}>
+                                            {entry.rating.toFixed(1)}
+                                          </Text>
+                                        </Group>
+                                      ) : (
+                                        <Text size="xs" className={`${classes.ratingText} ${classes.unratedText}`}>
+                                          Unrated
                                         </Text>
-                                      </Group>
-                                    )}
+                                      )}
+                                    </div>
                                   </Group>
 
                                   <Text className={classes.entryMetaLine}>
