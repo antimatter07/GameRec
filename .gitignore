@@ -38,3 +38,9 @@ backend/.env.production
 .aws-sam/
 backend/data/
 CLAUDE.md
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+!.env.example
